@@ -6,17 +6,17 @@ derived from the [README](../README.mbt.md) and the design decisions in
 
 Conventions:
 
-- Tasks are grouped by milestone: sections 0–6 make up **P0** (the minimum
+- Tasks are grouped by milestone: Steps 0–6 make up **P0** (the minimum
   loop), 7–8 are **P1**, 9–10 are **P2**, 11 validates the whole, 12 is
   **P3** stretch.
-- Work through tasks in order within a section; across sections, respect
+- Work through tasks in order within a step; across steps, respect
   the *Depends on* references.
 - Each task has a *Done when* line — the acceptance check. Tick the box
   only when it passes.
 - Unless stated otherwise, every task ends with `moon info && moon fmt`
   and a green `moon test`.
 
-## 0. Pre-flight spike (P0)
+## Step 0. Pre-flight spike (P0)
 
 - [x] **T0.1 — async http server spike.** Half a day, before anything
   else (R7): a minimal service on `moonbitlang/async`'s http server with
@@ -25,7 +25,7 @@ Conventions:
   *Done when:* the spike handles two concurrent JSON requests correctly;
   findings recorded in `project-notes.md`.
 
-## 1. Project scaffolding (P0)
+## Step 1. Project scaffolding (P0)
 
 - [x] **T1.1 — Repository layout.** Create five executable packages
   `cmd/gateway`, `cmd/builder`, `cmd/runner`, `cmd/scheduler`,
@@ -58,7 +58,7 @@ Conventions:
   `TZ`, UTC by default, R8).
   *Done when:* compose files, code, and notes agree with each other.
 
-## 2. Shared foundations — `src/shared` (P0)
+## Step 2. Shared foundations — `src/shared` (P0)
 
 - [ ] **T2.1 — Event type.** Model the trigger context as a type with
   three variants (http / cron / s3) and the exact JSON shape from the
@@ -84,7 +84,7 @@ Conventions:
   registry record.
   *Done when:* round-trip unit tests pass.
 
-## 3. Builder service (P0)
+## Step 3. Builder service (P0)
 
 - [ ] **T3.1 — Build API.** `POST /build` accepting a tar.gz of a MoonBit
   project plus the function name; reject packages missing `moon.mod` or
@@ -117,7 +117,7 @@ Conventions:
   *Done when:* both paths covered by `moon test` or a script under
   `scripts/`.
 
-## 4. Runner service (P0)
+## Step 4. Runner service (P0)
 
 - [ ] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
   executes the stored wasm module with `MOONLESS_EVENT` set, returns
@@ -150,7 +150,7 @@ Conventions:
   *Done when:* an infinite-echo fixture is truncated without runner
   memory growth.
 
-## 5. Gateway service (P0)
+## Step 5. Gateway service (P0)
 
 - [ ] **T5.1 — Management API.** `POST /api/deploy` (tar.gz; forwards to
   builder, then registers), `GET /api/functions`, `GET /api/functions/
@@ -176,7 +176,7 @@ Conventions:
   trigger, logs retrieval.
   *Done when:* scripted end-to-end passes against a compose stack.
 
-## 6. moonless CLI (P0)
+## Step 6. moonless CLI (P0)
 
 - [ ] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
   `logs`), `MOONLESS_SERVER` env with `--server` override.
@@ -200,7 +200,7 @@ Conventions:
   whole P0 flow: deploy → curl → logs.
   *Done when:* the script passes on a fresh compose stack.
 
-## 7. Scheduler (P1)
+## Step 7. Scheduler (P1)
 
 - [ ] **T7.1 — Cron library.** Pick and integrate one of
   `lijunjie860/moonbit_cron`, `cxh04/cron_mbt`, `001-Elsa/mooncron` (or
@@ -222,7 +222,7 @@ Conventions:
   dispatch path with a fake clock where possible.
   *Done when:* suite is green.
 
-## 8. Log collection deepening (P1)
+## Step 8. Log collection deepening (P1)
 
 - [ ] **T8.1 — Rotation.** Rotate log files by day (or size cap), keep
   the last N files.
@@ -235,7 +235,7 @@ Conventions:
   `GET /api/functions/<name>/runs`; `moonless runs <name>` shows them.
   *Done when:* the last N runs are listed with correct metadata.
 
-## 9. SeaweedFS integration (P2)
+## Step 9. SeaweedFS integration (P2)
 
 - [ ] **T9.1 — Compose integration.** Add SeaweedFS to compose using the
   single-process `weed server` mode (master / volume / filer / S3
@@ -266,7 +266,7 @@ Conventions:
   data-services section.
   *Done when:* a function can list its trigger bucket via an S3 client.
 
-## 10. Data-service injection (P2)
+## Step 10. Data-service injection (P2)
 
 - [ ] **T10.1 — Compose knobs.** `REDIS_URL`, `MYSQL_URL`,
   `POSTGRES_URL` entries in compose (commented-out examples by default,
@@ -284,7 +284,7 @@ Conventions:
   against the running system.
   *Done when:* every documented env var and driver link is accurate.
 
-## 11. End-to-end & demo (final validation)
+## Step 11. End-to-end & demo (final validation)
 
 - [ ] **T11.1 — Examples.** Ship `examples/hello`,
   `examples/nightly-cleanup` (cron), and `examples/on-upload` (s3)
@@ -301,7 +301,7 @@ Conventions:
   deploy, trigger all three ways, show logs.
   *Done when:* dry-run takes under five minutes.
 
-## 12. Stretch (P3)
+## Step 12. Stretch (P3)
 
 - [ ] **T12.1 — Per-function limits.** Timeout and concurrency settings
   in `moonless.toml`, honored by the runner.

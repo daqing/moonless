@@ -6,15 +6,15 @@
 
 约定：
 
-- 任务按里程碑分组：第 0–6 章构成 **P0**（最小闭环），7–8 章为
-  **P1**，9–10 章为 **P2**，第 11 章做整体验收，第 12 章为 **P3**
+- 任务按里程碑分组：Step 0–6 构成 **P0**（最小闭环），Step 7–8 为
+  **P1**，Step 9–10 为 **P2**，Step 11 做整体验收，Step 12 为 **P3**
   扩展项。
-- 同一章内按顺序执行；跨章遵循 *依赖于* 的引用。
+- 同一 Step 内按顺序执行；跨 Step 遵循 *依赖于* 的引用。
 - 每个任务都有 *完成标准* 作为验收检查，通过后再勾选复选框。
 - 除非特别说明，每个任务收尾时运行 `moon info && moon fmt`，并保证
   `moon test` 全绿。
 
-## 0. 前置验证（P0）
+## Step 0. 前置验证（P0）
 
 - [x] **T0.1 — async http server spike。** 半天，先于一切任务（R7）：
   用 `moonbitlang/async` 的 http server 实现带路径路由、JSON body、
@@ -22,7 +22,7 @@
   *完成标准：* spike 正确处理两个并发的 JSON 请求；发现记入
   `project-notes.md`。
 
-## 1. 项目脚手架（P0）
+## Step 1. 项目脚手架（P0）
 
 - [x] **T1.1 — 仓库布局。** 建立五个可执行包 `cmd/gateway`、
   `cmd/builder`、`cmd/runner`、`cmd/scheduler`、`cmd/moonless`（各为
@@ -51,7 +51,7 @@
   时区约定（容器 `TZ`，默认 UTC，R8）。
   *完成标准：* compose 文件、代码与文档三者一致。
 
-## 2. 公共基础 — `src/shared`（P0）
+## Step 2. 公共基础 — `src/shared`（P0）
 
 - [ ] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
   上下文建模为含 http / cron / s3 三个变体的类型，并实现编解码。
@@ -74,7 +74,7 @@
   `RunRequest`、`RunResult` 与注册表记录的 struct 定义 + JSON 编解码。
   *完成标准：* 往返单元测试通过。
 
-## 3. Builder 服务（P0）
+## Step 3. Builder 服务（P0）
 
 - [ ] **T3.1 — 构建 API。** `POST /build` 接收 MoonBit 项目的
   tar.gz 包和函数名；缺少 `moon.mod` 或 `moonless.toml` 的包拒绝。
@@ -101,7 +101,7 @@
   fixture。
   *完成标准：* 两条路径都被 `moon test` 或 `scripts/` 下脚本覆盖。
 
-## 4. Runner 服务（P0）
+## Step 4. Runner 服务（P0）
 
 - [ ] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
   设置 `MOONLESS_EVENT` 执行已存储的 wasm 模块，返回
@@ -131,7 +131,7 @@
   路径遵循同一上限。
   *完成标准：* 无限回显的 fixture 被截断，runner 内存无增长。
 
-## 5. Gateway 服务（P0）
+## Step 5. Gateway 服务（P0）
 
 - [ ] **T5.1 — 管理 API。** `POST /api/deploy`（tar.gz，转发给
   builder 后登记）、`GET /api/functions`、
@@ -156,7 +156,7 @@
   日志获取。
   *完成标准：* 脚本化的端到端流程在 compose 栈上通过。
 
-## 6. moonless CLI（P0）
+## Step 6. moonless CLI（P0）
 
 - [ ] **T6.1 — CLI 骨架。** 子命令分发（`deploy`、`list`、`logs`），
   `MOONLESS_SERVER` 环境变量 + `--server` 覆盖参数。
@@ -179,7 +179,7 @@
   脚本：deploy → curl → logs。
   *完成标准：* 脚本在全新的 compose 栈上通过。
 
-## 7. Scheduler（P1）
+## Step 7. Scheduler（P1）
 
 - [ ] **T7.1 — Cron 库。** 从 `lijunjie860/moonbit_cron`、
   `cxh04/cron_mbt`、`001-Elsa/mooncron` 中选型集成（或论证自写五段
@@ -199,7 +199,7 @@
   （尽量用假时钟）。
   *完成标准：* 测试套件全绿。
 
-## 8. 日志收集深化（P1）
+## Step 8. 日志收集深化（P1）
 
 - [ ] **T8.1 — 轮转。** 按天（或大小上限）轮转日志文件，保留最近
   N 个文件。
@@ -212,7 +212,7 @@
   `moonless runs <name>` 展示。
   *完成标准：* 最近 N 次运行被正确列出。
 
-## 9. SeaweedFS 集成（P2）
+## Step 9. SeaweedFS 集成（P2）
 
 - [ ] **T9.1 — Compose 集成。** 以 `weed server` 单进程模式（master /
   volume / filer / S3 gateway 单容器，R6）在 compose 中加入
@@ -238,7 +238,7 @@
   `MOONLESS_S3_ENDPOINT`（及凭据）；对照 README 数据服务一节验证。
   *完成标准：* 函数能通过 S3 客户端列出触发它的桶。
 
-## 10. 数据服务注入（P2）
+## Step 10. 数据服务注入（P2）
 
 - [ ] **T10.1 — Compose 配置项。** compose 中加入 `REDIS_URL`、
   `MYSQL_URL`、`POSTGRES_URL` 条目（默认注释掉，指向用户自备实例）。
@@ -254,7 +254,7 @@
   一节。
   *完成标准：* 每个文档中的环境变量和 driver 链接都准确。
 
-## 11. 端到端与演示（最终验收）
+## Step 11. 端到端与演示（最终验收）
 
 - [ ] **T11.1 — 示例项目。** 仓库内置 `examples/hello`、
   `examples/nightly-cleanup`（cron）、`examples/on-upload`（s3）。
@@ -269,7 +269,7 @@
   方式触发、展示日志。
   *完成标准：* 彩排一遍不超过五分钟。
 
-## 12. 扩展项（P3）
+## Step 12. 扩展项（P3）
 
 - [ ] **T12.1 — 函数级限制。** `moonless.toml` 中的超时与并发配置，
   由 runner 执行。
