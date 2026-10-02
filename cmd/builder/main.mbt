@@ -1,4 +1,4 @@
 ///|
-fn main {
-  println("hello from builder")
+async fn main {
+  @shared.log_info(service="builder", message="hello from builder")
 }

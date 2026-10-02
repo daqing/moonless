@@ -60,26 +60,26 @@ Conventions:
 
 ## Step 2. Shared foundations — `src/shared` (P0)
 
-- [ ] **T2.1 — Event type.** Model the trigger context as a type with
+- [x] **T2.1 — Event type.** Model the trigger context as a type with
   three variants (http / cron / s3) and the exact JSON shape from the
   README, with encode/decode.
   *Done when:* unit tests round-trip all three variants.
-- [ ] **T2.2 — Manifest parsing.** Decode and validate `moonless.toml`:
+- [x] **T2.2 — Manifest parsing.** Decode and validate `moonless.toml`:
   `name` required, triggers all optional, `cron` a five-field expression,
   `s3.events` a subset of `{put, delete}`, and the optional `toolchain`
   field must not exceed the platform's pinned version (R1).
   *Done when:* unit tests cover valid and invalid samples.
-- [ ] **T2.3 — HTTP server helper.** A thin router on top of
+- [x] **T2.3 — HTTP server helper.** A thin router on top of
   `moonbitlang/async`: path matching, method dispatch, JSON body reading,
   response helpers.
   *Done when:* used by at least one service smoke test.
-- [ ] **T2.4 — HTTP client helper.** GET/POST with JSON bodies and a
+- [x] **T2.4 — HTTP client helper.** GET/POST with JSON bodies and a
   configurable timeout.
   *Done when:* unit test against the local test server.
-- [ ] **T2.5 — Logging helper.** Structured stderr logging: service name,
+- [x] **T2.5 — Logging helper.** Structured stderr logging: service name,
   timestamp, level, message.
   *Done when:* adopted by all five services.
-- [ ] **T2.6 — Inter-service protocol types.** Structs + JSON codecs for
+- [x] **T2.6 — Inter-service protocol types.** Structs + JSON codecs for
   `DeployRequest`, `BuildResult`, `RunRequest`, `RunResult`, and the
   registry record.
   *Done when:* round-trip unit tests pass.

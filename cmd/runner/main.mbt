@@ -1,4 +1,4 @@
 ///|
-fn main {
-  println("hello from runner")
+async fn main {
+  @shared.log_info(service="runner", message="hello from runner")
 }

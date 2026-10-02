@@ -1,11 +1,213 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "daqing/moonless/src/shared"
 
+import {
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
+  "moonbitlang/core/debug",
+}
+
 // Values
+pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
+
+pub fn format_timestamp(Int64) -> String
+
+pub async fn http_get(String, timeout_ms? : Int) -> ClientResponse raise SharedError
+
+pub async fn http_get_json(String, timeout_ms? : Int) -> Json raise SharedError
+
+pub async fn http_post_json(String, Json, timeout_ms? : Int) -> Json raise SharedError
+
+pub fn json_field_bool(Map[String, Json], String, default? : Bool) -> Bool raise SharedError
+
+pub fn json_field_int(Map[String, Json], String, default? : Int) -> Int raise SharedError
+
+pub fn json_field_object(Map[String, Json], String) -> Map[String, Json]? raise SharedError
+
+pub fn json_field_string(Map[String, Json], String, default? : String) -> String raise SharedError
+
+pub fn json_field_string_array(Map[String, Json], String) -> Array[String] raise SharedError
+
+pub async fn log(String, LogLevel, String) -> Unit
+
+pub async fn log_error(service~ : String, message~ : String) -> Unit
+
+pub async fn log_info(service~ : String, message~ : String) -> Unit
+
+pub async fn log_warn(service~ : String, message~ : String) -> Unit
+
+pub fn match_path(String, String) -> Map[String, String]?
+
+pub fn parse_manifest(String) -> Manifest raise SharedError
+
+pub let platform_toolchain : String
+
+pub async fn read_json_body(RequestContext) -> Json raise SharedError
+
+pub fn route(http_method~ : @http.RequestMethod, pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
+
+pub fn route_any(pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
+
+pub async fn send_json(@http.ServerConnection, Int, Json) -> Unit
+
+pub async fn send_text(@http.ServerConnection, Int, String) -> Unit
+
+pub async fn serve(String, Router) -> Unit
+
+pub async fn serve_on(@http.Server, Router) -> Unit
 
 // Errors
+pub suberror SharedError {
+  InvalidJson(String)
+  InvalidEvent(String)
+  InvalidManifest(String)
+  HttpError(String)
+} derive(@debug.Debug)
+pub fn SharedError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct BuildResult {
+  ok : Bool
+  build_id : String
+  wasm_path : String
+  error_tail : String
+} derive(@debug.Debug)
+pub fn BuildResult::BuildResult(ok~ : Bool, build_id? : String, wasm_path? : String, error_tail? : String) -> Self
+pub fn BuildResult::from_json(Json) -> Self raise SharedError
+pub fn BuildResult::to_json(Self) -> Json
+pub fn BuildResult::to_repr(Self) -> @debug.Repr
+
+pub struct ClientResponse {
+  status : Int
+  body : String
+}
+pub fn ClientResponse::ClientResponse(status~ : Int, body~ : String) -> Self
+
+pub struct CronEventData {
+  schedule : String
+  time : String
+} derive(@debug.Debug)
+pub fn CronEventData::CronEventData(schedule~ : String, time~ : String) -> Self
+pub fn CronEventData::to_repr(Self) -> @debug.Repr
+
+pub struct DeployRequest {
+  name : String
+  archive : String
+} derive(@debug.Debug)
+pub fn DeployRequest::DeployRequest(name~ : String, archive~ : String) -> Self
+pub fn DeployRequest::from_json(Json) -> Self raise SharedError
+pub fn DeployRequest::to_json(Self) -> Json
+pub fn DeployRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Event {
+  Http(HttpEventData)
+  Cron(CronEventData)
+  S3(S3EventData)
+} derive(@debug.Debug)
+pub fn Event::from_json(Json) -> Self raise SharedError
+pub fn Event::to_json(Self) -> Json
+pub fn Event::to_repr(Self) -> @debug.Repr
+
+pub struct HttpEventData {
+  http_method : String
+  path : String
+  query : String
+  body : String
+} derive(@debug.Debug)
+pub fn HttpEventData::HttpEventData(http_method~ : String, path~ : String, query~ : String, body~ : String) -> Self
+pub fn HttpEventData::to_repr(Self) -> @debug.Repr
+
+pub enum LogLevel {
+  Info
+  Warn
+  Error
+} derive(@debug.Debug)
+pub fn LogLevel::to_repr(Self) -> @debug.Repr
+
+pub struct Manifest {
+  name : String
+  triggers : ManifestTriggers
+  toolchain : String?
+} derive(@debug.Debug)
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String) -> Self
+pub fn Manifest::from_json(Json) -> Self raise SharedError
+pub fn Manifest::to_json(Self) -> Json
+pub fn Manifest::to_repr(Self) -> @debug.Repr
+
+pub struct ManifestTriggers {
+  http_enabled : Bool
+  cron : String?
+  s3 : S3Trigger?
+} derive(@debug.Debug)
+pub fn ManifestTriggers::ManifestTriggers(http_enabled? : Bool, cron? : String, s3? : S3Trigger) -> Self
+pub fn ManifestTriggers::to_repr(Self) -> @debug.Repr
+
+pub struct RegistryRecord {
+  name : String
+  manifest : Manifest
+  build_id : String
+  updated_at : String
+} derive(@debug.Debug)
+pub fn RegistryRecord::RegistryRecord(name~ : String, manifest~ : Manifest, build_id~ : String, updated_at~ : String) -> Self
+pub fn RegistryRecord::from_json(Json) -> Self raise SharedError
+pub fn RegistryRecord::to_json(Self) -> Json
+pub fn RegistryRecord::to_repr(Self) -> @debug.Repr
+
+pub struct RequestContext {
+  params : Map[String, String]
+  request : @http.Request
+  body : &@io.Reader
+  conn : @http.ServerConnection
+}
+
+pub struct Route {
+  http_method : @http.RequestMethod?
+  pattern : String
+  handler : async (RequestContext) -> Unit
+}
+
+pub struct Router {
+  routes : Array[Route]
+}
+pub fn Router::add(Self, Route) -> Unit
+pub fn Router::new() -> Self
+
+pub struct RunRequest {
+  name : String
+  event : Event
+  env : Map[String, String]
+} derive(@debug.Debug)
+pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String]) -> Self
+pub fn RunRequest::from_json(Json) -> Self raise SharedError
+pub fn RunRequest::to_json(Self) -> Json
+pub fn RunRequest::to_repr(Self) -> @debug.Repr
+
+pub struct RunResult {
+  stdout : String
+  stderr : String
+  exit_code : Int
+  duration_ms : Int
+  truncated : Bool
+} derive(@debug.Debug)
+pub fn RunResult::RunResult(stdout? : String, stderr? : String, exit_code? : Int, duration_ms? : Int, truncated? : Bool) -> Self
+pub fn RunResult::from_json(Json) -> Self raise SharedError
+pub fn RunResult::to_json(Self) -> Json
+pub fn RunResult::to_repr(Self) -> @debug.Repr
+
+pub struct S3EventData {
+  event_name : String
+  bucket : String
+  key : String
+} derive(@debug.Debug)
+pub fn S3EventData::S3EventData(event~ : String, bucket~ : String, key~ : String) -> Self
+pub fn S3EventData::to_repr(Self) -> @debug.Repr
+
+pub struct S3Trigger {
+  bucket : String
+  events : Array[String]
+} derive(@debug.Debug)
+pub fn S3Trigger::S3Trigger(bucket~ : String, events~ : Array[String]) -> Self
+pub fn S3Trigger::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

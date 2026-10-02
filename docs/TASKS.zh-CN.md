@@ -53,24 +53,24 @@
 
 ## Step 2. 公共基础 — `src/shared`（P0）
 
-- [ ] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
+- [x] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
   上下文建模为含 http / cron / s3 三个变体的类型，并实现编解码。
   *完成标准：* 单元测试覆盖三种变量的往返（round-trip）。
-- [ ] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
+- [x] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
   必填、触发器全部可选、`cron` 为五段式表达式、`s3.events` 取值
   属于 `{put, delete}`、可选的 `toolchain` 字段不得超过平台锁定的
   版本（R1）。
   *完成标准：* 单元测试覆盖合法与非法样例。
-- [ ] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
+- [x] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
   路由封装：路径匹配、方法分发、JSON body 读取、响应辅助函数。
   *完成标准：* 至少被一个服务的冒烟测试使用。
-- [ ] **T2.4 — HTTP client 辅助。** 带超时配置的 GET/POST（JSON
+- [x] **T2.4 — HTTP client 辅助。** 带超时配置的 GET/POST（JSON
   body）。
   *完成标准：* 通过本地测试服务器的单元测试。
-- [ ] **T2.5 — 日志辅助。** 结构化 stderr 日志：服务名、时间戳、
+- [x] **T2.5 — 日志辅助。** 结构化 stderr 日志：服务名、时间戳、
   级别、消息。
   *完成标准：* 五个服务全部接入。
-- [ ] **T2.6 — 服务间协议类型。** `DeployRequest`、`BuildResult`、
+- [x] **T2.6 — 服务间协议类型。** `DeployRequest`、`BuildResult`、
   `RunRequest`、`RunResult` 与注册表记录的 struct 定义 + JSON 编解码。
   *完成标准：* 往返单元测试通过。
 
