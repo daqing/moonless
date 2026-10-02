@@ -27,7 +27,7 @@ Conventions:
 
 ## 1. Project scaffolding (P0)
 
-- [ ] **T1.1 — Repository layout.** Create five executable packages
+- [x] **T1.1 — Repository layout.** Create five executable packages
   `cmd/gateway`, `cmd/builder`, `cmd/runner`, `cmd/scheduler`,
   `cmd/moonless` (each a `println("hello from <name>")` main), and a
   shared library package `src/shared` for cross-service types. Remove the

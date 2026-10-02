@@ -24,7 +24,7 @@
 
 ## 1. 项目脚手架（P0）
 
-- [ ] **T1.1 — 仓库布局。** 建立五个可执行包 `cmd/gateway`、
+- [x] **T1.1 — 仓库布局。** 建立五个可执行包 `cmd/gateway`、
   `cmd/builder`、`cmd/runner`、`cmd/scheduler`、`cmd/moonless`（各为
   一个 `println("hello from <name>")` 的 main），以及跨服务共享类型
   的库包 `src/shared`。移除脚手架 `cmd/main`。
