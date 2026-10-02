@@ -43,7 +43,7 @@ Conventions:
   gateway.
   *Done when:* `docker compose up` brings up four service containers
   (hello-world behavior is fine at this point).
-- [ ] **T1.3 — Dependencies.** Add `moonbit-community/toml` to
+- [x] **T1.3 — Dependencies.** Add `moonbit-community/toml` to
   `moon.mod` (`moonbitlang/async` already added in T0.1; dependency
   rule: prefer moonbit-community packages when candidates exist); the
   cron library follows in T7.1.

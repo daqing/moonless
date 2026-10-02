@@ -38,7 +38,7 @@
   `/var/lib/moonless`。
   *完成标准：* `docker compose up` 拉起四个服务容器（此阶段 hello
   world 行为即可）。
-- [ ] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbit-community/toml`
+- [x] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbit-community/toml`
   （`moonbitlang/async` 已在 T0.1 加入；依赖选型原则：存在多个候选时
   优先 moonbit-community 的包）；cron 库随 T7.1 引入。
   *完成标准：* 新依赖引入后构建通过，`pkg.generated.mbti` 的差异

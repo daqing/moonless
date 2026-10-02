@@ -27,4 +27,5 @@ description = ""
 
 import {
   "moonbitlang/async@0.22.4",
+  "moonbit-community/toml@0.5.0",
 }
