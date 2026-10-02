@@ -16,7 +16,7 @@
 
 ## 0. 前置验证（P0）
 
-- [ ] **T0.1 — async http server spike。** 半天，先于一切任务（R7）：
+- [x] **T0.1 — async http server spike。** 半天，先于一切任务（R7）：
   用 `moonbitlang/async` 的 http server 实现带路径路由、JSON body、
   并发请求的最小服务；记录 API 的坑。
   *完成标准：* spike 正确处理两个并发的 JSON 请求；发现记入

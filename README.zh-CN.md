@@ -94,7 +94,8 @@ export MOONLESS_SERVER=http://localhost:8080
 函数就是一个带可执行包的标准 MoonBit 项目。假设
 `cmd/main/main.mbt` 长这样：
 
-```moonbit
+```moonbit nocheck
+///|
 fn main {
   match @env.get_env_var("MOONLESS_EVENT") {
     Some(event) => println("hello! triggered by: \{event}")

@@ -161,6 +161,33 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 - **CLI 与 gateway 之间 MVP 不做鉴权**（内网信任模型），README 不
   承诺认证功能。
 
+## T0.1 spike 发现记录（2026-10-02，R7 关闭依据）
+
+代码：`spike/async_http/`。全部验证通过：路由（200/400/404）、JSON
+解析与生成、**并发实证**（两个各 sleep 500ms 的并发请求总耗时
+0.516s ≈ 单请求，非串行）。async http server 可作四个服务的基础。
+
+- 入口即 `async fn main`；`@http.Server(@socket.Addr::parse("127.0.0.1:8899"))`
+  + `run_forever((request, body, conn) => ...)` 三行起服务，handler
+  lambda 自动适配 async 签名。
+- **关键行为：handler 内 raise 不会崩服务，但客户端收到空响应**
+  （curl exit 000）。gateway 的所有错误路径（JSON 解析、调 runner
+  失败等）必须在 handler 内 `catch` 转 4xx/5xx，不能任其上抛。
+- body 读取：`body.read_all() -> &Data`，`Data::text() -> String`；
+  `moonbitlang/async/io` 无需显式 import。
+- core/json 要点：类型名是 `Json`（prelude 可见；`@json.Json` 不存在）；
+  `@json.parse(s) -> Json raise ParseError`；`Json::value()` 已
+  deprecated，取字段用 `Object(obj)` 模式匹配 + `Map.get`；数字变体
+  是 `Number(Double, repr~)`，匹配写 `Number(v, ..)`；JSON literal
+  `{ "k": v }` 需显式 `: Json` 标注，否则推断为 `Map`；输出用
+  `Json::stringify()`。
+- 响应链式写法：`conn..send_response(..)..write_string(..).end_response()`，
+  链尾必须 `.`（`..` 收尾触发 deprecated 警告）。
+- `@async.sleep(n)` 单位毫秒。
+- moon.pkg：`supported_targets = "+native"` 必需。
+- 对 T2.3 的启示：路由封装照本 spike 的 `(meth, path)` match 模式
+  实现即可，无需引入路由库。
+
 ## 工程风险登记册（2026-10-02 逐条拍板）
 
 - **R1 builder 镜像与工具链版本** — **已决**：自建镜像，构建时锁定

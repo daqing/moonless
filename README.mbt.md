@@ -104,7 +104,8 @@ export MOONLESS_SERVER=http://localhost:8080
 A function is a standard MoonBit project with an executable package. Say
 `cmd/main/main.mbt` looks like this:
 
-```moonbit
+```moonbit nocheck
+///|
 fn main {
   match @env.get_env_var("MOONLESS_EVENT") {
     Some(event) => println("hello! triggered by: \{event}")

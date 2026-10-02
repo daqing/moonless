@@ -18,7 +18,7 @@ Conventions:
 
 ## 0. Pre-flight spike (P0)
 
-- [ ] **T0.1 — async http server spike.** Half a day, before anything
+- [x] **T0.1 — async http server spike.** Half a day, before anything
   else (R7): a minimal service on `moonbitlang/async`'s http server with
   path routing, JSON body handling, and concurrent requests; note any
   API rough edges.
