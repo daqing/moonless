@@ -49,7 +49,7 @@ Conventions:
   cron library follows in T7.1.
   *Done when:* builds pass with the new imports; `pkg.generated.mbti`
   diffs look expected.
-- [ ] **T1.4 — Platform conventions doc.** Record in this file's sibling
+- [x] **T1.4 — Platform conventions doc.** Record in this file's sibling
   `project-notes.md`: port assignments (e.g. gateway 8080, builder 8081,
   runner 8082, scheduler 8083), the shared-volume layout
   (`/var/lib/moonless/{functions,builds,logs,registry}/`), and the

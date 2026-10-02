@@ -43,7 +43,7 @@
   优先 moonbit-community 的包）；cron 库随 T7.1 引入。
   *完成标准：* 新依赖引入后构建通过，`pkg.generated.mbti` 的差异
   符合预期。
-- [ ] **T1.4 — 平台约定文档。** 在同目录 `project-notes.md` 记录：
+- [x] **T1.4 — 平台约定文档。** 在同目录 `project-notes.md` 记录：
   端口分配（如 gateway 8080、builder 8081、runner 8082、scheduler
   8083）、共享 volume 布局
   （`/var/lib/moonless/{functions,builds,logs,registry}/`）以及

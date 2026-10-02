@@ -174,6 +174,46 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 - **CLI 与 gateway 之间 MVP 不做鉴权**（内网信任模型），README 不
   承诺认证功能。
 
+## 平台工程约定（T1.4 定稿，2026-10-03）
+
+compose、代码与本文三者保持一致；改动任何一项须同步其余两项。
+
+- **端口分配**：gateway 8080、builder 8081、runner 8082、scheduler
+  8083。仅 gateway 发布到宿主机（compose `8080:8080`），其余三个端口
+  只在 compose 内部网络使用，服务间互调用服务名（如
+  `http://builder:8081`）。
+- **共享卷**：named volume `moonless-data` 挂载 `/var/lib/moonless`，
+  builder、runner、gateway 三个服务共享（scheduler 无状态不挂）。
+  子目录布局：`functions/`（函数 wasm 产物）、`builds/`（构建工作
+  目录）、`logs/`（函数运行日志）、`registry/`（函数注册表）。子目录
+  由各服务按需创建——不要烘焙进镜像：多个容器并发首次挂载同一个空
+  named volume 时，Docker 的 volume copy-up 会与预建目录发生
+  `mkdir: file exists` 竞态（T1.2 实测）。
+- **MOONLESS_\* 环境变量清单**：
+  - 平台侧：`MOONLESS_DATA`（共享卷路径，默认 `/var/lib/moonless`，
+    Dockerfile 已设）；`MOONLESS_SERVER`（CLI 定位 gateway 地址）。
+  - 函数侧注入：`MOONLESS_EVENT`（触发事件 JSON）；数据服务地址
+    `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
+    `MOONLESS_POSTGRES_URL` / `MOONLESS_S3_ENDPOINT`（P2 起注入，
+    凭据随 S3 端点一并注入）。
+  - 运行参数（超时/并发/输出上限）的 env 命名随 T4.3/T4.4/T4.8 落地
+    时确定，届时补进本清单。
+- **函数输出上限**：stdout/stderr 每流默认 10MB，超出截断并在结果中
+  标记 `truncated`（R4）；上限可由环境变量调整（T4.8）。
+- **时区**：容器 `TZ`，默认 UTC（R8）；cron 语义按容器时区解释。
+- **工具链锁定（R1 落地）**：镜像内 moon 工具链版本由 Dockerfile
+  `ARG MOONBIT_VERSION=0.10.14+7d59c7ec9` 锁定（对应 moon CLI
+  0.1.20260920、moonrun 同版，与开发机一致）。版本化下载 URL 用
+  moonc 风格版本号（`https://cli.moonbitlang.com/binaries/<moonc 版
+  本>/moonbit-<target>.tar.gz`；moon CLI 风格的 `0.1.20260920` 会
+  403，`latest` 永远可达但不可复现）。
+- **镜像构建实测要点（T1.2）**：Linux 上 native 链接需要系统 C 编
+  译器（镜像装 `gcc` + `libc6-dev`）；"wasm 构建无需 C 工具链"只针对
+  函数 wasm 构建。`moon update` 依赖系统 `git`（克隆 mooncakes 注册
+  表索引），镜像必须带 git。平台二进制在镜像构建期用
+  `moon build --target native --release` 预编译到 `/app/bin/`，四个
+  服务共用同一镜像、仅 entrypoint 不同（R3）。
+
 ## T0.1 spike 发现记录（2026-10-02，R7 关闭依据）
 
 代码：`spike/async_http/`。全部验证通过：路由（200/400/404）、JSON
