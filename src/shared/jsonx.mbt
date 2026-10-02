@@ -7,6 +7,7 @@
 pub suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
+  InvalidManifest(String)
 } derive(Debug)
 
 ///|

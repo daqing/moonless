@@ -64,7 +64,7 @@ Conventions:
   three variants (http / cron / s3) and the exact JSON shape from the
   README, with encode/decode.
   *Done when:* unit tests round-trip all three variants.
-- [ ] **T2.2 — Manifest parsing.** Decode and validate `moonless.toml`:
+- [x] **T2.2 — Manifest parsing.** Decode and validate `moonless.toml`:
   `name` required, triggers all optional, `cron` a five-field expression,
   `s3.events` a subset of `{put, delete}`, and the optional `toolchain`
   field must not exceed the platform's pinned version (R1).

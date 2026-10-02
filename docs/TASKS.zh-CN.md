@@ -56,7 +56,7 @@
 - [x] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
   上下文建模为含 http / cron / s3 三个变体的类型，并实现编解码。
   *完成标准：* 单元测试覆盖三种变量的往返（round-trip）。
-- [ ] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
+- [x] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
   必填、触发器全部可选、`cron` 为五段式表达式、`s3.events` 取值
   属于 `{put, delete}`、可选的 `toolchain` 字段不得超过平台锁定的
   版本（R1）。

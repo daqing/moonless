@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
+
 pub fn json_field_bool(Map[String, Json], String, default? : Bool) -> Bool raise SharedError
 
 pub fn json_field_int(Map[String, Json], String, default? : Int) -> Int raise SharedError
@@ -16,10 +18,15 @@ pub fn json_field_string(Map[String, Json], String, default? : String) -> String
 
 pub fn json_field_string_array(Map[String, Json], String) -> Array[String] raise SharedError
 
+pub fn parse_manifest(String) -> Manifest raise SharedError
+
+pub let platform_toolchain : String
+
 // Errors
 pub suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
+  InvalidManifest(String)
 } derive(@debug.Debug)
 pub fn SharedError::to_repr(Self) -> @debug.Repr
 
@@ -49,6 +56,22 @@ pub struct HttpEventData {
 pub fn HttpEventData::HttpEventData(http_method~ : String, path~ : String, query~ : String, body~ : String) -> Self
 pub fn HttpEventData::to_repr(Self) -> @debug.Repr
 
+pub struct Manifest {
+  name : String
+  triggers : ManifestTriggers
+  toolchain : String?
+} derive(@debug.Debug)
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String) -> Self
+pub fn Manifest::to_repr(Self) -> @debug.Repr
+
+pub struct ManifestTriggers {
+  http_enabled : Bool
+  cron : String?
+  s3 : S3Trigger?
+} derive(@debug.Debug)
+pub fn ManifestTriggers::ManifestTriggers(http_enabled? : Bool, cron? : String, s3? : S3Trigger) -> Self
+pub fn ManifestTriggers::to_repr(Self) -> @debug.Repr
+
 pub struct S3EventData {
   event_name : String
   bucket : String
@@ -56,6 +79,13 @@ pub struct S3EventData {
 } derive(@debug.Debug)
 pub fn S3EventData::S3EventData(event~ : String, bucket~ : String, key~ : String) -> Self
 pub fn S3EventData::to_repr(Self) -> @debug.Repr
+
+pub struct S3Trigger {
+  bucket : String
+  events : Array[String]
+} derive(@debug.Debug)
+pub fn S3Trigger::S3Trigger(bucket~ : String, events~ : Array[String]) -> Self
+pub fn S3Trigger::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 
