@@ -24,13 +24,13 @@
 
 ## 1. 项目脚手架（P0）
 
-- [ ] **T1.1 — 仓库布局。** 建立五个可执行包 `cmd/gateway`、
+- [x] **T1.1 — 仓库布局。** 建立五个可执行包 `cmd/gateway`、
   `cmd/builder`、`cmd/runner`、`cmd/scheduler`、`cmd/moonless`（各为
   一个 `println("hello from <name>")` 的 main），以及跨服务共享类型
   的库包 `src/shared`。移除脚手架 `cmd/main`。
   *完成标准：* 五个入口都能通过 `moon build --target native`，
   且 `moon test` 全绿。
-- [ ] **T1.2 — Compose 与镜像。** 编写 `docker-compose.yml`（gateway、
+- [x] **T1.2 — Compose 与镜像。** 编写 `docker-compose.yml`（gateway、
   builder、runner、scheduler）和单个共享镜像 `Dockerfile`：内含
   版本锁定的 moon 工具链（R1；wasm 构建无需 C 工具链——moonrun 随
   工具链分发）；builder 与 runner 运行同一镜像、以不同入口区分。
@@ -38,12 +38,12 @@
   `/var/lib/moonless`。
   *完成标准：* `docker compose up` 拉起四个服务容器（此阶段 hello
   world 行为即可）。
-- [ ] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbit-community/toml`
+- [x] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbit-community/toml`
   （`moonbitlang/async` 已在 T0.1 加入；依赖选型原则：存在多个候选时
   优先 moonbit-community 的包）；cron 库随 T7.1 引入。
   *完成标准：* 新依赖引入后构建通过，`pkg.generated.mbti` 的差异
   符合预期。
-- [ ] **T1.4 — 平台约定文档。** 在同目录 `project-notes.md` 记录：
+- [x] **T1.4 — 平台约定文档。** 在同目录 `project-notes.md` 记录：
   端口分配（如 gateway 8080、builder 8081、runner 8082、scheduler
   8083）、共享 volume 布局
   （`/var/lib/moonless/{functions,builds,logs,registry}/`）以及

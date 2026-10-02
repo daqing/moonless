@@ -1,5 +1,0 @@
-// import {
-//   "daqing/moonless" @lib,
-// }
-
-pkgtype(kind: "executable")

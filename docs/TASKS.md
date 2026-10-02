@@ -27,14 +27,14 @@ Conventions:
 
 ## 1. Project scaffolding (P0)
 
-- [ ] **T1.1 — Repository layout.** Create five executable packages
+- [x] **T1.1 — Repository layout.** Create five executable packages
   `cmd/gateway`, `cmd/builder`, `cmd/runner`, `cmd/scheduler`,
   `cmd/moonless` (each a `println("hello from <name>")` main), and a
   shared library package `src/shared` for cross-service types. Remove the
   scaffold `cmd/main`.
   *Done when:* `moon build --target native` succeeds for all five
   entries and `moon test` is green.
-- [ ] **T1.2 — Compose + images.** Write `docker-compose.yml` (gateway,
+- [x] **T1.2 — Compose + images.** Write `docker-compose.yml` (gateway,
   builder, runner, scheduler) and a single shared image `Dockerfile`
   bundling the version-pinned moon toolchain (per R1; wasm builds need
   no C toolchain — moonrun ships with the toolchain); builder and
@@ -43,13 +43,13 @@ Conventions:
   gateway.
   *Done when:* `docker compose up` brings up four service containers
   (hello-world behavior is fine at this point).
-- [ ] **T1.3 — Dependencies.** Add `moonbit-community/toml` to
+- [x] **T1.3 — Dependencies.** Add `moonbit-community/toml` to
   `moon.mod` (`moonbitlang/async` already added in T0.1; dependency
   rule: prefer moonbit-community packages when candidates exist); the
   cron library follows in T7.1.
   *Done when:* builds pass with the new imports; `pkg.generated.mbti`
   diffs look expected.
-- [ ] **T1.4 — Platform conventions doc.** Record in this file's sibling
+- [x] **T1.4 — Platform conventions doc.** Record in this file's sibling
   `project-notes.md`: port assignments (e.g. gateway 8080, builder 8081,
   runner 8082, scheduler 8083), the shared-volume layout
   (`/var/lib/moonless/{functions,builds,logs,registry}/`), and the

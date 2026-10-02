@@ -1,0 +1,11 @@
+.git
+.github
+.githooks
+.zcodeignore
+.DS_Store
+_build
+.mooncakes
+.moonagent
+docs
+spike
+upstream
