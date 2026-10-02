@@ -70,7 +70,7 @@
 - [x] **T2.5 — 日志辅助。** 结构化 stderr 日志：服务名、时间戳、
   级别、消息。
   *完成标准：* 五个服务全部接入。
-- [ ] **T2.6 — 服务间协议类型。** `DeployRequest`、`BuildResult`、
+- [x] **T2.6 — 服务间协议类型。** `DeployRequest`、`BuildResult`、
   `RunRequest`、`RunResult` 与注册表记录的 struct 定义 + JSON 编解码。
   *完成标准：* 往返单元测试通过。
 

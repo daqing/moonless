@@ -79,7 +79,7 @@ Conventions:
 - [x] **T2.5 — Logging helper.** Structured stderr logging: service name,
   timestamp, level, message.
   *Done when:* adopted by all five services.
-- [ ] **T2.6 — Inter-service protocol types.** Structs + JSON codecs for
+- [x] **T2.6 — Inter-service protocol types.** Structs + JSON codecs for
   `DeployRequest`, `BuildResult`, `RunRequest`, `RunResult`, and the
   registry record.
   *Done when:* round-trip unit tests pass.
