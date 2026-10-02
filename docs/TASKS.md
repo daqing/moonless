@@ -76,7 +76,7 @@ Conventions:
 - [x] **T2.4 — HTTP client helper.** GET/POST with JSON bodies and a
   configurable timeout.
   *Done when:* unit test against the local test server.
-- [ ] **T2.5 — Logging helper.** Structured stderr logging: service name,
+- [x] **T2.5 — Logging helper.** Structured stderr logging: service name,
   timestamp, level, message.
   *Done when:* adopted by all five services.
 - [ ] **T2.6 — Inter-service protocol types.** Structs + JSON codecs for

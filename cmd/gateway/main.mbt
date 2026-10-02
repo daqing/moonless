@@ -6,5 +6,6 @@ async fn main {
       @shared.send_text(ctx.conn, 200, "ok")
     }),
   )
+  @shared.log_info(service="gateway", message="listening on 0.0.0.0:8080")
   @shared.serve("0.0.0.0:8080", router)
 }

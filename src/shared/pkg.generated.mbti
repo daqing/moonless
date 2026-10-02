@@ -10,6 +10,8 @@ import {
 // Values
 pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
 
+pub fn format_timestamp(Int64) -> String
+
 pub async fn http_get(String, timeout_ms? : Int) -> ClientResponse raise SharedError
 
 pub async fn http_get_json(String, timeout_ms? : Int) -> Json raise SharedError
@@ -25,6 +27,14 @@ pub fn json_field_object(Map[String, Json], String) -> Map[String, Json]? raise 
 pub fn json_field_string(Map[String, Json], String, default? : String) -> String raise SharedError
 
 pub fn json_field_string_array(Map[String, Json], String) -> Array[String] raise SharedError
+
+pub async fn log(String, LogLevel, String) -> Unit
+
+pub async fn log_error(service~ : String, message~ : String) -> Unit
+
+pub async fn log_info(service~ : String, message~ : String) -> Unit
+
+pub async fn log_warn(service~ : String, message~ : String) -> Unit
 
 pub fn match_path(String, String) -> Map[String, String]?
 
@@ -86,6 +96,13 @@ pub struct HttpEventData {
 } derive(@debug.Debug)
 pub fn HttpEventData::HttpEventData(http_method~ : String, path~ : String, query~ : String, body~ : String) -> Self
 pub fn HttpEventData::to_repr(Self) -> @debug.Repr
+
+pub enum LogLevel {
+  Info
+  Warn
+  Error
+} derive(@debug.Debug)
+pub fn LogLevel::to_repr(Self) -> @debug.Repr
 
 pub struct Manifest {
   name : String

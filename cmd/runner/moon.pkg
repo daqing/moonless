@@ -1,3 +1,8 @@
+import {
+  "daqing/moonless/src/shared",
+  "moonbitlang/async",
+}
+
 supported_targets = "+native"
 
 pkgtype(kind: "executable")
