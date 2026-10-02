@@ -73,7 +73,7 @@ Conventions:
   `moonbitlang/async`: path matching, method dispatch, JSON body reading,
   response helpers.
   *Done when:* used by at least one service smoke test.
-- [ ] **T2.4 — HTTP client helper.** GET/POST with JSON bodies and a
+- [x] **T2.4 — HTTP client helper.** GET/POST with JSON bodies and a
   configurable timeout.
   *Done when:* unit test against the local test server.
 - [ ] **T2.5 — Logging helper.** Structured stderr logging: service name,

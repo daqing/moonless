@@ -8,6 +8,7 @@ pub suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
   InvalidManifest(String)
+  HttpError(String)
 } derive(Debug)
 
 ///|

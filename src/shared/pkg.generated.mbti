@@ -10,6 +10,12 @@ import {
 // Values
 pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
 
+pub async fn http_get(String, timeout_ms? : Int) -> ClientResponse raise SharedError
+
+pub async fn http_get_json(String, timeout_ms? : Int) -> Json raise SharedError
+
+pub async fn http_post_json(String, Json, timeout_ms? : Int) -> Json raise SharedError
+
 pub fn json_field_bool(Map[String, Json], String, default? : Bool) -> Bool raise SharedError
 
 pub fn json_field_int(Map[String, Json], String, default? : Int) -> Int raise SharedError
@@ -45,10 +51,17 @@ pub suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
   InvalidManifest(String)
+  HttpError(String)
 } derive(@debug.Debug)
 pub fn SharedError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct ClientResponse {
+  status : Int
+  body : String
+}
+pub fn ClientResponse::ClientResponse(status~ : Int, body~ : String) -> Self
+
 pub struct CronEventData {
   schedule : String
   time : String

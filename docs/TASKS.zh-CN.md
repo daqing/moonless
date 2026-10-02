@@ -64,7 +64,7 @@
 - [x] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
   路由封装：路径匹配、方法分发、JSON body 读取、响应辅助函数。
   *完成标准：* 至少被一个服务的冒烟测试使用。
-- [ ] **T2.4 — HTTP client 辅助。** 带超时配置的 GET/POST（JSON
+- [x] **T2.4 — HTTP client 辅助。** 带超时配置的 GET/POST（JSON
   body）。
   *完成标准：* 通过本地测试服务器的单元测试。
 - [ ] **T2.5 — 日志辅助。** 结构化 stderr 日志：服务名、时间戳、

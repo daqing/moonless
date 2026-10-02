@@ -201,3 +201,72 @@ fn reason_phrase(status : Int) -> String {
     _ => "Unknown"
   }
 }
+
+///|
+// Client side: GET/POST with JSON bodies and a configurable timeout.
+
+///|
+pub struct ClientResponse {
+  status : Int
+  body : String
+}
+
+///|
+pub fn ClientResponse::ClientResponse(
+  status~ : Int,
+  body~ : String,
+) -> ClientResponse {
+  { status, body, }
+}
+
+///|
+pub async fn http_get(
+  url : String,
+  timeout_ms? : Int = 10_000,
+) -> ClientResponse raise SharedError {
+  let (response, data) = @async.with_timeout(
+    timeout_ms,
+    () => @http.get(url),
+    error=HttpError("GET \{url} timed out after \{timeout_ms}ms"),
+  ) catch {
+    HttpError(_) as err => raise err
+    err => raise HttpError("GET \{url} failed: \{@debug.to_string(err)}")
+  }
+  let text = data.text() catch {
+    _ => raise HttpError("GET \{url} response body read failed")
+  }
+  ClientResponse(status=response.code, body=text)
+}
+
+///|
+pub async fn http_get_json(
+  url : String,
+  timeout_ms? : Int = 10_000,
+) -> Json raise SharedError {
+  let response = http_get(url, timeout_ms~)
+  @json.parse(response.body) catch {
+    _ => raise HttpError("GET \{url} returned a non-JSON body")
+  }
+}
+
+///|
+pub async fn http_post_json(
+  url : String,
+  payload : Json,
+  timeout_ms? : Int = 10_000,
+) -> Json raise SharedError {
+  let (_, data) = @async.with_timeout(
+    timeout_ms,
+    () => @http.post(url, payload.stringify()),
+    error=HttpError("POST \{url} timed out after \{timeout_ms}ms"),
+  ) catch {
+    HttpError(_) as err => raise err
+    err => raise HttpError("POST \{url} failed: \{@debug.to_string(err)}")
+  }
+  let text = data.text() catch {
+    _ => raise HttpError("POST \{url} response body read failed")
+  }
+  @json.parse(text) catch {
+    _ => raise HttpError("POST \{url} returned a non-JSON body")
+  }
+}
