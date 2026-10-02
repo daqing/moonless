@@ -161,6 +161,39 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 - **CLI 与 gateway 之间 MVP 不做鉴权**（内网信任模型），README 不
   承诺认证功能。
 
+## 工程风险登记册（2026-10-02 逐条拍板）
+
+- **R1 builder 镜像与工具链版本** — **已决**：自建镜像，构建时锁定
+  moon 工具链版本（参考 moonbitlang/minimoonbit-public 的 Dockerfile
+  + native C 工具链）。`moonless.toml` 增加 `toolchain` 字段约定函数
+  期望的工具链版本，**最大支持版本即平台锁定版本**，超过则拒绝构建
+  并报错。补充设计：`toolchain` 为可选字段，缺省视为兼容、直接用
+  平台版本构建；README 写明支持的工具链版本。
+- **R2 mooncakes 依赖在内网的可得性** — **已决**：依赖解析全部发生
+  在开发机（开发者电脑可联网）。`moonless deploy` 打包时把开发机
+  已解析的 `.mooncakes/` 依赖缓存一并上传（vendored），必要时打包前
+  CLI 先在开发机执行依赖解析；builder 一律离线构建、不访问
+  mooncakes.io。不提供在线拉取选项（YAGNI）。
+- **R3 构建与运行环境 ABI 一致性** — **已决**：builder 与 runner 共用
+  同一个镜像，仅以不同启动入口区分（builder 模式 / runner 模式），
+  从根上消除函数二进制的 ABI 漂移。
+- **R4 函数输出无上限的内存风险** — **已决**：stdout / stderr 各设
+  上限，默认 10MB，超出截断并在结果中标记 `truncated`（HTTP 响应
+  同理）；上限可环境变量调整。
+- **R5 SeaweedFS webhook 交付语义** — **已决**：MVP 定调 best-effort，
+  README 明确不做事件可靠性承诺（不承诺 exactly-once / at-least-once）；
+  T9.4 的事件解析器用真实录制的事件 fixture 开发，不凭想象写。
+- **R6 SeaweedFS 资源占用** — **已决**：采用 `weed server` 单进程模式
+  （master / volume / filer / S3 gateway 一体），compose 中单容器；
+  将来需要扩展再拆分部署。
+- **R7 async http server 成熟度（架构地基）** — **已决**：全面开工前
+  先做半天 spike（任务 T0.1）：用 `moonbitlang/async` 的 http server
+  实现带路由、JSON body、并发请求的最小服务，验证地基。
+- **R8 cron 时区** — **已决**：容器 `TZ` 环境变量控制，默认 UTC，
+  scheduler 读取 `TZ`；文档写明。
+- **R9 赛期内 moon 工具链 breaking change** — **已决**：接受风险，
+  由 R1 的工具链版本锁定覆盖，不额外动作。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

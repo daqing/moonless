@@ -35,7 +35,8 @@ or by uploading a file.
   stderr. A function debugs locally with the platform completely out of
   the way.
 - **Deploy source, not binaries.** `moonless deploy` uploads your MoonBit
-  sources; the platform builds the Linux binary. No cross-compilation on
+  sources and vendored dependencies; the platform builds the Linux
+  binary — fully offline on the server side. No cross-compilation on
   your laptop, ever.
 - **Platform services written in MoonBit.** Gateway, builder, runner, and
   scheduler are all MoonBit programs built on
@@ -127,6 +128,9 @@ triggers:
 
 ```toml
 name = "hello"
+# Optional: the moon toolchain your function expects.
+# Must not exceed the platform's pinned version.
+toolchain = "0.10.11"
 
 [triggers]
 http = { enabled = true }
@@ -203,7 +207,7 @@ s3 = { bucket = "uploads", events = ["put"] }
   the schedule in its event.
 - **S3** — upload an object with any S3 client (`aws`, `mc`, `rclone`…);
   SeaweedFS notifies moonless and the function fires with the bucket and
-  key in its event.
+  key in its event. Event delivery is best-effort.
 
 ## Using data services
 

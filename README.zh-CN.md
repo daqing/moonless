@@ -28,8 +28,9 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
   一个小 manifest 里声明。
 - **Unix 风格的函数契约。** 触发上下文通过 `MOONLESS_EVENT` 环境变量传入；
   结果走 stdout，日志走 stderr。调试时平台完全可以让路。
-- **部署源码而非二进制。** `moonless deploy` 上传 MoonBit 源码，平台负责
-  构建 Linux 二进制——你的笔记本上永远不需要交叉编译。
+- **部署源码而非二进制。** `moonless deploy` 上传 MoonBit 源码及
+  vendored 依赖缓存，平台负责构建 Linux 二进制——服务器端完全离线。
+  你的笔记本上永远不需要交叉编译。
 - **平台服务全部用 MoonBit 编写。** gateway、builder、runner、scheduler
   都是构建在 [`moonbitlang/async`](https://mooncakes.io/docs/moonbitlang/async@0.22.4)
   之上的 MoonBit 程序。
@@ -116,6 +117,9 @@ pkgtype(kind: "executable")
 
 ```toml
 name = "hello"
+# 可选：函数期望的 moon 工具链版本。
+# 不得超过平台锁定的版本。
+toolchain = "0.10.11"
 
 [triggers]
 http = { enabled = true }
@@ -190,6 +194,7 @@ s3 = { bucket = "uploads", events = ["put"] }
 - **cron** —— 标准的五段式 cron 表达式；触发时调度配置会出现在事件里。
 - **S3** —— 用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
   SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
+  事件交付为尽力而为（best-effort）。
 
 ## 使用数据服务
 
