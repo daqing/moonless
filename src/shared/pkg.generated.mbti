@@ -2,6 +2,8 @@
 package "daqing/moonless/src/shared"
 
 import {
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
   "moonbitlang/core/debug",
 }
 
@@ -18,9 +20,25 @@ pub fn json_field_string(Map[String, Json], String, default? : String) -> String
 
 pub fn json_field_string_array(Map[String, Json], String) -> Array[String] raise SharedError
 
+pub fn match_path(String, String) -> Map[String, String]?
+
 pub fn parse_manifest(String) -> Manifest raise SharedError
 
 pub let platform_toolchain : String
+
+pub async fn read_json_body(RequestContext) -> Json raise SharedError
+
+pub fn route(http_method~ : @http.RequestMethod, pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
+
+pub fn route_any(pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
+
+pub async fn send_json(@http.ServerConnection, Int, Json) -> Unit
+
+pub async fn send_text(@http.ServerConnection, Int, String) -> Unit
+
+pub async fn serve(String, Router) -> Unit
+
+pub async fn serve_on(@http.Server, Router) -> Unit
 
 // Errors
 pub suberror SharedError {
@@ -71,6 +89,25 @@ pub struct ManifestTriggers {
 } derive(@debug.Debug)
 pub fn ManifestTriggers::ManifestTriggers(http_enabled? : Bool, cron? : String, s3? : S3Trigger) -> Self
 pub fn ManifestTriggers::to_repr(Self) -> @debug.Repr
+
+pub struct RequestContext {
+  params : Map[String, String]
+  request : @http.Request
+  body : &@io.Reader
+  conn : @http.ServerConnection
+}
+
+pub struct Route {
+  http_method : @http.RequestMethod?
+  pattern : String
+  handler : async (RequestContext) -> Unit
+}
+
+pub struct Router {
+  routes : Array[Route]
+}
+pub fn Router::add(Self, Route) -> Unit
+pub fn Router::new() -> Self
 
 pub struct S3EventData {
   event_name : String

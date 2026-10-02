@@ -69,7 +69,7 @@ Conventions:
   `s3.events` a subset of `{put, delete}`, and the optional `toolchain`
   field must not exceed the platform's pinned version (R1).
   *Done when:* unit tests cover valid and invalid samples.
-- [ ] **T2.3 — HTTP server helper.** A thin router on top of
+- [x] **T2.3 — HTTP server helper.** A thin router on top of
   `moonbitlang/async`: path matching, method dispatch, JSON body reading,
   response helpers.
   *Done when:* used by at least one service smoke test.

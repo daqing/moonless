@@ -1,10 +1,14 @@
 import {
   "moonbit-community/toml",
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
 
 import {
-  "moonbitlang/core/json",
+  "moonbitlang/async",
 } for "test"
 
 supported_targets = "+native"

@@ -61,7 +61,7 @@
   属于 `{put, delete}`、可选的 `toolchain` 字段不得超过平台锁定的
   版本（R1）。
   *完成标准：* 单元测试覆盖合法与非法样例。
-- [ ] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
+- [x] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
   路由封装：路径匹配、方法分发、JSON body 读取、响应辅助函数。
   *完成标准：* 至少被一个服务的冒烟测试使用。
 - [ ] **T2.4 — HTTP client 辅助。** 带超时配置的 GET/POST（JSON
