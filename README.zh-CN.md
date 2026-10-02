@@ -22,14 +22,18 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 
 ## 特性一览
 
-- **MoonBit 优先的函数模型。** 函数就是一个普通的 MoonBit native 程序。
-  没有专有 SDK、没有厂商运行时——`moon build` 产出什么，平台就跑什么。
+- **MoonBit 优先的函数模型。** 函数是编译为 WebAssembly 模块的
+  MoonBit 程序——MoonBit 的一等公民编译目标。没有专有 SDK、没有
+  厂商运行时：`moon build --target wasm` 产出什么，平台就跑什么。
+- **默认沙箱隔离。** 函数以 wasm 模块在 moonrun 下执行：内存隔离、
+  没有对宿主的随意访问——同时经由运行时的 host 层保有完整的网络
+  能力（TCP / TLS）。
 - **三种触发方式。** HTTP 路由、cron 定时、S3 上传事件，全部在代码旁的
   一个小 manifest 里声明。
 - **Unix 风格的函数契约。** 触发上下文通过 `MOONLESS_EVENT` 环境变量传入；
   结果走 stdout，日志走 stderr。调试时平台完全可以让路。
 - **部署源码而非二进制。** `moonless deploy` 上传 MoonBit 源码及
-  vendored 依赖缓存，平台负责构建 Linux 二进制——服务器端完全离线。
+  vendored 依赖缓存，平台负责构建 wasm 模块——服务器端完全离线。
   你的笔记本上永远不需要交叉编译。
 - **平台服务全部用 MoonBit 编写。** gateway、builder、runner、scheduler
   都是构建在 [`moonbitlang/async`](https://mooncakes.io/docs/moonbitlang/async@0.22.4)
@@ -46,7 +50,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
                           │              docker compose                   │
                           │                                               │
    moonless CLI ─────────►│  gateway ─────► runner ─────► 你的函数        │
-   deploy / list / logs   │    │  ▲           │        （native 二进制）  │
+   deploy / list / logs   │    │  ▲           │      （wasm，经 moonrun）│
                           │    │  │           │                           │
                           │    ▼  │           ▼                           │
                           │  builder        scheduler                    │
@@ -61,8 +65,8 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 | 服务         | 职责                                                                      |
 | ------------ | ------------------------------------------------------------------------- |
 | `gateway`    | 平台入口：函数 HTTP 路由、管理 API、事件接收                              |
-| `builder`    | 用 moon 工具链把上传的源码构建为 Linux 二进制                             |
-| `runner`     | 执行面：fork 函数进程，收集 stdout / stderr                               |
+| `builder`    | 用 moon 工具链把上传的源码构建为 wasm 模块                  |
+| `runner`     | 执行面：经 moonrun 运行 wasm 模块，收集 stdout / stderr      |
 | `scheduler`  | 按 cron 配置调度触发函数                                                  |
 | SeaweedFS    | S3 兼容对象存储；对象上传时通知 moonless                                  |
 
@@ -94,7 +98,8 @@ export MOONLESS_SERVER=http://localhost:8080
 函数就是一个带可执行包的标准 MoonBit 项目。假设
 `cmd/main/main.mbt` 长这样：
 
-```moonbit
+```moonbit nocheck
+///|
 fn main {
   match @env.get_env_var("MOONLESS_EVENT") {
     Some(event) => println("hello! triggered by: \{event}")
@@ -174,7 +179,7 @@ headers 的控制在 Roadmap 中。
 
 ```bash
 MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
-  moon run cmd/main --target native
+  moon run cmd/main --target wasm
 ```
 
 ## 触发器
@@ -208,11 +213,15 @@ MOONLESS_POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
 MOONLESS_S3_ENDPOINT=http://seaweedfs:8333
 ```
 
-用 MoonBit 生态的 driver 连接：
+用 MoonBit 生态的 driver 连接（两者均可在 wasm 函数中使用）：
 
-- Redis：[`hackwaly/redis`](https://mooncakes.io/docs/hackwaly/redis@0.1.1)
 - MySQL：[`moonbitstack/moonmysql`](https://mooncakes.io/docs/moonbitstack/moonmysql@0.7.3)
 - Postgres：[`moonbit-community/postgres`](https://mooncakes.io/docs/moonbit-community/postgres@0.1.1)
+
+> Redis 说明：[`oboard/redis`](https://mooncakes.io/docs/oboard/redis@0.2.1)
+> 声明仅支持 native target，因此 moonless 在仓库内维护其 vendored
+> 补丁版（`vendor/redis/`）——wasm 支持已放开，并经 moonrun 对真实
+> Redis 端到端验证。
 
 ## Roadmap
 
@@ -222,7 +231,7 @@ MOONLESS_S3_ENDPOINT=http://seaweedfs:8333
 - [ ] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
 - [ ] **P3 —— 加固：** 超时与并发限制、版本与回滚、HTTP 状态码与
-      headers 控制
+      headers 控制（Redis wasm 支持：补丁已验证，上游 PR 待合并）
 
 后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化、
 多节点 runner。

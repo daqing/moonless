@@ -16,7 +16,7 @@
 
 ## 0. 前置验证（P0）
 
-- [ ] **T0.1 — async http server spike。** 半天，先于一切任务（R7）：
+- [x] **T0.1 — async http server spike。** 半天，先于一切任务（R7）：
   用 `moonbitlang/async` 的 http server 实现带路径路由、JSON body、
   并发请求的最小服务；记录 API 的坑。
   *完成标准：* spike 正确处理两个并发的 JSON 请求；发现记入
@@ -32,14 +32,15 @@
   且 `moon test` 全绿。
 - [ ] **T1.2 — Compose 与镜像。** 编写 `docker-compose.yml`（gateway、
   builder、runner、scheduler）和单个共享镜像 `Dockerfile`：内含
-  版本锁定的 moon 工具链（R1）+ native C 工具链；builder 与 runner
-  运行同一镜像、以不同入口区分（R3）。声明 builder、runner、gateway
-  共享的 named volume `/var/lib/moonless`。
+  版本锁定的 moon 工具链（R1；wasm 构建无需 C 工具链——moonrun 随
+  工具链分发）；builder 与 runner 运行同一镜像、以不同入口区分。
+  声明 builder、runner、gateway 共享的 named volume
+  `/var/lib/moonless`。
   *完成标准：* `docker compose up` 拉起四个服务容器（此阶段 hello
   world 行为即可）。
-- [ ] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbitlang/async`、
-  TOML 解析库（`hnlyxiaobing/toml` 或 `moonbit-community/toml`），
-  cron 库稍后随 T7.1 引入。
+- [ ] **T1.3 — 依赖引入。** 在 `moon.mod` 加入 `moonbit-community/toml`
+  （`moonbitlang/async` 已在 T0.1 加入；依赖选型原则：存在多个候选时
+  优先 moonbit-community 的包）；cron 库随 T7.1 引入。
   *完成标准：* 新依赖引入后构建通过，`pkg.generated.mbti` 的差异
   符合预期。
 - [ ] **T1.4 — 平台约定文档。** 在同目录 `project-notes.md` 记录：
@@ -83,12 +84,12 @@
   （zip-slip）。
   *完成标准：* 含 `../` 条目的恶意压缩包被拒绝。
 - [ ] **T3.3 — 调用工具链。** 在工作目录经 `@moonbitlang/async/process`
-  （`run` + `collect_output`）运行 `moon build --target native`，捕获
-  输出，定位产出的二进制。
-  *完成标准：* fixture 项目构建成功并返回二进制路径。
-- [ ] **T3.4 — 产物存储。** 把二进制复制到
-  `/var/lib/moonless/functions/<name>/<build-id>/func`，旁边写入构建
-  元数据。
+  （`run` + `collect_output`）运行 `moon build --target wasm`，捕获
+  输出，定位产出的 `.wasm` 模块。
+  *完成标准：* fixture 项目构建成功并返回模块路径。
+- [ ] **T3.4 — 产物存储。** 把模块复制到
+  `/var/lib/moonless/functions/<name>/<build-id>/func.wasm`，旁边写入
+  构建元数据。
   *完成标准：* builder 容器重启后产物仍在（named volume）。
 - [ ] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
   供 CLI 展示失败原因。
@@ -103,22 +104,22 @@
 ## 4. Runner 服务（P0）
 
 - [ ] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
-  设置 `MOONLESS_EVENT` 执行已存储的二进制，返回
+  设置 `MOONLESS_EVENT` 执行已存储的 wasm 模块，返回
   `{stdout, stderr, exitCode, duration}`。
   *完成标准：* curl 调用已部署 fixture 能取回捕获的输出。
-- [ ] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` fork 函数
-  二进制：用 `extra_env` 组装环境变量（`MOONLESS_EVENT` 加注入的服务
-  地址）、传入 `cwd`、用 `collect_output` 捕获 stdout/stderr；可考虑
-  `inherit_env = false` 获得干净的函数环境。
+- [ ] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` 起
+  moonrun 子进程执行：spawn `moonrun <module.wasm>`，用 `extra_env`
+  组装环境变量（`MOONLESS_EVENT` 加注入的服务地址），用
+  `collect_output` 捕获 stdout/stderr。
   *完成标准：* echo/sleep/exit-code 用例行为全部正确。
 - [ ] **T4.3 — 超时。** 默认 60 秒后杀死函数，返回超时结果。
   *完成标准：* `sleep` fixture 被杀死且结果如实上报。
 - [ ] **T4.4 — 并发上限。** 用简单信号量限制同时 fork 数（默认 8，
   可用环境变量配置），超出的请求排队。
   *完成标准：* 突发测试表现为排队执行而非失败。
-- [ ] **T4.5 — 二进制定位。** 把 `<name>` 解析到
-  `/var/lib/moonless/functions/` 下最新构建。
-  *完成标准：* 重新部署 fixture 后，下一次执行用的是新二进制。
+- [ ] **T4.5 — 模块定位。** 把 `<name>` 解析到
+  `/var/lib/moonless/functions/` 下最新的 `.wasm`。
+  *完成标准：* 重新部署 fixture 后，下一次执行用的是新模块。
 - [ ] **T4.6 — 日志采集。** 每次执行的事件与 stderr 追加到
   `/var/lib/moonless/logs/<name>/<日期>.log`，供 gateway 查询。
   *完成标准：* 文件按预期布局生成。
@@ -182,7 +183,8 @@
 
 - [ ] **T7.1 — Cron 库。** 从 `lijunjie860/moonbit_cron`、
   `cxh04/cron_mbt`、`001-Elsa/mooncron` 中选型集成（或论证自写五段
-  式解析器的理由）。
+  式解析器的理由）。三者均非 moonbit-community 包；若任务启动前出现
+  社区包，按 project-notes 中的依赖选型原则优先换用。
   *完成标准：* 下次触发时间的计算有单元测试。
 - [ ] **T7.2 — 注册表同步。** 每 30 秒向 gateway 拉取含 cron 触发器
   的函数，维护内存调度表。
@@ -245,8 +247,8 @@
   `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
   `MOONLESS_POSTGRES_URL`。
   *完成标准：* 函数读回任一变量并回显。
-- [ ] **T10.3 — 示例函数。** 用 `hackwaly/redis` 实现一个 Redis 计数
-  器示例，部署后经 HTTP 触发。
+- [ ] **T10.3 — 示例函数。** 用 `vendor/redis/` 下的 vendored 补丁版
+  driver 实现一个 Redis 计数器示例，部署后经 HTTP 触发。
   *完成标准：* 连续 curl 使计数递增。
 - [ ] **T10.4 — 文档核对。** 按运行中的系统逐条走查 README 数据服务
   一节。
@@ -282,3 +284,6 @@
   接受非 MoonBit 二进制。
 - [ ] **T12.7 — CI。** GitHub Actions 在 push 时运行 `moon test` 与
   `moon fmt --check`。
+- [ ] **T12.8 — 沙箱策略。** 探索 moonrun 的实验性沙箱策略
+  （network connect/bind、DNS、文件访问规则）作为函数级权限控制
+  的实现机制。
