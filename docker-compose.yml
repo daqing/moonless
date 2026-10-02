@@ -1,0 +1,36 @@
+# moonless platform stack. One shared image (see Dockerfile); services differ
+# only in the binary they run. Internal ports: gateway 8080, builder 8081,
+# runner 8082, scheduler 8083 — only the gateway is published to the host.
+# Builder, runner, and gateway share the named volume /var/lib/moonless.
+
+services:
+  gateway:
+    build: .
+    image: moonless
+    command: ["/app/bin/gateway"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  builder:
+    build: .
+    image: moonless
+    command: ["/app/bin/builder"]
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  runner:
+    build: .
+    image: moonless
+    command: ["/app/bin/runner"]
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  scheduler:
+    build: .
+    image: moonless
+    command: ["/app/bin/scheduler"]
+
+volumes:
+  moonless-data:

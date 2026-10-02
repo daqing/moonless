@@ -34,7 +34,7 @@ Conventions:
   scaffold `cmd/main`.
   *Done when:* `moon build --target native` succeeds for all five
   entries and `moon test` is green.
-- [ ] **T1.2 — Compose + images.** Write `docker-compose.yml` (gateway,
+- [x] **T1.2 — Compose + images.** Write `docker-compose.yml` (gateway,
   builder, runner, scheduler) and a single shared image `Dockerfile`
   bundling the version-pinned moon toolchain (per R1; wasm builds need
   no C toolchain — moonrun ships with the toolchain); builder and

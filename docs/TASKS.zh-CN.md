@@ -30,7 +30,7 @@
   的库包 `src/shared`。移除脚手架 `cmd/main`。
   *完成标准：* 五个入口都能通过 `moon build --target native`，
   且 `moon test` 全绿。
-- [ ] **T1.2 — Compose 与镜像。** 编写 `docker-compose.yml`（gateway、
+- [x] **T1.2 — Compose 与镜像。** 编写 `docker-compose.yml`（gateway、
   builder、runner、scheduler）和单个共享镜像 `Dockerfile`：内含
   版本锁定的 moon 工具链（R1；wasm 构建无需 C 工具链——moonrun 随
   工具链分发）；builder 与 runner 运行同一镜像、以不同入口区分。
