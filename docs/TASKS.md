@@ -36,15 +36,17 @@ Conventions:
   entries and `moon test` is green.
 - [ ] **T1.2 — Compose + images.** Write `docker-compose.yml` (gateway,
   builder, runner, scheduler) and a single shared image `Dockerfile`
-  bundling the moon toolchain (version-pinned, per R1) plus a native C
-  toolchain; builder and runner run the same image with different entry
-  points (R3). Declare one named volume `/var/lib/moonless` shared by
-  builder, runner, and gateway.
+  bundling the version-pinned moon toolchain (per R1; wasm builds need
+  no C toolchain — moonrun ships with the toolchain); builder and
+  runner run the same image with different entry points. Declare one
+  named volume `/var/lib/moonless` shared by builder, runner, and
+  gateway.
   *Done when:* `docker compose up` brings up four service containers
   (hello-world behavior is fine at this point).
-- [ ] **T1.3 — Dependencies.** Add `moonbitlang/async`, a TOML parser
-  (`hnlyxiaobing/toml` or `moonbit-community/toml`), and later a cron
-  library (see T7.1) to `moon.mod`.
+- [ ] **T1.3 — Dependencies.** Add `moonbit-community/toml` to
+  `moon.mod` (`moonbitlang/async` already added in T0.1; dependency
+  rule: prefer moonbit-community packages when candidates exist); the
+  cron library follows in T7.1.
   *Done when:* builds pass with the new imports; `pkg.generated.mbti`
   diffs look expected.
 - [ ] **T1.4 — Platform conventions doc.** Record in this file's sibling
@@ -93,13 +95,13 @@ Conventions:
   `/var/lib/moonless/builds/<build-id>/` with path-traversal protection
   (zip-slip).
   *Done when:* a malicious archive with `../` entries is rejected.
-- [ ] **T3.3 — Invoke the toolchain.** Run `moon build --target native`
-  in the work dir via `@moonbitlang/async/process` (`run` +
-  `collect_output`), capture output, locate the produced binary.
-  *Done when:* a fixture project builds and the binary path is reported.
-- [ ] **T3.4 — Artifact store.** Copy the binary to
-  `/var/lib/moonless/functions/<name>/<build-id>/func` and write build
-  metadata next to it.
+- [ ] **T3.3 — Invoke the toolchain.** Run `moon build --target wasm` in
+  the work dir via `@moonbitlang/async/process` (`run` +
+  `collect_output`), capture output, locate the produced `.wasm` module.
+  *Done when:* a fixture project builds and the module path is reported.
+- [ ] **T3.4 — Artifact store.** Copy the module to
+  `/var/lib/moonless/functions/<name>/<build-id>/func.wasm` and write
+  build metadata next to it.
   *Done when:* artifacts survive a builder container restart (named
   volume).
 - [ ] **T3.5 — Failure reporting.** Return the tail of build stderr in
@@ -118,14 +120,13 @@ Conventions:
 ## 4. Runner service (P0)
 
 - [ ] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
-  executes the stored binary with `MOONLESS_EVENT` set, returns
+  executes the stored wasm module with `MOONLESS_EVENT` set, returns
   `{stdout, stderr, exitCode, duration}`.
   *Done when:* curl against a deployed fixture returns captured output.
-- [ ] **T4.2 — Process execution.** Fork the function binary via
-  `@moonbitlang/async/process`: assemble the environment with
-  `extra_env` (`MOONLESS_EVENT` plus injected service URLs), pass `cwd`,
-  capture stdout/stderr with `collect_output`; consider
-  `inherit_env = false` for a clean function environment.
+- [ ] **T4.2 — Process execution.** Execute via a moonrun child process
+  through `@moonbitlang/async/process`: spawn `moonrun <module.wasm>`
+  with `extra_env` (`MOONLESS_EVENT` plus injected service URLs),
+  capture stdout/stderr with `collect_output`.
   *Done when:* echo/sleep/exit-code cases all behave correctly.
 - [ ] **T4.3 — Timeout.** Kill functions after a default 60s and report
   a timeout result.
@@ -133,10 +134,10 @@ Conventions:
 - [ ] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
   forks (default 8, configurable via env); excess requests queue.
   *Done when:* a burst test shows queued rather than failed executions.
-- [ ] **T4.5 — Binary resolution.** Resolve `<name>` to its newest build
-  under `/var/lib/moonless/functions/`.
+- [ ] **T4.5 — Module resolution.** Resolve `<name>` to its newest
+  `.wasm` under `/var/lib/moonless/functions/`.
   *Done when:* re-deploying a fixture makes the next run use the new
-  binary.
+  module.
 - [ ] **T4.6 — Log capture.** Append each run's event and stderr to
   `/var/lib/moonless/logs/<name>/<date>.log` for gateway-side queries.
   *Done when:* files appear in the expected layout.
@@ -203,7 +204,9 @@ Conventions:
 
 - [ ] **T7.1 — Cron library.** Pick and integrate one of
   `lijunjie860/moonbit_cron`, `cxh04/cron_mbt`, `001-Elsa/mooncron` (or
-  justify writing our own five-field parser).
+  justify writing our own five-field parser). None of these are
+  moonbit-community packages; if one emerges before this task, prefer it
+  per the dependency rule in project-notes.
   *Done when:* next-fire-time computation is unit-tested.
 - [ ] **T7.2 — Registry sync.** Poll the gateway every 30s for functions
   with cron triggers; keep an in-memory schedule table.
@@ -273,8 +276,9 @@ Conventions:
   `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` / `MOONLESS_POSTGRES_URL`
   set from the configured values.
   *Done when:* a function reads one back and echoes it.
-- [ ] **T10.3 — Example function.** A redis-backed counter example using
-  `hackwaly/redis`, deployed and triggered over HTTP.
+- [ ] **T10.3 — Example function.** A Redis-backed counter example
+  using the vendored patched driver at `vendor/redis/`, deployed and
+  triggered over HTTP.
   *Done when:* repeated curls increment the counter.
 - [ ] **T10.4 — Docs check.** Walk the README data-services section
   against the running system.
@@ -314,3 +318,6 @@ Conventions:
   opt-in.
 - [ ] **T12.7 — CI.** GitHub Actions running `moon test` and
   `moon fmt --check` on push.
+- [ ] **T12.8 — Sandbox policies.** Explore moonrun's experimental
+  sandbox policy (network connect/bind, DNS, file-access rules) as the
+  mechanism for per-function permissions.

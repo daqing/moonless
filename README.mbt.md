@@ -25,9 +25,13 @@ or by uploading a file.
 
 ## Features at a glance
 
-- **MoonBit-first functions.** A function is an ordinary MoonBit native
-  program. No proprietary SDK, no vendor runtime — whatever `moon build`
-  produces is what the platform runs.
+- **MoonBit-first functions.** A function is a MoonBit program compiled
+  to a WebAssembly module — MoonBit's first-class target. No
+  proprietary SDK, no vendor runtime: whatever `moon build --target
+  wasm` produces is what the platform runs.
+- **Sandboxed by default.** Functions execute as wasm modules under
+  moonrun: memory-isolated, no ambient host access — while keeping full
+  networking (TCP / TLS) through the runtime's host layer.
 - **Three trigger types.** HTTP route, cron schedule, and S3 put events —
   declared in a small manifest next to your code.
 - **A Unix-style function contract.** The trigger context arrives as the
@@ -35,8 +39,8 @@ or by uploading a file.
   stderr. A function debugs locally with the platform completely out of
   the way.
 - **Deploy source, not binaries.** `moonless deploy` uploads your MoonBit
-  sources and vendored dependencies; the platform builds the Linux
-  binary — fully offline on the server side. No cross-compilation on
+  sources and vendored dependencies; the platform builds the wasm
+  module — fully offline on the server side. No cross-compilation on
   your laptop, ever.
 - **Platform services written in MoonBit.** Gateway, builder, runner, and
   scheduler are all MoonBit programs built on
@@ -55,7 +59,7 @@ or by uploading a file.
                           │              docker compose                   │
                           │                                               │
    moonless CLI ─────────►│  gateway ─────► runner ─────► your function   │
-   deploy / list / logs   │    │  ▲           │          (native binary)  │
+   deploy / list / logs   │    │  ▲           │        (wasm via moonrun) │
                           │    │  │           │                           │
                           │    ▼  │           ▼                           │
                           │  builder        scheduler                    │
@@ -70,8 +74,8 @@ or by uploading a file.
 | Service      | Responsibility                                                            |
 | ------------ | ------------------------------------------------------------------------- |
 | `gateway`    | Platform entry point: function HTTP routes, management API, event intake  |
-| `builder`    | Builds uploaded sources into Linux binaries with the moon toolchain       |
-| `runner`     | Execution plane: forks function processes, captures stdout/stderr         |
+| `builder`    | Builds uploaded sources into wasm modules with the moon toolchain         |
+| `runner`     | Execution plane: runs wasm modules via moonrun, captures stdout/stderr    |
 | `scheduler`  | Fires functions on cron schedules                                         |
 | SeaweedFS    | S3-compatible object storage; notifies moonless on object uploads         |
 
@@ -187,7 +191,7 @@ you can run a function by hand exactly the way the platform does:
 
 ```bash
 MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
-  moon run cmd/main --target native
+  moon run cmd/main --target wasm
 ```
 
 ## Triggers
@@ -223,11 +227,16 @@ MOONLESS_POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
 MOONLESS_S3_ENDPOINT=http://seaweedfs:8333
 ```
 
-Connect with the MoonBit ecosystem drivers:
+Connect with the MoonBit ecosystem drivers (both work from wasm
+functions):
 
-- Redis: [`hackwaly/redis`](https://mooncakes.io/docs/hackwaly/redis@0.1.1)
 - MySQL: [`moonbitstack/moonmysql`](https://mooncakes.io/docs/moonbitstack/moonmysql@0.7.3)
 - Postgres: [`moonbit-community/postgres`](https://mooncakes.io/docs/moonbit-community/postgres@0.1.1)
+
+> Redis note: [`oboard/redis`](https://mooncakes.io/docs/oboard/redis@0.2.1)
+> declares native-only targets, so moonless maintains a vendored, patched
+> copy inside the repo (`vendor/redis/`, wasm support opened and verified
+> end-to-end with moonrun against a real Redis).
 
 ## Roadmap
 
@@ -237,7 +246,8 @@ Connect with the MoonBit ecosystem drivers:
 - [ ] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
 - [ ] **P3 — hardening:** timeouts and concurrency limits, versioning and
-      rollback, HTTP status-code and header control
+      rollback, HTTP status-code and header control (Redis wasm support:
+      patch verified, upstream PR pending)
 
 Ideas for later: multi-language functions (the function contract is
 language-agnostic by design), function versioning, multi-node runners.

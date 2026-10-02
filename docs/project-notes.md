@@ -22,12 +22,12 @@
 
 - **一句话定位**：一个内网部署的自托管（self-hosted）serverless 计算平台。
 - 完全用 MoonBit 开发（平台本身即 MoonBit 的实力展示）。
-- 面向内网/私有环境，信任模型宽松，不追求公有云级多租户硬隔离——
-  因此函数走 native 执行是合理选项。
+- 函数经 wasm 沙箱获得默认隔离；网络能力可用但受宿主控制。
 
 ## 开发者体验（设想的使用流程）
 
-1. 开发者按正常 MoonBit 项目结构开发一个 **native 程序**。
+1. 开发者按正常 MoonBit 项目结构开发一个程序（平台负责编译为
+   wasm 模块）。
 2. 通过 `moonless deploy` 把二进制发布到 moonless 平台。
 3. 平台支持三种触发方式：
    - **HTTP**：请求打到函数对应的内网 URL；
@@ -41,9 +41,9 @@
 
 ## 技术决策记录
 
-- **函数语言：MoonBit-first。** 面向 MoonBit 黑客松，函数即 MoonBit native
-  程序。架构本身对语言是开放的（普通二进制 + 约定协议），多语言支持是
-  二期及以后的规划，本期不做。
+- **函数语言：MoonBit-first。** 面向 MoonBit 黑客松，函数即 MoonBit
+  程序（编译为 wasm 模块，见"执行模型转向 wasm"节）。架构本身对
+  语言开放，多语言支持是二期及以后的规划，本期不做。
 - **内置服务边界：**
   - **S3 兼容对象存储**：moonless 自研服务端（MoonBit 实现），同时是
     事件触发源；
@@ -63,8 +63,10 @@
   - **store**：S3 兼容对象存储服务端，对象写入时发事件触发函数。
 - **部署编排：docker-compose**，仓库提供 `docker-compose.yml` 一键
   拉起全部服务（README Quick Start：`git clone && docker compose up`）。
-- 执行模型：native 二进制，内网信任模型，无多租户硬隔离。
-- 执行模型：native 二进制，内网信任模型，无多租户硬隔离。
+- 执行模型：函数为 wasm 模块，moonrun 执行（沙箱隔离，网络经
+  moonrun host 层可用）；平台组件为 native MoonBit 程序。
+- 执行模型：函数为 wasm 模块，moonrun 执行（沙箱隔离，网络经
+  moonrun host 层可用）；平台组件为 native MoonBit 程序。
 
 ## 函数运行约定（已拍板）
 
@@ -91,6 +93,17 @@
   <https://mooncakes.io/docs/moonbitstack/moonmysql@0.7.3>
 - **moonbit-community/postgres**（0.1.1）：Postgres 客户端。
   <https://mooncakes.io/docs/moonbit-community/postgres@0.1.1>
+
+## 依赖选型原则（2026-10-02，用户要求）
+
+存在多个候选依赖时，优先选择 **moonbit-community** 组织的包（更可
+依赖）；官方 `moonbitlang/*` 包仍然最优先。当前影响：
+
+- **TOML 解析库定为 `moonbit-community/toml`**（备选
+  `hnlyxiaobing/toml` 不再考虑）；
+- cron 库的三个候选（`lijunjie860/moonbit_cron`、`cxh04/cron_mbt`、
+  `001-Elsa/mooncron`）均非社区包，T7.1 选型时维持原候选；若届时
+  出现 moonbit-community 的 cron 包，换用之。
 
 ## S3 兼容存储选型（调研结论，2026-10）
 
@@ -188,11 +201,76 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 - 对 T2.3 的启示：路由封装照本 spike 的 `(meth, path)` match 模式
   实现即可，无需引入路由库。
 
+## 执行模型转向 wasm（2026-10-02 定稿，方案 A）
+
+**动机**（用户提出）：wasm 是 MoonBit 的一等公民编译目标与默认项目
+模式，函数用 wasm 更契合 MoonBit 黑客松主题。
+
+**定稿**：wasm 为**唯一**函数执行模型（方案 A，不做 native 双运行时）。
+
+- builder 构建 `moon build --target wasm`（镜像无需 C 工具链）；
+- runner 以外部子进程执行 `moonrun <func.wasm>`（moonrun 随 moon
+  工具链分发，零新增依赖；内嵌 V8 JIT 执行 wasm）；
+- 函数契约不变：`MOONLESS_EVENT` 环境变量 + stdout / stderr；
+- **平台组件（gateway / builder / runner / scheduler / CLI）仍为
+  native MoonBit 程序**——"平台 native、函数 wasm"。
+
+**实证证据链**（spike/wasm_probe、spike/wasm_socket_probe，均在仓库）：
+
+1. `moon build --target wasm` 产出 22KB 模块，`_start` 导出；
+2. moonrun 直接执行，`MOONLESS_EVENT` 读取 + stdout 输出正常，契约
+   原样成立；
+3. 模块 imports = `wasi_snapshot_preview1.fd_write`（标准 WASI）+
+   `__moonbit_fs_unstable.*`（MoonBit 私有 host ABI）→ 执行器被
+   moonrun 锁定，标准 wasmtime/wasmer 不可用（R1 工具链锁版本恰好
+   覆盖此风险）；
+4. **wasm 下网络全通**：moonrun 内嵌完整 TCP/DNS/TLS（rustls）栈，
+   实测 wasm 模块完成 TCP 连接-发送-回显往返；async/socket 的
+   `socket.c` 仅是 native 路径，wasm 路径由 moonrun host 承载；
+5. driver 佐证：moonbit-community/postgres 官方支持 classic wasm
+   target（WasmGC 反而不支持 socket）；hackwaly/redis 唯一依赖即
+   moonbitlang/async，同路径可用；
+6. moonrun 另内嵌 SQLite host 支持，且有**实验性沙箱策略系统**
+   （policy 规则含 network connect/bind、DNS、文件读写、进程）——
+   函数级权限控制的路子已留好。
+
+**Driver wasm 支持矩阵（2026-10-02 实测/包声明核实）**：
+
+| driver | 包声明 | wasm |
+| --- | --- | --- |
+| moonbit-community/postgres | `client: native+wasm` | ✓ |
+| moonbitstack/moonmysql | `client: +native+wasm`（README 注明 verified with moonrun） | ✓ |
+| hackwaly/redis | `native+llvm` | ✗ |
+
+hackwaly/redis 虽然只依赖 moonbitlang/async，但其 moon.pkg 自我声明
+限制为 native+llvm，wasm 构建计划直接拒绝（本地实测）。候选替代
+**Metalymph/valkey（2026-10-02 复核）：不可用**——声明层虽无 target
+限制、底层依赖也正确（async/socket），但其模块描述仍为旧版
+`moon.mod.json` 格式，当前工具链无法将包纳入构建图（对照：同作者
+的 Metalymph/relay 用新版 moon.mod 即完全正常），所有符号不可见，
+wasm 编译探针失败于符号解析。oboard/redis 大概率同类，未再逐一
+验证。**oboard/redis（0.2.1，2026-10-02）：声明仅 `+native`，由我们
+动手打通并转为内部维护**——最终集成方式（用户拍板，不做 PR）：
+**vendored 进 moonless 模块**，正式位置 `vendor/redis/`（包路径
+`daqing/moonless/vendor/redis`），随 moonless 仓库一起提交演进。
+改动仅一行 `supported_targets = "+native+wasm"`（代码零 #cfg/零
+FFI）；未带走上游测试（其硬编码 6379），自带 probe_wasm 作验证。
+双 target（wasm 经 moonrun / native）对真实 Redis 的 SET/GET 往返
+均通过、服务端独立确认写入。目录内 LICENSE 与 README 注明来源与
+补丁。上游参照副本保留在 `upstream/moonbit-redis`（gitignore 排除），
+未来如上游有更新可对照同步；如后续向上游提 PR 亦从此处整理。
+hackwaly/redis 与 valkey 作为备选记录。
+
+**连带影响**：R3（构建/运行环境 ABI 漂移）风险随之**消失**（wasm
+平台无关）；"内网信任模型、无隔离"的旧定位升级为"wasm 沙箱默认
+隔离、网络可用但受控"。
+
 ## 工程风险登记册（2026-10-02 逐条拍板）
 
 - **R1 builder 镜像与工具链版本** — **已决**：自建镜像，构建时锁定
-  moon 工具链版本（参考 moonbitlang/minimoonbit-public 的 Dockerfile
-  + native C 工具链）。`moonless.toml` 增加 `toolchain` 字段约定函数
+  moon 工具链版本（参考 moonbitlang/minimoonbit-public 的 Dockerfile；
+  wasm 构建无需 C 工具链，镜像更轻）。`moonless.toml` 增加 `toolchain`
+  字段约定函数
   期望的工具链版本，**最大支持版本即平台锁定版本**，超过则拒绝构建
   并报错。补充设计：`toolchain` 为可选字段，缺省视为兼容、直接用
   平台版本构建；README 写明支持的工具链版本。
@@ -201,9 +279,9 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
   已解析的 `.mooncakes/` 依赖缓存一并上传（vendored），必要时打包前
   CLI 先在开发机执行依赖解析；builder 一律离线构建、不访问
   mooncakes.io。不提供在线拉取选项（YAGNI）。
-- **R3 构建与运行环境 ABI 一致性** — **已决**：builder 与 runner 共用
-  同一个镜像，仅以不同启动入口区分（builder 模式 / runner 模式），
-  从根上消除函数二进制的 ABI 漂移。
+- **R3 构建与运行环境 ABI 一致性** — **已失效（2026-10-02）**：函数
+  转向 wasm 执行后平台无关，glibc ABI 漂移不复存在。builder 与
+  runner 共用镜像仍保留为统一工具链的好实践。
 - **R4 函数输出无上限的内存风险** — **已决**：stdout / stderr 各设
   上限，默认 10MB，超出截断并在结果中标记 `truncated`（HTTP 响应
   同理）；上限可环境变量调整。
