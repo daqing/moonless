@@ -53,7 +53,7 @@
 
 ## Step 2. 公共基础 — `src/shared`（P0）
 
-- [ ] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
+- [x] **T2.1 — 事件类型。** 按 README 中确切的 JSON 形状，把触发
   上下文建模为含 http / cron / s3 三个变体的类型，并实现编解码。
   *完成标准：* 单元测试覆盖三种变量的往返（round-trip）。
 - [ ] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`

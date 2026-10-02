@@ -1,11 +1,61 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "daqing/moonless/src/shared"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
+pub fn json_field_bool(Map[String, Json], String, default? : Bool) -> Bool raise SharedError
+
+pub fn json_field_int(Map[String, Json], String, default? : Int) -> Int raise SharedError
+
+pub fn json_field_object(Map[String, Json], String) -> Map[String, Json]? raise SharedError
+
+pub fn json_field_string(Map[String, Json], String, default? : String) -> String raise SharedError
+
+pub fn json_field_string_array(Map[String, Json], String) -> Array[String] raise SharedError
 
 // Errors
+pub suberror SharedError {
+  InvalidJson(String)
+  InvalidEvent(String)
+} derive(@debug.Debug)
+pub fn SharedError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct CronEventData {
+  schedule : String
+  time : String
+} derive(@debug.Debug)
+pub fn CronEventData::CronEventData(schedule~ : String, time~ : String) -> Self
+pub fn CronEventData::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Event {
+  Http(HttpEventData)
+  Cron(CronEventData)
+  S3(S3EventData)
+} derive(@debug.Debug)
+pub fn Event::from_json(Json) -> Self raise SharedError
+pub fn Event::to_json(Self) -> Json
+pub fn Event::to_repr(Self) -> @debug.Repr
+
+pub struct HttpEventData {
+  http_method : String
+  path : String
+  query : String
+  body : String
+} derive(@debug.Debug)
+pub fn HttpEventData::HttpEventData(http_method~ : String, path~ : String, query~ : String, body~ : String) -> Self
+pub fn HttpEventData::to_repr(Self) -> @debug.Repr
+
+pub struct S3EventData {
+  event_name : String
+  bucket : String
+  key : String
+} derive(@debug.Debug)
+pub fn S3EventData::S3EventData(event~ : String, bucket~ : String, key~ : String) -> Self
+pub fn S3EventData::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

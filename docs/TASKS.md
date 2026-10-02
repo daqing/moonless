@@ -60,7 +60,7 @@ Conventions:
 
 ## Step 2. Shared foundations — `src/shared` (P0)
 
-- [ ] **T2.1 — Event type.** Model the trigger context as a type with
+- [x] **T2.1 — Event type.** Model the trigger context as a type with
   three variants (http / cron / s3) and the exact JSON shape from the
   README, with encode/decode.
   *Done when:* unit tests round-trip all three variants.
