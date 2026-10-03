@@ -191,7 +191,10 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
   `mkdir: file exists` 竞态（T1.2 实测）。
 - **MOONLESS_\* 环境变量清单**：
   - 平台侧：`MOONLESS_DATA`（共享卷路径，默认 `/var/lib/moonless`，
-    Dockerfile 已设）；`MOONLESS_SERVER`（CLI 定位 gateway 地址）。
+    Dockerfile 已设）；`MOONLESS_SERVER`（CLI 定位 gateway 地址）；
+    `MOONLESS_BUILDER_URL` / `MOONLESS_RUNNER_URL`（gateway 寻址
+    builder/runner，默认 `http://builder:8081` / `http://runner:8082`，
+    compose 网络内服务名，本地裸跑时设为 `http://127.0.0.1:80xx`）。
   - 函数侧注入：`MOONLESS_EVENT`（触发事件 JSON）；数据服务地址
     `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
     `MOONLESS_POSTGRES_URL` / `MOONLESS_S3_ENDPOINT`（P2 起注入，
