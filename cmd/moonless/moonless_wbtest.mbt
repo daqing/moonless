@@ -192,3 +192,25 @@ test "render_function_table matches registry state" {
   assert_true(table.contains("b-200"))
   assert_eq(render_function_table([]), "no functions deployed\n")
 }
+
+///|
+test "parse_logs_args handles name, tail, and server flags" {
+  let parsed = parse_logs_args(["hello", "--tail", "10"])
+  assert_eq(parsed.name, "hello")
+  assert_eq(parsed.tail, 10)
+  let parsed = parse_logs_args(["--server", "http://x:1", "hello", "--tail=5"])
+  assert_eq(parsed.name, "hello")
+  assert_eq(parsed.tail, 5)
+  let parsed = parse_logs_args(["hello"])
+  assert_eq(parsed.tail, 50)
+  try parse_logs_args(["--tail", "10"]) catch {
+    CliError(message) => assert_true(message.contains("usage"))
+  } noraise {
+    _ => fail("expected usage error for missing name")
+  }
+  try parse_logs_args(["a", "b"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected error for extra positional")
+  }
+}

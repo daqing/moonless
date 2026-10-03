@@ -190,7 +190,7 @@ Conventions:
 - [x] **T6.3 — `list`.** Table of deployed functions with their
   triggers and last build status.
   *Done when:* output matches the registry state.
-- [ ] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
+- [x] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
   streaming is deferred (T12.4).
   *Done when:* after HTTP-triggering a function, its stderr shows up.
 - [ ] **T6.5 — Error UX.** Friendly messages for: server unreachable,
