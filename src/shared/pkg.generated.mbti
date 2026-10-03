@@ -57,10 +57,11 @@ pub async fn serve(String, Router) -> Unit
 pub async fn serve_on(@http.Server, Router) -> Unit
 
 // Errors
-pub suberror SharedError {
+pub(all) suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
   InvalidManifest(String)
+  InvalidArchive(String)
   HttpError(String)
 } derive(@debug.Debug)
 pub fn SharedError::to_repr(Self) -> @debug.Repr

@@ -4,10 +4,11 @@
 // fields raise instead of being silently dropped.
 
 ///|
-pub suberror SharedError {
+pub(all) suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
   InvalidManifest(String)
+  InvalidArchive(String)
   HttpError(String)
 } derive(Debug)
 

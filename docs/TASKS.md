@@ -86,7 +86,7 @@ Conventions:
 
 ## Step 3. Builder service (P0)
 
-- [ ] **T3.1 — Build API.** `POST /build` accepting a tar.gz of a MoonBit
+- [x] **T3.1 — Build API.** `POST /build` accepting a tar.gz of a MoonBit
   project plus the function name; reject packages missing `moon.mod` or
   `moonless.toml`.
   *Done when:* hand-crafted tar.gz requests return success/failure
