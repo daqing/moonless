@@ -83,7 +83,7 @@
   `/var/lib/moonless/builds/<build-id>/`，做路径穿越防护
   （zip-slip）。
   *完成标准：* 含 `../` 条目的恶意压缩包被拒绝。
-- [ ] **T3.3 — 调用工具链。** 在工作目录经 `@moonbitlang/async/process`
+- [x] **T3.3 — 调用工具链。** 在工作目录经 `@moonbitlang/async/process`
   （`run` + `collect_output`）运行 `moon build --target wasm`，捕获
   输出，定位产出的 `.wasm` 模块。
   *完成标准：* fixture 项目构建成功并返回模块路径。

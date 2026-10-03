@@ -95,7 +95,7 @@ Conventions:
   `/var/lib/moonless/builds/<build-id>/` with path-traversal protection
   (zip-slip).
   *Done when:* a malicious archive with `../` entries is rejected.
-- [ ] **T3.3 — Invoke the toolchain.** Run `moon build --target wasm` in
+- [x] **T3.3 — Invoke the toolchain.** Run `moon build --target wasm` in
   the work dir via `@moonbitlang/async/process` (`run` +
   `collect_output`), capture output, locate the produced `.wasm` module.
   *Done when:* a fixture project builds and the module path is reported.

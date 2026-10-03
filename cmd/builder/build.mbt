@@ -56,8 +56,61 @@ async fn build_steps(
       "manifest name \{manifest.name} does not match deploy name \{name}",
     )
   }
-  // T3.3 invokes the toolchain here; until then a valid package passes.
-  @shared.BuildResult(ok=true, build_id~, wasm_path="")
+  let (code, _, stderr) = @process.collect_output(
+    "moon",
+    ["build", "--target", "wasm"],
+    cwd=src_dir[:],
+  ) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to run moon: \{@debug.to_string(err)}",
+      )
+  }
+  if code != 0 {
+    let output = stderr.text() catch { _ => "" }
+    return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
+  }
+  let wasm_path = find_wasm_module(src_dir)
+  @shared.BuildResult(ok=true, build_id~, wasm_path~)
+}
+
+///|
+// Returns the last at-most-max characters, so CLI-visible build errors stay
+// readable even when the toolchain scrolls for hundreds of lines.
+fn tail(text : String, max : Int) -> String {
+  let len = text.length()
+  if len <= max {
+    text
+  } else {
+    text[len - max:].to_owned()
+  }
+}
+
+///|
+// Locates the first .wasm module under the project's _build/wasm tree.
+async fn find_wasm_module(src_dir : String) -> String raise @shared.SharedError {
+  let build_root = src_dir + "/_build/wasm"
+  let build_exists = @fs.exists(build_root) catch { _ => false }
+  if !build_exists {
+    raise @shared.InvalidArchive("moon build produced no _build/wasm output")
+  }
+  let found : Array[String] = []
+  @fs.walk(build_root, (dir, entries) => {
+    for entry in entries {
+      if entry.has_suffix(".wasm") && found.length() == 0 {
+        found.push(dir + "/" + entry)
+      }
+    }
+  }) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to scan build output: \{@debug.to_string(err)}",
+      )
+  }
+  if found.length() == 0 {
+    raise @shared.InvalidArchive("no .wasm module found in build output")
+  }
+  found[0]
 }
 
 ///|
