@@ -49,9 +49,35 @@ async fn run_function(
   cfg : RunnerConfig,
   request : @shared.RunRequest,
 ) -> @shared.RunResult {
-  run_steps(cfg, request) catch {
+  let result = run_steps(cfg, request) catch {
     @shared.RunError(message) => run_failed(message)
     err => run_failed(@debug.to_string(err))
+  }
+  append_run_log(cfg, request, result)
+  result
+}
+
+///|
+// One record per invocation under logs/<name>/<YYYY-MM-DD>.log: the event
+// JSON, outcome summary, and the function's stderr for gateway-side queries.
+async fn append_run_log(
+  cfg : RunnerConfig,
+  request : @shared.RunRequest,
+  result : @shared.RunResult,
+) -> Unit {
+  let timestamp = @shared.format_timestamp(@async.now())
+  let date = timestamp[:10].to_owned()
+  let dir = cfg.data_root + "/logs/" + request.name
+  let record = "\{timestamp} event=\{request.event.to_json().stringify()} exit=\{result.exit_code} dur=\{result.duration_ms}ms truncated=\{result.truncated}\n\{result.stderr}\n"
+  @fs.mkdir(dir, recursive=true, allow_exist=true) catch {
+    _ => ()
+  }
+  @fs.write_file(dir + "/\{date}.log", record, append=true) catch {
+    _ =>
+      @shared.log_warn(
+        service="runner",
+        message="failed to append run log for \{request.name}",
+      )
   }
 }
 

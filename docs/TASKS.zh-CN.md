@@ -120,7 +120,7 @@
 - [x] **T4.5 — 模块定位。** 把 `<name>` 解析到
   `/var/lib/moonless/functions/` 下最新的 `.wasm`。
   *完成标准：* 重新部署 fixture 后，下一次执行用的是新模块。
-- [ ] **T4.6 — 日志采集。** 每次执行的事件与 stderr 追加到
+- [x] **T4.6 — 日志采集。** 每次执行的事件与 stderr 追加到
   `/var/lib/moonless/logs/<name>/<日期>.log`，供 gateway 查询。
   *完成标准：* 文件按预期布局生成。
 - [ ] **T4.7 — Runner 测试。** 覆盖：普通 stdout、stderr 噪音、非零

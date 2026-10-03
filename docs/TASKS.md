@@ -138,7 +138,7 @@ Conventions:
   `.wasm` under `/var/lib/moonless/functions/`.
   *Done when:* re-deploying a fixture makes the next run use the new
   module.
-- [ ] **T4.6 — Log capture.** Append each run's event and stderr to
+- [x] **T4.6 — Log capture.** Append each run's event and stderr to
   `/var/lib/moonless/logs/<name>/<date>.log` for gateway-side queries.
   *Done when:* files appear in the expected layout.
 - [ ] **T4.7 — Runner tests.** Cover: plain stdout, stderr noise,

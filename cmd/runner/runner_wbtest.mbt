@@ -446,3 +446,33 @@ async test "runs resolve to the newest stored build" {
   let result = run_function(test_config(data_root), request)
   assert_eq(result.stdout, "MARK:new\n")
 }
+
+///|
+async test "each run appends an event+stderr record to the day log" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let wasm_module = build_fixture_module(fixture_dir, echo_pkg(), crash_main())
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "log-fn", "b-1001", wasm_module)
+  let result = run_function(
+    test_config(data_root),
+    @shared.RunRequest(
+      name="log-fn",
+      event=@shared.Event::S3(
+        @shared.S3EventData(event="put", bucket="uploads", key="a.csv"),
+      ),
+    ),
+  )
+  assert_eq(result.exit_code, 1)
+  let date = @shared.format_timestamp(@async.now())[:10].to_owned()
+  let log_path = data_root + "/logs/log-fn/\{date}.log"
+  assert_true(@fs.exists(log_path))
+  let log = (@fs.read_file(log_path) catch {
+    _ => raise FixtureError("log unreadable")
+  }).text() catch {
+    _ => raise FixtureError("log not text")
+  }
+  assert_true(log.contains("event="))
+  assert_true(log.contains("uploads"))
+  assert_true(log.contains("exit=1"))
+  assert_true(log.contains("RuntimeError"))
+}
