@@ -7,6 +7,7 @@
 priv struct RunnerConfig {
   data_root : String
   timeout_ms : Int
+  sem : @semaphore.Semaphore
 }
 
 ///|
@@ -18,12 +19,22 @@ fn env_int(name : String, default : Int) -> Int {
 }
 
 ///|
+fn make_runner_config(
+  data_root : String,
+  timeout_ms : Int,
+  max_concurrency : Int,
+) -> RunnerConfig {
+  { data_root, timeout_ms, sem: @semaphore.Semaphore(max_concurrency), }
+}
+
+///|
 fn load_runner_config() -> RunnerConfig {
   let data_root = @env.get_env_var("MOONLESS_DATA").unwrap_or(
     "/var/lib/moonless",
   )
   let timeout_ms = env_int("MOONLESS_RUN_TIMEOUT_MS", 60_000)
-  { data_root, timeout_ms, }
+  let max_concurrency = env_int("MOONLESS_MAX_CONCURRENCY", 8)
+  make_runner_config(data_root, timeout_ms, max_concurrency)
 }
 
 ///|
@@ -55,6 +66,10 @@ async fn run_steps(
   request : @shared.RunRequest,
 ) -> @shared.RunResult raise @shared.SharedError {
   let module_path = resolve_module(cfg.data_root, request.name)
+  // Concurrency cap: at most max_concurrency forks at once; excess runs
+  // queue here instead of overloading the host.
+  cfg.sem.acquire()
+  defer cfg.sem.release()
   let started = @async.now()
   let env : Map[String, String] = Map([])
   env["MOONLESS_EVENT"] = request.event.to_json().stringify()

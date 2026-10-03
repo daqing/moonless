@@ -131,7 +131,7 @@ Conventions:
 - [x] **T4.3 — Timeout.** Kill functions after a default 60s and report
   a timeout result.
   *Done when:* a `sleep` fixture is killed and reported.
-- [ ] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
+- [x] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
   forks (default 8, configurable via env); excess requests queue.
   *Done when:* a burst test shows queued rather than failed executions.
 - [ ] **T4.5 — Module resolution.** Resolve `<name>` to its newest

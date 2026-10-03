@@ -150,8 +150,12 @@ fn crash_main() -> String {
 }
 
 ///|
-fn test_config(data_root : String, timeout_ms? : Int = 60_000) -> RunnerConfig {
-  { data_root, timeout_ms, }
+fn test_config(
+  data_root : String,
+  timeout_ms? : Int = 60_000,
+  max_concurrency? : Int = 8,
+) -> RunnerConfig {
+  make_runner_config(data_root, timeout_ms, max_concurrency)
 }
 
 ///|
@@ -332,4 +336,63 @@ async test "slow functions are killed and reported as timed out" {
   assert_true(result.stderr.contains("timed out"))
   assert_true(result.duration_ms < 5000)
   assert_true((@async.now() - started).to_int() < 10_000)
+}
+
+///|
+async test "burst requests queue behind the concurrency cap" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let with_async =
+    #|name = "fixture/hold-fn"
+    #|version = "0.1.0"
+    #|
+    #|import {
+    #|  "moonbitlang/async@0.22.4",
+    #|}
+  let hold_main =
+    #|async fn main {
+    #|  @async.sleep(300)
+    #|  println("held")
+    #|}
+  let wasm_module = build_fixture_module(
+    fixture_dir,
+    async_pkg(),
+    hold_main,
+    moon_mod=with_async,
+  )
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "hold-fn", "b-1001", wasm_module)
+  // Cap of 2 with 6 concurrent requests: three waves of ~300ms.
+  let cfg = test_config(data_root, max_concurrency=2)
+  let results : FixedArray[@shared.RunResult] = FixedArray::make(
+    6,
+    @shared.RunResult(),
+  )
+  let started = @async.now()
+  @async.with_task_group(group => {
+    for i in 0..<6 {
+      group.spawn_bg(() => {
+        results[i] = run_function(
+          cfg,
+          @shared.RunRequest(
+            name="hold-fn",
+            event=@shared.Event::Http(
+              @shared.HttpEventData(
+                http_method="GET",
+                path="/fn/hold-fn",
+                query="",
+                body="",
+              ),
+            ),
+          ),
+        )
+      })
+    }
+  })
+  let elapsed = (@async.now() - started).to_int()
+  for i in 0..<6 {
+    assert_eq(results[i].exit_code, 0)
+    assert_eq(results[i].stdout, "held\n")
+  }
+  // 6 runs / 2 slots = 3 waves of ~300ms: queued, not rejected or raced.
+  assert_true(elapsed >= 800)
 }
