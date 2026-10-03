@@ -178,25 +178,25 @@ Conventions:
 
 ## Step 6. moonless CLI (P0)
 
-- [ ] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
+- [x] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
   `logs`), `MOONLESS_SERVER` env with `--server` override.
   *Done when:* `moonless` with no args prints usage.
-- [ ] **T6.2 — `deploy`.** Validate the current directory is a MoonBit
+- [x] **T6.2 — `deploy`.** Validate the current directory is a MoonBit
   project with a `moonless.toml`; resolve dependencies locally if needed,
   then tar.gz the sources **plus** the vendored `.mooncakes/` cache
   (excluding `_build/`, dotfiles) so the builder never needs network
   (R2); upload; stream the build outcome.
   *Done when:* deploying the hello example from the repo works.
-- [ ] **T6.3 — `list`.** Table of deployed functions with their
+- [x] **T6.3 — `list`.** Table of deployed functions with their
   triggers and last build status.
   *Done when:* output matches the registry state.
-- [ ] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
+- [x] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
   streaming is deferred (T12.4).
   *Done when:* after HTTP-triggering a function, its stderr shows up.
-- [ ] **T6.5 — Error UX.** Friendly messages for: server unreachable,
+- [x] **T6.5 — Error UX.** Friendly messages for: server unreachable,
   not a MoonBit project, missing `moonless.toml`, unknown function.
   *Done when:* each case prints an actionable hint, not a stack trace.
-- [ ] **T6.6 — Smoke script.** A script under `scripts/` running the
+- [x] **T6.6 — Smoke script.** A script under `scripts/` running the
   whole P0 flow: deploy → curl → logs.
   *Done when:* the script passes on a fresh compose stack.
 
