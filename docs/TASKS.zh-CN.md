@@ -103,30 +103,30 @@
 
 ## Step 4. Runner 服务（P0）
 
-- [ ] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
+- [x] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
   设置 `MOONLESS_EVENT` 执行已存储的 wasm 模块，返回
   `{stdout, stderr, exitCode, duration}`。
   *完成标准：* curl 调用已部署 fixture 能取回捕获的输出。
-- [ ] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` 起
+- [x] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` 起
   moonrun 子进程执行：spawn `moonrun <module.wasm>`，用 `extra_env`
   组装环境变量（`MOONLESS_EVENT` 加注入的服务地址），用
   `collect_output` 捕获 stdout/stderr。
   *完成标准：* echo/sleep/exit-code 用例行为全部正确。
-- [ ] **T4.3 — 超时。** 默认 60 秒后杀死函数，返回超时结果。
+- [x] **T4.3 — 超时。** 默认 60 秒后杀死函数，返回超时结果。
   *完成标准：* `sleep` fixture 被杀死且结果如实上报。
-- [ ] **T4.4 — 并发上限。** 用简单信号量限制同时 fork 数（默认 8，
+- [x] **T4.4 — 并发上限。** 用简单信号量限制同时 fork 数（默认 8，
   可用环境变量配置），超出的请求排队。
   *完成标准：* 突发测试表现为排队执行而非失败。
-- [ ] **T4.5 — 模块定位。** 把 `<name>` 解析到
+- [x] **T4.5 — 模块定位。** 把 `<name>` 解析到
   `/var/lib/moonless/functions/` 下最新的 `.wasm`。
   *完成标准：* 重新部署 fixture 后，下一次执行用的是新模块。
-- [ ] **T4.6 — 日志采集。** 每次执行的事件与 stderr 追加到
+- [x] **T4.6 — 日志采集。** 每次执行的事件与 stderr 追加到
   `/var/lib/moonless/logs/<name>/<日期>.log`，供 gateway 查询。
   *完成标准：* 文件按预期布局生成。
-- [ ] **T4.7 — Runner 测试。** 覆盖：普通 stdout、stderr 噪音、非零
+- [x] **T4.7 — Runner 测试。** 覆盖：普通 stdout、stderr 噪音、非零
   退出码、大输出、超时。
   *完成标准：* 全部用例通过。
-- [ ] **T4.8 — 输出上限。** 执行每流输出上限（默认 10MB，可用环境
+- [x] **T4.8 — 输出上限。** 执行每流输出上限（默认 10MB，可用环境
   变量调整）：超出截断并在结果中标记 `truncated`（R4）；HTTP 响应
   路径遵循同一上限。
   *完成标准：* 无限回显的 fixture 被截断，runner 内存无增长。

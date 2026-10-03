@@ -119,32 +119,32 @@ Conventions:
 
 ## Step 4. Runner service (P0)
 
-- [ ] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
+- [x] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
   executes the stored wasm module with `MOONLESS_EVENT` set, returns
   `{stdout, stderr, exitCode, duration}`.
   *Done when:* curl against a deployed fixture returns captured output.
-- [ ] **T4.2 — Process execution.** Execute via a moonrun child process
+- [x] **T4.2 — Process execution.** Execute via a moonrun child process
   through `@moonbitlang/async/process`: spawn `moonrun <module.wasm>`
   with `extra_env` (`MOONLESS_EVENT` plus injected service URLs),
   capture stdout/stderr with `collect_output`.
   *Done when:* echo/sleep/exit-code cases all behave correctly.
-- [ ] **T4.3 — Timeout.** Kill functions after a default 60s and report
+- [x] **T4.3 — Timeout.** Kill functions after a default 60s and report
   a timeout result.
   *Done when:* a `sleep` fixture is killed and reported.
-- [ ] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
+- [x] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
   forks (default 8, configurable via env); excess requests queue.
   *Done when:* a burst test shows queued rather than failed executions.
-- [ ] **T4.5 — Module resolution.** Resolve `<name>` to its newest
+- [x] **T4.5 — Module resolution.** Resolve `<name>` to its newest
   `.wasm` under `/var/lib/moonless/functions/`.
   *Done when:* re-deploying a fixture makes the next run use the new
   module.
-- [ ] **T4.6 — Log capture.** Append each run's event and stderr to
+- [x] **T4.6 — Log capture.** Append each run's event and stderr to
   `/var/lib/moonless/logs/<name>/<date>.log` for gateway-side queries.
   *Done when:* files appear in the expected layout.
-- [ ] **T4.7 — Runner tests.** Cover: plain stdout, stderr noise,
+- [x] **T4.7 — Runner tests.** Cover: plain stdout, stderr noise,
   non-zero exit, large output, timeout.
   *Done when:* all cases pass.
-- [ ] **T4.8 — Output cap.** Enforce the per-stream output limit (default
+- [x] **T4.8 — Output cap.** Enforce the per-stream output limit (default
   10MB, env-tunable): truncate excess and flag `truncated` in the result
   (R4); the HTTP response path honors the same cap.
   *Done when:* an infinite-echo fixture is truncated without runner

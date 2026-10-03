@@ -21,16 +21,23 @@ async test "http client helpers against a local test server" {
       @shared.send_text(ctx.conn, 200, "finally")
     }),
   )
-  let server = @http.Server(@socket.Addr::parse("127.0.0.1:18472"))
+  let port = test_listen_port()
+  let server = @http.Server(
+    @socket.Addr::parse("127.0.0.1:\{port}"),
+    reuse_addr=true,
+  )
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
-    let response = @shared.http_get("http://127.0.0.1:18472/answer")
+    let response = @shared.http_get("http://127.0.0.1:\{port}/answer")
     assert_eq(response.status, 200)
     assert_eq(response.body, "{\"n\":42}")
-    let json = @shared.http_get_json("http://127.0.0.1:18472/answer")
+    let json = @shared.http_get_json("http://127.0.0.1:\{port}/answer")
     assert_eq(json.stringify(), "{\"n\":42}")
     let payload : Json = { "n": 21 }
-    let json = @shared.http_post_json("http://127.0.0.1:18472/double", payload)
+    let json = @shared.http_post_json(
+      "http://127.0.0.1:\{port}/double",
+      payload,
+    )
     assert_eq(json.stringify(), "{\"doubled\":42}")
   })
 }
@@ -44,10 +51,14 @@ async test "http client helper honors its timeout" {
       @shared.send_text(ctx.conn, 200, "finally")
     }),
   )
-  let server = @http.Server(@socket.Addr::parse("127.0.0.1:18473"))
+  let port = test_listen_port()
+  let server = @http.Server(
+    @socket.Addr::parse("127.0.0.1:\{port}"),
+    reuse_addr=true,
+  )
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
-    try @shared.http_get("http://127.0.0.1:18473/slow", timeout_ms=80) catch {
+    try @shared.http_get("http://127.0.0.1:\{port}/slow", timeout_ms=80) catch {
       @shared.HttpError(message) => assert_true(message.contains("timed out"))
       _ => fail("expected HttpError")
     } noraise {

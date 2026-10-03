@@ -62,6 +62,7 @@ pub(all) suberror SharedError {
   InvalidEvent(String)
   InvalidManifest(String)
   InvalidArchive(String)
+  RunError(String)
   HttpError(String)
 } derive(@debug.Debug)
 pub fn SharedError::to_repr(Self) -> @debug.Repr
