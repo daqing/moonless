@@ -193,7 +193,7 @@ Conventions:
 - [x] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
   streaming is deferred (T12.4).
   *Done when:* after HTTP-triggering a function, its stderr shows up.
-- [ ] **T6.5 — Error UX.** Friendly messages for: server unreachable,
+- [x] **T6.5 — Error UX.** Friendly messages for: server unreachable,
   not a MoonBit project, missing `moonless.toml`, unknown function.
   *Done when:* each case prints an actionable hint, not a stack trace.
 - [ ] **T6.6 — Smoke script.** A script under `scripts/` running the
