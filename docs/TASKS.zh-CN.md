@@ -133,26 +133,26 @@
 
 ## Step 5. Gateway 服务（P0）
 
-- [ ] **T5.1 — 管理 API。** `POST /api/deploy`（tar.gz，转发给
+- [x] **T5.1 — 管理 API。** `POST /api/deploy`（tar.gz，转发给
   builder 后登记）、`GET /api/functions`、
   `GET /api/functions/<name>`、
   `GET /api/functions/<name>/logs?tail=N`。
   *完成标准：* 用 curl 走通 deploy → list → logs 完整循环。
-- [ ] **T5.2 — 注册表。** 函数注册表存为
+- [x] **T5.2 — 注册表。** 函数注册表存为
   `/var/lib/moonless/registry/` 下的本地文件，原子写入（临时文件 +
   rename）；记录包含 manifest 和当前 build id。
   *完成标准：* 并发 deploy 不会产生损坏的注册表文件。
-- [ ] **T5.3 — HTTP 触发。** 路由 `/fn/<name>`（任意方法）→ 组装
+- [x] **T5.3 — HTTP 触发。** 路由 `/fn/<name>`（任意方法）→ 组装
   http 事件 JSON → 调用 runner → stdout 作为响应体返回，状态码 200
   （缓冲式；流式不在 MVP 范围）。
   *完成标准：* `curl $MOONLESS_SERVER/fn/hello` 返回函数 stdout。
-- [ ] **T5.4 — 内部事件入口。** `POST /api/events` 接收任意事件
+- [x] **T5.4 — 内部事件入口。** `POST /api/events` 接收任意事件
   来源；与注册表中的触发器匹配并派发给 runner。
   *完成标准：* 合成的 s3 事件能触发绑定的函数。
-- [ ] **T5.5 — Deploy 编排。** 串联 上传 → 构建 → 登记，把构建失败
+- [x] **T5.5 — Deploy 编排。** 串联 上传 → 构建 → 登记，把构建失败
   连同原因传回调用方。
   *完成标准：* 坏 deploy 返回错误，好 deploy 可被调用。
-- [ ] **T5.6 — Gateway 测试。** 集成测试：部署 fixture、HTTP 触发、
+- [x] **T5.6 — Gateway 测试。** 集成测试：部署 fixture、HTTP 触发、
   日志获取。
   *完成标准：* 脚本化的端到端流程在 compose 栈上通过。
 

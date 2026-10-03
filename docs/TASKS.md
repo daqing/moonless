@@ -152,27 +152,27 @@ Conventions:
 
 ## Step 5. Gateway service (P0)
 
-- [ ] **T5.1 — Management API.** `POST /api/deploy` (tar.gz; forwards to
+- [x] **T5.1 — Management API.** `POST /api/deploy` (tar.gz; forwards to
   builder, then registers), `GET /api/functions`, `GET /api/functions/
   <name>`, `GET /api/functions/<name>/logs?tail=N`.
   *Done when:* curl drives a full deploy → list → logs cycle.
-- [ ] **T5.2 — Registry.** The function registry as a local file under
+- [x] **T5.2 — Registry.** The function registry as a local file under
   `/var/lib/moonless/registry/`, written atomically (temp file + rename);
   records carry the manifest and the current build id.
   *Done when:* concurrent deploys never leave a corrupted registry file.
-- [ ] **T5.3 — HTTP trigger.** Route `/fn/<name>` (any method) → build
+- [x] **T5.3 — HTTP trigger.** Route `/fn/<name>` (any method) → build
   the http event JSON → call runner → return stdout as the body with
   status 200 (buffered; streaming is out of scope for MVP).
   *Done when:* `curl $MOONLESS_SERVER/fn/hello` returns the function's
   stdout.
-- [ ] **T5.4 — Internal event intake.** `POST /api/events` accepting any
+- [x] **T5.4 — Internal event intake.** `POST /api/events` accepting any
   event source; match it against the registry's triggers and dispatch to
   the runner.
   *Done when:* a synthetic s3 event triggers the bound function.
-- [ ] **T5.5 — Deploy orchestration.** Sequence upload → build →
+- [x] **T5.5 — Deploy orchestration.** Sequence upload → build →
   register, propagating build failures to the caller with the reason.
   *Done when:* a broken deploy returns an error, a good one is callable.
-- [ ] **T5.6 — Gateway tests.** Integration test: deploy fixture, HTTP
+- [x] **T5.6 — Gateway tests.** Integration test: deploy fixture, HTTP
   trigger, logs retrieval.
   *Done when:* scripted end-to-end passes against a compose stack.
 

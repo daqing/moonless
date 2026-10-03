@@ -1,11 +1,13 @@
 import {
   "moonbit-community/toml",
   "moonbitlang/async",
+  "moonbitlang/async/gzip",
   "moonbitlang/async/http",
   "moonbitlang/async/io",
   "moonbitlang/async/socket",
   "moonbitlang/async/stdio",
   "moonbitlang/core/debug",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
