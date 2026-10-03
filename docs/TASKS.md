@@ -144,7 +144,7 @@ Conventions:
 - [x] **T4.7 — Runner tests.** Cover: plain stdout, stderr noise,
   non-zero exit, large output, timeout.
   *Done when:* all cases pass.
-- [ ] **T4.8 — Output cap.** Enforce the per-stream output limit (default
+- [x] **T4.8 — Output cap.** Enforce the per-stream output limit (default
   10MB, env-tunable): truncate excess and flag `truncated` in the result
   (R4); the HTTP response path honors the same cap.
   *Done when:* an infinite-echo fixture is truncated without runner

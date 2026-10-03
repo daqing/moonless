@@ -7,6 +7,7 @@
 priv struct RunnerConfig {
   data_root : String
   timeout_ms : Int
+  output_cap : Int
   sem : @semaphore.Semaphore
 }
 
@@ -23,8 +24,14 @@ fn make_runner_config(
   data_root : String,
   timeout_ms : Int,
   max_concurrency : Int,
+  output_cap : Int,
 ) -> RunnerConfig {
-  { data_root, timeout_ms, sem: @semaphore.Semaphore(max_concurrency), }
+  {
+    data_root,
+    timeout_ms,
+    output_cap,
+    sem: @semaphore.Semaphore(max_concurrency),
+  }
 }
 
 ///|
@@ -34,15 +41,9 @@ fn load_runner_config() -> RunnerConfig {
   )
   let timeout_ms = env_int("MOONLESS_RUN_TIMEOUT_MS", 60_000)
   let max_concurrency = env_int("MOONLESS_MAX_CONCURRENCY", 8)
-  make_runner_config(data_root, timeout_ms, max_concurrency)
+  let output_cap = env_int("MOONLESS_OUTPUT_LIMIT", 10 * 1024 * 1024)
+  make_runner_config(data_root, timeout_ms, max_concurrency, output_cap)
 }
-
-///|
-// Sentinel raised by with_timeout; distinct type so a genuine spawn error
-// is never mistaken for a timeout.
-priv suberror FunctionTimeout {
-  FunctionTimeout
-} derive(Debug)
 
 ///|
 async fn run_function(
@@ -102,29 +103,106 @@ async fn run_steps(
   for key, value in request.env {
     env[key] = value
   }
-  let (code, stdout, stderr) = @async.with_timeout(
-    cfg.timeout_ms,
-    () => @process.collect_output("moonrun", [module_path], extra_env=env),
-    error=FunctionTimeout,
-  ) catch {
-    FunctionTimeout =>
-      return @shared.RunResult(
-        stdout="",
-        stderr="moonless: function timed out after \{cfg.timeout_ms}ms\n",
-        exit_code=124,
-        duration_ms=(@async.now() - started).to_int(),
-        truncated=false,
-      )
+  // Streamed execution: both pipes are drained concurrently, each capped —
+  // bytes past the cap are read and discarded, so an infinitely chatty
+  // function can neither block on a full pipe nor grow runner memory. A
+  // watchdog cancels the child at the deadline.
+  let stdout_capture = StreamCapture(cap=cfg.output_cap)
+  let stderr_capture = StreamCapture(cap=cfg.output_cap)
+  let timed_out : Ref[Bool] = Ref(false)
+  let code = @async.with_task_group(group => {
+    let (stdout_read, stdout_write) = @process.read_from_process()
+    let (stderr_read, stderr_write) = @process.read_from_process()
+    group.spawn_bg(() => drain_capped(stdout_read, stdout_capture))
+    group.spawn_bg(() => drain_capped(stderr_read, stderr_capture))
+    let proc = @process.spawn(
+      group,
+      "moonrun",
+      [module_path],
+      extra_env=env,
+      stdout=stdout_write,
+      stderr=stderr_write,
+      cancel_handler=@process.graceful_cancel(timeout=2000),
+    )
+    // no_wait: the watchdog must not hold the group open after the child
+    // exits; a stray fire on a dead process is a no-op.
+    group.spawn_bg(no_wait=true, () => {
+      @async.sleep(cfg.timeout_ms)
+      timed_out.val = true
+      proc.cancel()
+    })
+    proc.wait() catch {
+      _ => -1
+    }
+  }) catch {
     err =>
       raise @shared.RunError("failed to run moonrun: \{@debug.to_string(err)}")
   }
+  let truncated = stdout_capture.truncated || stderr_capture.truncated
+  if timed_out.val && code != 0 {
+    return @shared.RunResult(
+      stdout=stdout_capture.text(),
+      stderr="moonless: function timed out after \{cfg.timeout_ms}ms\n",
+      exit_code=124,
+      duration_ms=(@async.now() - started).to_int(),
+      truncated~,
+    )
+  }
   @shared.RunResult(
-    stdout=stdout.text() catch { _ => "" },
-    stderr=stderr.text() catch { _ => "" },
+    stdout=stdout_capture.text(),
+    stderr=stderr_capture.text(),
     exit_code=code,
     duration_ms=(@async.now() - started).to_int(),
-    truncated=false,
+    truncated~,
   )
+}
+
+///|
+// Per-stream byte capture bounded by the output cap; keeps reading (and
+// discarding) past the cap so the child never blocks on a full pipe.
+priv struct StreamCapture {
+  buf : @buffer.Buffer
+  cap : Int
+  mut total : Int
+  mut truncated : Bool
+}
+
+///|
+fn StreamCapture::StreamCapture(cap~ : Int) -> StreamCapture {
+  { buf: @buffer.Buffer::Buffer(), cap, total: 0, truncated: false, }
+}
+
+///|
+fn StreamCapture::push(self : StreamCapture, chunk : Bytes) -> Unit {
+  self.total += chunk.length()
+  if self.total > self.cap {
+    self.truncated = true
+  }
+  let remaining = self.cap - self.buf.length()
+  if remaining > 0 {
+    if chunk.length() <= remaining {
+      self.buf.write_bytesview(chunk[:])
+    } else {
+      self.buf.write_bytesview(chunk[:remaining])
+    }
+  }
+}
+
+///|
+fn StreamCapture::text(self : StreamCapture) -> String {
+  @utf8.decode_lossy(self.buf.to_bytes()[:])
+}
+
+///|
+async fn drain_capped(
+  reader : @process.ReadFromProcess,
+  capture : StreamCapture,
+) -> Unit {
+  for ;; {
+    let chunk = reader.read_some() catch { _ => None }
+    guard chunk is Some(bytes) else { break }
+    capture.push(bytes)
+  }
 }
 
 ///|

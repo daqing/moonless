@@ -165,8 +165,9 @@ fn test_config(
   data_root : String,
   timeout_ms? : Int = 60_000,
   max_concurrency? : Int = 8,
+  output_cap? : Int = 10 * 1024 * 1024,
 ) -> RunnerConfig {
-  make_runner_config(data_root, timeout_ms, max_concurrency)
+  make_runner_config(data_root, timeout_ms, max_concurrency, output_cap)
 }
 
 ///|
@@ -515,4 +516,40 @@ async test "large output is captured in full under the cap" {
     }
   }
   assert_eq(lines, 2000)
+}
+
+///|
+async test "infinite echo is capped, truncated, and timed out" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let spam_main =
+    #|fn main {
+    #|  for ;; {
+    #|    println("spam spam spam spam spam")
+    #|  }
+    #|}
+  let wasm_module = build_fixture_module(fixture_dir, echo_pkg(), spam_main)
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "spam-fn", "b-1001", wasm_module)
+  // Tiny cap and short deadline: the buffers must stay bounded.
+  let result = run_function(
+    test_config(data_root, timeout_ms=1500, output_cap=4000),
+    @shared.RunRequest(
+      name="spam-fn",
+      event=@shared.Event::Http(
+        @shared.HttpEventData(
+          http_method="GET",
+          path="/fn/spam-fn",
+          query="",
+          body="",
+        ),
+      ),
+    ),
+  )
+  assert_eq(result.exit_code, 124)
+  assert_eq(result.truncated, true)
+  assert_true(result.stderr.contains("timed out"))
+  // stdout bounded by the cap despite the function echoing forever.
+  assert_true(result.stdout.length() > 0)
+  assert_true(result.stdout.length() <= 4000)
+  assert_true(result.stdout.contains("spam"))
 }
