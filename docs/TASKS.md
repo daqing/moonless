@@ -86,33 +86,33 @@ Conventions:
 
 ## Step 3. Builder service (P0)
 
-- [ ] **T3.1 — Build API.** `POST /build` accepting a tar.gz of a MoonBit
+- [x] **T3.1 — Build API.** `POST /build` accepting a tar.gz of a MoonBit
   project plus the function name; reject packages missing `moon.mod` or
   `moonless.toml`.
   *Done when:* hand-crafted tar.gz requests return success/failure
   correctly.
-- [ ] **T3.2 — Unpack safely.** Extract into an isolated work dir
+- [x] **T3.2 — Unpack safely.** Extract into an isolated work dir
   `/var/lib/moonless/builds/<build-id>/` with path-traversal protection
   (zip-slip).
   *Done when:* a malicious archive with `../` entries is rejected.
-- [ ] **T3.3 — Invoke the toolchain.** Run `moon build --target wasm` in
+- [x] **T3.3 — Invoke the toolchain.** Run `moon build --target wasm` in
   the work dir via `@moonbitlang/async/process` (`run` +
   `collect_output`), capture output, locate the produced `.wasm` module.
   *Done when:* a fixture project builds and the module path is reported.
-- [ ] **T3.4 — Artifact store.** Copy the module to
+- [x] **T3.4 — Artifact store.** Copy the module to
   `/var/lib/moonless/functions/<name>/<build-id>/func.wasm` and write
   build metadata next to it.
   *Done when:* artifacts survive a builder container restart (named
   volume).
-- [ ] **T3.5 — Failure reporting.** Return the tail of build stderr in
+- [x] **T3.5 — Failure reporting.** Return the tail of build stderr in
   `BuildResult` so the CLI can show why a deploy failed.
   *Done when:* a broken fixture yields a readable error message.
-- [ ] **T3.6 — Offline build verification.** Dependencies arrive
+- [x] **T3.6 — Offline build verification.** Dependencies arrive
   vendored inside the uploaded package (R2); confirm the builder needs no
   network at all during a build.
   *Done when:* a deploy succeeds with the builder container's network
   access disabled.
-- [ ] **T3.7 — Builder tests.** Integration tests: one good fixture
+- [x] **T3.7 — Builder tests.** Integration tests: one good fixture
   project, one broken one.
   *Done when:* both paths covered by `moon test` or a script under
   `scripts/`.

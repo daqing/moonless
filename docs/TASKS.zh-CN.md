@@ -76,28 +76,28 @@
 
 ## Step 3. Builder 服务（P0）
 
-- [ ] **T3.1 — 构建 API。** `POST /build` 接收 MoonBit 项目的
+- [x] **T3.1 — 构建 API。** `POST /build` 接收 MoonBit 项目的
   tar.gz 包和函数名；缺少 `moon.mod` 或 `moonless.toml` 的包拒绝。
   *完成标准：* 手工构造的 tar.gz 请求能正确返回成功/失败。
-- [ ] **T3.2 — 安全解包。** 解压到隔离工作目录
+- [x] **T3.2 — 安全解包。** 解压到隔离工作目录
   `/var/lib/moonless/builds/<build-id>/`，做路径穿越防护
   （zip-slip）。
   *完成标准：* 含 `../` 条目的恶意压缩包被拒绝。
-- [ ] **T3.3 — 调用工具链。** 在工作目录经 `@moonbitlang/async/process`
+- [x] **T3.3 — 调用工具链。** 在工作目录经 `@moonbitlang/async/process`
   （`run` + `collect_output`）运行 `moon build --target wasm`，捕获
   输出，定位产出的 `.wasm` 模块。
   *完成标准：* fixture 项目构建成功并返回模块路径。
-- [ ] **T3.4 — 产物存储。** 把模块复制到
+- [x] **T3.4 — 产物存储。** 把模块复制到
   `/var/lib/moonless/functions/<name>/<build-id>/func.wasm`，旁边写入
   构建元数据。
   *完成标准：* builder 容器重启后产物仍在（named volume）。
-- [ ] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
+- [x] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
   供 CLI 展示失败原因。
   *完成标准：* 坏 fixture 返回可读的错误信息。
-- [ ] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达
+- [x] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达
   （R2）；确认 builder 构建全程完全不需要网络。
   *完成标准：* 禁用 builder 容器的网络访问后，deploy 依然成功。
-- [ ] **T3.7 — Builder 测试。** 集成测试：一个好 fixture、一个坏
+- [x] **T3.7 — Builder 测试。** 集成测试：一个好 fixture、一个坏
   fixture。
   *完成标准：* 两条路径都被 `moon test` 或 `scripts/` 下脚本覆盖。
 
