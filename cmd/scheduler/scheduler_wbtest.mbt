@@ -164,3 +164,40 @@ async test "dispatch_due fires due entries once and reschedules forward" {
     server.close()
   })
 }
+
+///|
+async test "entries overdue beyond the grace are skipped, not caught up" {
+  let port = fixture_listen_port()
+  let fake = FakeGateway(functions=Json::array([]), events=[])
+  @async.with_task_group(group => {
+    let server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(server, fake_gateway_router(fake))
+    })
+    let now = @async.now()
+    // A stale table entry overdue by 5 minutes (far beyond the 60s grace).
+    let stale : Map[String, ScheduleEntry] = Map([])
+    stale["minute-fn"] = {
+      schedule: @shared.CronSchedule(name="minute-fn", expression="* * * * *"),
+      next_fire_ms: now - 300_000,
+    }
+    fake.functions = registry_json([("minute-fn", Some("* * * * *"))])
+    let table = sync_table(config(port), stale)
+    guard table.get("minute-fn") is Some(rescheduled) else {
+      fail("entry lost")
+    }
+    // The fire time was recomputed into the future: the missed periods
+    // are skipped instead of replayed.
+    assert_true(rescheduled.next_fire_ms > now)
+    assert_true(rescheduled.next_fire_ms - now <= 60_000)
+    // And dispatch has nothing pending to send for it.
+    let after = dispatch_due(config(port), table, @async.now())
+    guard after.get("minute-fn") is Some(pending) else { fail("entry lost") }
+    assert_true(pending.next_fire_ms == rescheduled.next_fire_ms)
+    assert_eq(fake.events.length(), 0)
+    server.close()
+  })
+}

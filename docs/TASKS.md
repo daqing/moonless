@@ -215,7 +215,7 @@ Conventions:
 - [x] **T7.3 — Dispatch loop.** On each fire time, assemble the cron
   event and POST it to the gateway's `/api/events`.
   *Done when:* an `* * * * *` fixture fires within the minute.
-- [ ] **T7.4 — Missed-fire policy.** Document and implement
+- [x] **T7.4 — Missed-fire policy.** Document and implement
   skip-if-late (no catch-up bursts after downtime).
   *Done when:* behavior verified by a short-period test.
 - [ ] **T7.5 — Scheduler tests.** Cover parsing, next-fire, and the
