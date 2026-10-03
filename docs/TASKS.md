@@ -134,7 +134,7 @@ Conventions:
 - [x] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent
   forks (default 8, configurable via env); excess requests queue.
   *Done when:* a burst test shows queued rather than failed executions.
-- [ ] **T4.5 — Module resolution.** Resolve `<name>` to its newest
+- [x] **T4.5 — Module resolution.** Resolve `<name>` to its newest
   `.wasm` under `/var/lib/moonless/functions/`.
   *Done when:* re-deploying a fixture makes the next run use the new
   module.

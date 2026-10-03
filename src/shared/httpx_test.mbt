@@ -1,4 +1,15 @@
 ///|
+// moon test runs test files in parallel worker processes, so fixed listen
+// ports collide across runs; pick a random port instead.
+fn test_listen_port() -> Int {
+  match @env.rand(2) {
+    Some(bytes) =>
+      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
+    None => 18_471
+  }
+}
+
+///|
 test "match_path captures params and rejects mismatches" {
   let params = @shared.match_path(
     "/api/functions/:name/logs", "/api/functions/hello/logs",
@@ -36,27 +47,31 @@ async test "router serves requests end to end" {
       @shared.send_json(ctx.conn, 200, json)
     }),
   )
-  let server = @http.Server(@socket.Addr::parse("127.0.0.1:18471"))
+  let port = test_listen_port()
+  let server = @http.Server(
+    @socket.Addr::parse("127.0.0.1:\{port}"),
+    reuse_addr=true,
+  )
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
-    let (response, body) = @http.get("http://127.0.0.1:18471/healthz")
+    let (response, body) = @http.get("http://127.0.0.1:\{port}/healthz")
     assert_eq(response.code, 200)
     assert_eq(body.text(), "ok")
-    let (response, body) = @http.get("http://127.0.0.1:18471/fn/hello")
+    let (response, body) = @http.get("http://127.0.0.1:\{port}/fn/hello")
     assert_eq(response.code, 200)
     assert_eq(body.text(), "hello hello")
     let payload : Json = { "n": 3 }
     let (response, body) = @http.post(
-      "http://127.0.0.1:18471/echo",
+      "http://127.0.0.1:\{port}/echo",
       payload.stringify(),
     )
     assert_eq(response.code, 200)
     assert_eq(body.text(), payload.stringify())
-    let (response, _) = @http.get("http://127.0.0.1:18471/missing")
+    let (response, _) = @http.get("http://127.0.0.1:\{port}/missing")
     assert_eq(response.code, 404)
     let no_headers : @http.Headers = Map([])
     let (response, _) = @http.request(
-      "http://127.0.0.1:18471/healthz",
+      "http://127.0.0.1:\{port}/healthz",
       @http.Delete,
       no_headers,
       "",

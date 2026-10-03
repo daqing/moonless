@@ -9,6 +9,17 @@ priv suberror FixtureError {
 } derive(Debug)
 
 ///|
+// moon test runs test files in parallel worker processes, so fixed listen
+// ports collide across runs; pick a random port instead.
+fn fixture_listen_port() -> Int {
+  match @env.rand(2) {
+    Some(bytes) =>
+      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
+    None => 18_475
+  }
+}
+
+///|
 async fn write_fixture_files(
   dir : String,
   files : Array[(String, String)],
@@ -164,8 +175,12 @@ async test "POST /run executes a stored function with the event env" {
   let wasm_module = build_fixture_module(fixture_dir, echo_pkg(), echo_main())
   let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
   install_function(data_root, "echo-fn", "b-1001", wasm_module)
+  let port = fixture_listen_port()
   @async.with_task_group(group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:18475"))
+    let server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{port}"),
+      reuse_addr=true,
+    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, runner_router(test_config(data_root)))
     })
@@ -174,7 +189,7 @@ async test "POST /run executes a stored function with the event env" {
       "event": { "source": "http", "method": "GET", "path": "/fn/echo-fn" },
     }
     let response = @shared.http_post_json(
-      "http://127.0.0.1:18475/run",
+      "http://127.0.0.1:\{port}/run",
       payload,
       timeout_ms=30_000,
     )
@@ -395,4 +410,39 @@ async test "burst requests queue behind the concurrency cap" {
   }
   // 6 runs / 2 slots = 3 waves of ~300ms: queued, not rejected or raced.
   assert_true(elapsed >= 800)
+}
+
+///|
+async test "runs resolve to the newest stored build" {
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  let old_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let old_main =
+    #|fn main {
+    #|  println("MARK:old")
+    #|}
+  let old_module = build_fixture_module(old_dir, echo_pkg(), old_main)
+  install_function(data_root, "mark-fn", "b-1001", old_module)
+  let request = @shared.RunRequest(
+    name="mark-fn",
+    event=@shared.Event::Http(
+      @shared.HttpEventData(
+        http_method="GET",
+        path="/fn/mark-fn",
+        query="",
+        body="",
+      ),
+    ),
+  )
+  let result = run_function(test_config(data_root), request)
+  assert_eq(result.stdout, "MARK:old\n")
+  // Re-deploy: a newer build id takes over on the next run.
+  let new_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let new_main =
+    #|fn main {
+    #|  println("MARK:new")
+    #|}
+  let new_module = build_fixture_module(new_dir, echo_pkg(), new_main)
+  install_function(data_root, "mark-fn", "b-1002", new_module)
+  let result = run_function(test_config(data_root), request)
+  assert_eq(result.stdout, "MARK:new\n")
 }

@@ -9,6 +9,17 @@ priv suberror FixtureError {
 } derive(Debug)
 
 ///|
+// moon test runs test files in parallel worker processes, so fixed listen
+// ports collide across runs; pick a random port instead.
+fn fixture_listen_port() -> Int {
+  match @env.rand(2) {
+    Some(bytes) =>
+      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
+    None => 18_474
+  }
+}
+
+///|
 async fn write_fixture_files(
   dir : String,
   files : Array[(String, String)],
@@ -177,8 +188,12 @@ async test "POST /build answers over HTTP with a BuildResult" {
   ])
   let archive = pack_tar_gz(fixture_dir)
   let data_root = @fs.tmpdir(prefix="moonless-builder-test-")
+  let port = fixture_listen_port()
   @async.with_task_group(group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:18474"))
+    let server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{port}"),
+      reuse_addr=true,
+    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, builder_router())
     })
@@ -190,7 +205,8 @@ async test "POST /build answers over HTTP with a BuildResult" {
       "archive": @base64.encode(archive[:]),
     }
     let response = @shared.http_post_json(
-      "http://127.0.0.1:18474/build", payload,
+      "http://127.0.0.1:\{port}/build",
+      payload,
     )
     assert_true(response.stringify().contains("\"ok\":true"))
     @env.unset_env_var("MOONLESS_DATA")
