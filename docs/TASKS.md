@@ -218,7 +218,7 @@ Conventions:
 - [x] **T7.4 — Missed-fire policy.** Document and implement
   skip-if-late (no catch-up bursts after downtime).
   *Done when:* behavior verified by a short-period test.
-- [ ] **T7.5 — Scheduler tests.** Cover parsing, next-fire, and the
+- [x] **T7.5 — Scheduler tests.** Cover parsing, next-fire, and the
   dispatch path with a fake clock where possible.
   *Done when:* suite is green.
 
