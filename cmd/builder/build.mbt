@@ -71,7 +71,31 @@ async fn build_steps(
     return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
   }
   let wasm_path = find_wasm_module(src_dir)
-  @shared.BuildResult(ok=true, build_id~, wasm_path~)
+  // Store the artifact under functions/<name>/<build-id>/ together with
+  // its metadata; the reported path points at the stored copy.
+  let artifact_dir = data_root + "/functions/" + name + "/" + build_id
+  mkdir_recursive(artifact_dir)
+  let artifact = artifact_dir + "/func.wasm"
+  let module_bytes = (@fs.read_file(wasm_path) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to read built module: \{@debug.to_string(err)}",
+      )
+  }).binary()
+  @fs.write_file(artifact, module_bytes[:]) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to store artifact: \{@debug.to_string(err)}",
+      )
+  }
+  let result = @shared.BuildResult(ok=true, build_id~, wasm_path=artifact)
+  @fs.write_file(artifact_dir + "/build.json", result.to_json().stringify()) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to write build metadata: \{@debug.to_string(err)}",
+      )
+  }
+  result
 }
 
 ///|

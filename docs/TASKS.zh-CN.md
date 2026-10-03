@@ -87,7 +87,7 @@
   （`run` + `collect_output`）运行 `moon build --target wasm`，捕获
   输出，定位产出的 `.wasm` 模块。
   *完成标准：* fixture 项目构建成功并返回模块路径。
-- [ ] **T3.4 — 产物存储。** 把模块复制到
+- [x] **T3.4 — 产物存储。** 把模块复制到
   `/var/lib/moonless/functions/<name>/<build-id>/func.wasm`，旁边写入
   构建元数据。
   *完成标准：* builder 容器重启后产物仍在（named volume）。

@@ -99,7 +99,7 @@ Conventions:
   the work dir via `@moonbitlang/async/process` (`run` +
   `collect_output`), capture output, locate the produced `.wasm` module.
   *Done when:* a fixture project builds and the module path is reported.
-- [ ] **T3.4 — Artifact store.** Copy the module to
+- [x] **T3.4 — Artifact store.** Copy the module to
   `/var/lib/moonless/functions/<name>/<build-id>/func.wasm` and write
   build metadata next to it.
   *Done when:* artifacts survive a builder container restart (named

@@ -94,9 +94,12 @@ async test "run_build accepts a valid package and rejects missing files" {
   let archive = pack_tar_gz(fixture_dir)
   let result = run_build("hello-fn", @base64.encode(archive[:]), data_root)
   assert_eq(result.ok, true)
-  // The toolchain actually ran: a wasm module exists and carries the
-  // "\0asm" magic.
-  assert_true(result.wasm_path.has_suffix(".wasm"))
+  // The toolchain actually ran and the artifact is stored in the layout
+  // the runner will read, with metadata next to it.
+  assert_eq(
+    result.wasm_path,
+    data_root + "/functions/hello-fn/" + result.build_id + "/func.wasm",
+  )
   assert_true(@fs.exists(result.wasm_path))
   let wasm_module = (@fs.read_file(result.wasm_path) catch {
     _ => raise FixtureError("wasm module unreadable")
@@ -106,6 +109,17 @@ async test "run_build accepts a valid package and rejects missing files" {
   assert_eq(wasm_module[1], b'a')
   assert_eq(wasm_module[2], b's')
   assert_eq(wasm_module[3], b'm')
+  let metadata_path = data_root +
+    "/functions/hello-fn/" +
+    result.build_id +
+    "/build.json"
+  let metadata = (@fs.read_file(metadata_path) catch {
+    _ => raise FixtureError("build.json missing")
+  }).text() catch {
+    _ => raise FixtureError("build.json not text")
+  }
+  assert_true(metadata.contains("\"ok\":true"))
+  assert_true(metadata.contains("func.wasm"))
 
   // Same package without moonless.toml must be rejected.
   let broken_dir = @fs.tmpdir(prefix="moonless-fixture-")
