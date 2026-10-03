@@ -208,7 +208,7 @@ Conventions:
   moonbit-community packages; if one emerges before this task, prefer it
   per the dependency rule in project-notes.
   *Done when:* next-fire-time computation is unit-tested.
-- [ ] **T7.2 — Registry sync.** Poll the gateway every 30s for functions
+- [x] **T7.2 — Registry sync.** Poll the gateway every 30s for functions
   with cron triggers; keep an in-memory schedule table.
   *Done when:* deploying a cron function is picked up within a poll
   cycle.
