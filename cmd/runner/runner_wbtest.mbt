@@ -476,3 +476,43 @@ async test "each run appends an event+stderr record to the day log" {
   assert_true(log.contains("exit=1"))
   assert_true(log.contains("RuntimeError"))
 }
+
+///|
+async test "large output is captured in full under the cap" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let big_main =
+    #|fn main {
+    #|  for i in 0..<2000 {
+    #|    println("line \{i} abcdefghijabcdefghijabcdefghijabcdefghij")
+    #|  }
+    #|}
+  let wasm_module = build_fixture_module(fixture_dir, echo_pkg(), big_main)
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "big-fn", "b-1001", wasm_module)
+  let result = run_function(
+    test_config(data_root),
+    @shared.RunRequest(
+      name="big-fn",
+      event=@shared.Event::Http(
+        @shared.HttpEventData(
+          http_method="GET",
+          path="/fn/big-fn",
+          query="",
+          body="",
+        ),
+      ),
+    ),
+  )
+  assert_eq(result.exit_code, 0)
+  assert_eq(result.truncated, false)
+  assert_true(result.stdout.length() > 90_000)
+  assert_true(result.stdout.contains("line 0 "))
+  assert_true(result.stdout.contains("line 1999 "))
+  let mut lines = 0
+  for ch in result.stdout {
+    if ch == '\n' {
+      lines += 1
+    }
+  }
+  assert_eq(lines, 2000)
+}
