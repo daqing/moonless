@@ -146,7 +146,7 @@
   http 事件 JSON → 调用 runner → stdout 作为响应体返回，状态码 200
   （缓冲式；流式不在 MVP 范围）。
   *完成标准：* `curl $MOONLESS_SERVER/fn/hello` 返回函数 stdout。
-- [ ] **T5.4 — 内部事件入口。** `POST /api/events` 接收任意事件
+- [x] **T5.4 — 内部事件入口。** `POST /api/events` 接收任意事件
   来源；与注册表中的触发器匹配并派发给 runner。
   *完成标准：* 合成的 s3 事件能触发绑定的函数。
 - [ ] **T5.5 — Deploy 编排。** 串联 上传 → 构建 → 登记，把构建失败

@@ -367,3 +367,136 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     gateway_server.close()
   })
 }
+
+///|
+async test "synthetic s3 and cron events dispatch to bound functions only" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let cfg : GatewayConfig = {
+    data_root,
+    builder_url: "http://127.0.0.1:65534",
+    runner_url: "http://127.0.0.1:65534",
+    registry_lock: @async.Mutex::Mutex(),
+  }
+  // Three functions: bound to uploads/put, bound to another bucket, cron.
+  registry_set(
+    cfg,
+    @shared.RegistryRecord(
+      name="on-upload",
+      manifest=@shared.Manifest(
+        name="on-upload",
+        triggers=@shared.ManifestTriggers(
+          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+        ),
+      ),
+      build_id="b-1",
+      updated_at="2026-10-03T00:00:00.000Z",
+    ),
+  )
+  registry_set(
+    cfg,
+    @shared.RegistryRecord(
+      name="on-other-bucket",
+      manifest=@shared.Manifest(
+        name="on-other-bucket",
+        triggers=@shared.ManifestTriggers(
+          s3=@shared.S3Trigger(bucket="archive", events=["put"]),
+        ),
+      ),
+      build_id="b-2",
+      updated_at="2026-10-03T00:00:00.000Z",
+    ),
+  )
+  registry_set(
+    cfg,
+    @shared.RegistryRecord(
+      name="nightly",
+      manifest=@shared.Manifest(
+        name="nightly",
+        triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
+      ),
+      build_id="b-3",
+      updated_at="2026-10-03T00:00:00.000Z",
+    ),
+  )
+  let dispatched : Array[String] = []
+  let runner_port = fixture_listen_port()
+  let gateway_port = fixture_listen_port()
+  let runner = @shared.Router::new()
+  runner.add(
+    @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
+      let request = @shared.read_json_body(ctx)
+      guard request is Object(obj) else { return }
+      guard obj.get("name") is Some(String(name)) else { return }
+      dispatched.push(name)
+      @shared.send_json(
+        ctx.conn,
+        200,
+        @shared.RunResult(stdout="ran \{name}\n", exit_code=0).to_json(),
+      )
+    }),
+  )
+  @async.with_task_group(group => {
+    let runner_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
+      reuse_addr=true,
+    )
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(runner_server, runner))
+    let gateway_cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+    }
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(gateway_cfg))
+    })
+    // A put on uploads fires only on-upload.
+    let s3_event : Json = {
+      "source": "s3",
+      "event": "put",
+      "bucket": "uploads",
+      "key": "report.csv",
+    }
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      s3_event,
+    )
+    assert_true(response.stringify().contains("on-upload"))
+    assert_eq(dispatched.length(), 1)
+    assert_eq(dispatched[0], "on-upload")
+    // A cron event fires only the cron-bound function.
+    dispatched.clear()
+    let cron_event : Json = {
+      "source": "cron",
+      "schedule": "0 8 * * *",
+      "time": "2026-10-03T08:00:00Z",
+    }
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      cron_event,
+    )
+    assert_true(response.stringify().contains("nightly"))
+    assert_eq(dispatched.length(), 1)
+    assert_eq(dispatched[0], "nightly")
+    // A put on the unbound bucket triggers nothing.
+    dispatched.clear()
+    let s3_event : Json = {
+      "source": "s3",
+      "event": "put",
+      "bucket": "unwatched",
+      "key": "x",
+    }
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      s3_event,
+    )
+    assert_eq(response.stringify(), "[]")
+    assert_eq(dispatched.length(), 0)
+    runner_server.close()
+    gateway_server.close()
+  })
+}

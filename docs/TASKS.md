@@ -165,7 +165,7 @@ Conventions:
   status 200 (buffered; streaming is out of scope for MVP).
   *Done when:* `curl $MOONLESS_SERVER/fn/hello` returns the function's
   stdout.
-- [ ] **T5.4 — Internal event intake.** `POST /api/events` accepting any
+- [x] **T5.4 — Internal event intake.** `POST /api/events` accepting any
   event source; match it against the registry's triggers and dispatch to
   the runner.
   *Done when:* a synthetic s3 event triggers the bound function.

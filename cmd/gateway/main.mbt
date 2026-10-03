@@ -41,6 +41,11 @@ fn gateway_router(cfg : GatewayConfig) -> @shared.Router {
     }),
   )
   router.add(
+    @shared.route(http_method=@http.Post, pattern="/api/events", handler=ctx => {
+      handle_event(ctx, cfg)
+    }),
+  )
+  router.add(
     @shared.route_any(pattern="/fn/:name", handler=ctx => {
       handle_trigger(ctx, cfg)
     }),
