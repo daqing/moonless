@@ -172,7 +172,7 @@ Conventions:
 - [x] **T5.5 — Deploy orchestration.** Sequence upload → build →
   register, propagating build failures to the caller with the reason.
   *Done when:* a broken deploy returns an error, a good one is callable.
-- [ ] **T5.6 — Gateway tests.** Integration test: deploy fixture, HTTP
+- [x] **T5.6 — Gateway tests.** Integration test: deploy fixture, HTTP
   trigger, logs retrieval.
   *Done when:* scripted end-to-end passes against a compose stack.
 
