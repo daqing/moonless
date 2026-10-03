@@ -40,5 +40,10 @@ fn gateway_router(cfg : GatewayConfig) -> @shared.Router {
       handle_logs(ctx, cfg)
     }),
   )
+  router.add(
+    @shared.route_any(pattern="/fn/:name", handler=ctx => {
+      handle_trigger(ctx, cfg)
+    }),
+  )
   router
 }

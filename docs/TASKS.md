@@ -160,7 +160,7 @@ Conventions:
   `/var/lib/moonless/registry/`, written atomically (temp file + rename);
   records carry the manifest and the current build id.
   *Done when:* concurrent deploys never leave a corrupted registry file.
-- [ ] **T5.3 — HTTP trigger.** Route `/fn/<name>` (any method) → build
+- [x] **T5.3 — HTTP trigger.** Route `/fn/<name>` (any method) → build
   the http event JSON → call runner → return stdout as the body with
   status 200 (buffered; streaming is out of scope for MVP).
   *Done when:* `curl $MOONLESS_SERVER/fn/hello` returns the function's

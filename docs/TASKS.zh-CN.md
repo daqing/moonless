@@ -142,7 +142,7 @@
   `/var/lib/moonless/registry/` 下的本地文件，原子写入（临时文件 +
   rename）；记录包含 manifest 和当前 build id。
   *完成标准：* 并发 deploy 不会产生损坏的注册表文件。
-- [ ] **T5.3 — HTTP 触发。** 路由 `/fn/<name>`（任意方法）→ 组装
+- [x] **T5.3 — HTTP 触发。** 路由 `/fn/<name>`（任意方法）→ 组装
   http 事件 JSON → 调用 runner → stdout 作为响应体返回，状态码 200
   （缓冲式；流式不在 MVP 范围）。
   *完成标准：* `curl $MOONLESS_SERVER/fn/hello` 返回函数 stdout。

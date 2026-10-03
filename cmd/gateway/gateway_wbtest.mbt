@@ -275,3 +275,95 @@ async test "concurrent deploys never corrupt the registry file" {
     assert_true(records.get("fn-\{i}") is Some(_))
   }
 }
+
+///|
+// A runner stand-in that records the last RunRequest and answers canned
+// RunResults.
+priv struct FakeRunner {
+  mut result : @shared.RunResult
+  last_request : Ref[String]
+}
+
+///|
+fn FakeRunner::FakeRunner(
+  result~ : @shared.RunResult,
+  last_request~ : Ref[String],
+) -> FakeRunner {
+  { result, last_request, }
+}
+
+///|
+fn fake_runner_router(fake : FakeRunner) -> @shared.Router {
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
+      let request = @shared.read_json_body(ctx)
+      fake.last_request.val = request.stringify()
+      @shared.send_json(ctx.conn, 200, fake.result.to_json())
+    }),
+  )
+  router
+}
+
+///|
+async test "HTTP trigger builds the event and returns stdout as 200" {
+  let runner_port = fixture_listen_port()
+  let gateway_port = fixture_listen_port()
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let fake = FakeRunner(
+    result=@shared.RunResult(stdout="hello from fn\n", exit_code=0),
+    last_request=Ref(""),
+  )
+  @async.with_task_group(group => {
+    let runner_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
+      reuse_addr=true,
+    )
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+    }
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(runner_server, fake_runner_router(fake))
+    })
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let (response, _) = @http.post(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn?x=1",
+      "payload-body",
+    )
+    assert_eq(response.code, 200)
+    // The runner saw the http event with method, path, query, and body.
+    let seen = fake.last_request.val
+    assert_true(seen.contains("\"name\":\"hello-fn\""))
+    assert_true(seen.contains("\"source\":\"http\""))
+    assert_true(seen.contains("\"method\":\"POST\""))
+    assert_true(seen.contains("\"path\":\"/fn/hello-fn\""))
+    assert_true(seen.contains("\"query\":\"x=1\""))
+    assert_true(seen.contains("\"body\":\"payload-body\""))
+    // GET works too (any method is routed).
+    fake.result = @shared.RunResult(stdout="got GET\n", exit_code=0)
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn",
+    )
+    assert_eq(response.code, 200)
+    assert_eq(body.text(), "got GET\n")
+    // Unknown functions map to 404.
+    fake.result = @shared.RunResult(
+      stdout="",
+      stderr="unknown function: ghost",
+      exit_code=127,
+    )
+    let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
+    assert_eq(response.code, 404)
+    runner_server.close()
+    gateway_server.close()
+  })
+}
