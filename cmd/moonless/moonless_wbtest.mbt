@@ -156,3 +156,39 @@ async test "deploy uploads the package and reports success" {
     server.close()
   })
 }
+
+///|
+test "render_function_table matches registry state" {
+  let records : Array[@shared.RegistryRecord] = [
+    @shared.RegistryRecord(
+      name="hello",
+      manifest=@shared.Manifest(
+        name="hello",
+        triggers=@shared.ManifestTriggers(http_enabled=true),
+      ),
+      build_id="b-100",
+      updated_at="2026-10-03T01:00:00.000Z",
+    ),
+    @shared.RegistryRecord(
+      name="resize",
+      manifest=@shared.Manifest(
+        name="resize",
+        triggers=@shared.ManifestTriggers(
+          cron="0 8 * * *",
+          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+        ),
+      ),
+      build_id="b-200",
+      updated_at="2026-10-03T02:00:00.000Z",
+    ),
+  ]
+  let table = render_function_table(records)
+  assert_true(table.contains("hello"))
+  assert_true(table.contains("http"))
+  assert_true(table.contains("resize"))
+  assert_true(table.contains("cron(0 8 * * *)"))
+  assert_true(table.contains("s3(uploads:put,delete)"))
+  assert_true(table.contains("b-100"))
+  assert_true(table.contains("b-200"))
+  assert_eq(render_function_table([]), "no functions deployed\n")
+}

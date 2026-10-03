@@ -187,7 +187,7 @@ Conventions:
   (excluding `_build/`, dotfiles) so the builder never needs network
   (R2); upload; stream the build outcome.
   *Done when:* deploying the hello example from the repo works.
-- [ ] **T6.3 — `list`.** Table of deployed functions with their
+- [x] **T6.3 — `list`.** Table of deployed functions with their
   triggers and last build status.
   *Done when:* output matches the registry state.
 - [ ] **T6.4 — `logs`.** Fetch the tail (default 50 lines); `--follow`
