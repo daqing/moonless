@@ -107,7 +107,7 @@
   设置 `MOONLESS_EVENT` 执行已存储的 wasm 模块，返回
   `{stdout, stderr, exitCode, duration}`。
   *完成标准：* curl 调用已部署 fixture 能取回捕获的输出。
-- [ ] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` 起
+- [x] **T4.2 — 进程执行。** 经 `@moonbitlang/async/process` 起
   moonrun 子进程执行：spawn `moonrun <module.wasm>`，用 `extra_env`
   组装环境变量（`MOONLESS_EVENT` 加注入的服务地址），用
   `collect_output` 捕获 stdout/stderr。

@@ -123,7 +123,7 @@ Conventions:
   executes the stored wasm module with `MOONLESS_EVENT` set, returns
   `{stdout, stderr, exitCode, duration}`.
   *Done when:* curl against a deployed fixture returns captured output.
-- [ ] **T4.2 — Process execution.** Execute via a moonrun child process
+- [x] **T4.2 — Process execution.** Execute via a moonrun child process
   through `@moonbitlang/async/process`: spawn `moonrun <module.wasm>`
   with `extra_env` (`MOONLESS_EVENT` plus injected service URLs),
   capture stdout/stderr with `collect_output`.
