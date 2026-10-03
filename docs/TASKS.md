@@ -156,7 +156,7 @@ Conventions:
   builder, then registers), `GET /api/functions`, `GET /api/functions/
   <name>`, `GET /api/functions/<name>/logs?tail=N`.
   *Done when:* curl drives a full deploy → list → logs cycle.
-- [ ] **T5.2 — Registry.** The function registry as a local file under
+- [x] **T5.2 — Registry.** The function registry as a local file under
   `/var/lib/moonless/registry/`, written atomically (temp file + rename);
   records carry the manifest and the current build id.
   *Done when:* concurrent deploys never leave a corrupted registry file.

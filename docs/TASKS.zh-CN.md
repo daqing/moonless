@@ -138,7 +138,7 @@
   `GET /api/functions/<name>`、
   `GET /api/functions/<name>/logs?tail=N`。
   *完成标准：* 用 curl 走通 deploy → list → logs 完整循环。
-- [ ] **T5.2 — 注册表。** 函数注册表存为
+- [x] **T5.2 — 注册表。** 函数注册表存为
   `/var/lib/moonless/registry/` 下的本地文件，原子写入（临时文件 +
   rename）；记录包含 manifest 和当前 build id。
   *完成标准：* 并发 deploy 不会产生损坏的注册表文件。

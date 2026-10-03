@@ -215,3 +215,63 @@ async test "deploy registers the function; list, detail, and logs answer" {
     gateway_server.close()
   })
 }
+
+///|
+async test "concurrent deploys never corrupt the registry file" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let cfg = {
+    data_root,
+    builder_url: "http://127.0.0.1:65534",
+    runner_url: "http://127.0.0.1:65534",
+    registry_lock: @async.Mutex::Mutex(),
+  }
+  let path = data_root + "/registry/registry.json"
+  let torn_reads : Ref[Int] = Ref(0)
+  @async.with_task_group(group => {
+    // Reader: every on-disk snapshot must be complete, parseable JSON.
+    group.spawn_bg(() => {
+      for _ in 0..<100 {
+        let content = try @fs.read_file(path) catch {
+          _ => None
+        } noraise {
+          c => Some(c)
+        }
+        match content {
+          Some(data) => {
+            let text = data.text() catch { _ => "" }
+            if text != "" {
+              let parsed = try @json.parse(text) catch {
+                _ => None
+              } noraise {
+                j => Some(j)
+              }
+              if parsed is None {
+                torn_reads.val = torn_reads.val + 1
+              }
+            }
+          }
+          None => ()
+        }
+      }
+    })
+    // Writers: 12 concurrent deploys through the real mutation path.
+    for i in 0..<12 {
+      group.spawn_bg(() => {
+        registry_set(
+          cfg,
+          @shared.RegistryRecord(
+            name="fn-\{i}",
+            manifest=@shared.Manifest(name="fn-\{i}"),
+            build_id="b-\{i}",
+            updated_at="2026-10-03T00:00:00.000Z",
+          ),
+        )
+      })
+    }
+  })
+  assert_eq(torn_reads.val, 0)
+  let records = registry_all(cfg)
+  for i in 0..<12 {
+    assert_true(records.get("fn-\{i}") is Some(_))
+  }
+}
