@@ -91,7 +91,7 @@ Conventions:
   `moonless.toml`.
   *Done when:* hand-crafted tar.gz requests return success/failure
   correctly.
-- [ ] **T3.2 — Unpack safely.** Extract into an isolated work dir
+- [x] **T3.2 — Unpack safely.** Extract into an isolated work dir
   `/var/lib/moonless/builds/<build-id>/` with path-traversal protection
   (zip-slip).
   *Done when:* a malicious archive with `../` entries is rejected.

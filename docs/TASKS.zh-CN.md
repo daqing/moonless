@@ -79,7 +79,7 @@
 - [x] **T3.1 — 构建 API。** `POST /build` 接收 MoonBit 项目的
   tar.gz 包和函数名；缺少 `moon.mod` 或 `moonless.toml` 的包拒绝。
   *完成标准：* 手工构造的 tar.gz 请求能正确返回成功/失败。
-- [ ] **T3.2 — 安全解包。** 解压到隔离工作目录
+- [x] **T3.2 — 安全解包。** 解压到隔离工作目录
   `/var/lib/moonless/builds/<build-id>/`，做路径穿越防护
   （zip-slip）。
   *完成标准：* 含 `../` 条目的恶意压缩包被拒绝。
