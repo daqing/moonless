@@ -158,7 +158,7 @@
 
 ## Step 6. moonless CLI（P0）
 
-- [ ] **T6.1 — CLI 骨架。** 子命令分发（`deploy`、`list`、`logs`），
+- [x] **T6.1 — CLI 骨架。** 子命令分发（`deploy`、`list`、`logs`），
   `MOONLESS_SERVER` 环境变量 + `--server` 覆盖参数。
   *完成标准：* 无参数运行 `moonless` 打印用法说明。
 - [ ] **T6.2 — `deploy`。** 校验当前目录是含 `moonless.toml` 的

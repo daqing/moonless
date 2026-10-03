@@ -1,6 +1,7 @@
 import {
-  "daqing/moonless/src/shared",
   "moonbitlang/async",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/env",
 }
 
 supported_targets = "+native"

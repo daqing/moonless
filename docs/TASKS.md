@@ -178,7 +178,7 @@ Conventions:
 
 ## Step 6. moonless CLI (P0)
 
-- [ ] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
+- [x] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
   `logs`), `MOONLESS_SERVER` env with `--server` override.
   *Done when:* `moonless` with no args prints usage.
 - [ ] **T6.2 — `deploy`.** Validate the current directory is a MoonBit
