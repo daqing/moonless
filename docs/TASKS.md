@@ -128,7 +128,7 @@ Conventions:
   with `extra_env` (`MOONLESS_EVENT` plus injected service URLs),
   capture stdout/stderr with `collect_output`.
   *Done when:* echo/sleep/exit-code cases all behave correctly.
-- [ ] **T4.3 — Timeout.** Kill functions after a default 60s and report
+- [x] **T4.3 — Timeout.** Kill functions after a default 60s and report
   a timeout result.
   *Done when:* a `sleep` fixture is killed and reported.
 - [ ] **T4.4 — Concurrency cap.** A simple semaphore limiting concurrent

@@ -6,6 +6,15 @@
 ///|
 priv struct RunnerConfig {
   data_root : String
+  timeout_ms : Int
+}
+
+///|
+fn env_int(name : String, default : Int) -> Int {
+  match @env.get_env_var(name) {
+    Some(value) => @string.parse_int(value) catch { _ => default }
+    None => default
+  }
 }
 
 ///|
@@ -13,8 +22,16 @@ fn load_runner_config() -> RunnerConfig {
   let data_root = @env.get_env_var("MOONLESS_DATA").unwrap_or(
     "/var/lib/moonless",
   )
-  { data_root, }
+  let timeout_ms = env_int("MOONLESS_RUN_TIMEOUT_MS", 60_000)
+  { data_root, timeout_ms, }
 }
+
+///|
+// Sentinel raised by with_timeout; distinct type so a genuine spawn error
+// is never mistaken for a timeout.
+priv suberror FunctionTimeout {
+  FunctionTimeout
+} derive(Debug)
 
 ///|
 async fn run_function(
@@ -44,11 +61,19 @@ async fn run_steps(
   for key, value in request.env {
     env[key] = value
   }
-  let (code, stdout, stderr) = @process.collect_output(
-    "moonrun",
-    [module_path],
-    extra_env=env,
+  let (code, stdout, stderr) = @async.with_timeout(
+    cfg.timeout_ms,
+    () => @process.collect_output("moonrun", [module_path], extra_env=env),
+    error=FunctionTimeout,
   ) catch {
+    FunctionTimeout =>
+      return @shared.RunResult(
+        stdout="",
+        stderr="moonless: function timed out after \{cfg.timeout_ms}ms\n",
+        exit_code=124,
+        duration_ms=(@async.now() - started).to_int(),
+        truncated=false,
+      )
     err =>
       raise @shared.RunError("failed to run moonrun: \{@debug.to_string(err)}")
   }

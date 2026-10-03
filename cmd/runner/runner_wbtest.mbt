@@ -150,8 +150,8 @@ fn crash_main() -> String {
 }
 
 ///|
-fn test_config(data_root : String) -> RunnerConfig {
-  { data_root, }
+fn test_config(data_root : String, timeout_ms? : Int = 60_000) -> RunnerConfig {
+  { data_root, timeout_ms, }
 }
 
 ///|
@@ -287,4 +287,49 @@ async test "non-zero exit surfaces stderr from the runtime" {
   assert_eq(result.exit_code, 1)
   assert_eq(result.stdout, "before\n")
   assert_true(result.stderr.contains("RuntimeError"))
+}
+
+///|
+async test "slow functions are killed and reported as timed out" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let with_async =
+    #|name = "fixture/slow-fn"
+    #|version = "0.1.0"
+    #|
+    #|import {
+    #|  "moonbitlang/async@0.22.4",
+    #|}
+  let slow_main =
+    #|async fn main {
+    #|  println("starting")
+    #|  @async.sleep(30_000)
+    #|  println("never")
+    #|}
+  let wasm_module = build_fixture_module(
+    fixture_dir,
+    async_pkg(),
+    slow_main,
+    moon_mod=with_async,
+  )
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "slow-fn", "b-1001", wasm_module)
+  let started = @async.now()
+  let result = run_function(
+    test_config(data_root, timeout_ms=400),
+    @shared.RunRequest(
+      name="slow-fn",
+      event=@shared.Event::Http(
+        @shared.HttpEventData(
+          http_method="GET",
+          path="/fn/slow-fn",
+          query="",
+          body="",
+        ),
+      ),
+    ),
+  )
+  assert_eq(result.exit_code, 124)
+  assert_true(result.stderr.contains("timed out"))
+  assert_true(result.duration_ms < 5000)
+  assert_true((@async.now() - started).to_int() < 10_000)
 }
