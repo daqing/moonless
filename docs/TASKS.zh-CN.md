@@ -91,7 +91,7 @@
   `/var/lib/moonless/functions/<name>/<build-id>/func.wasm`，旁边写入
   构建元数据。
   *完成标准：* builder 容器重启后产物仍在（named volume）。
-- [ ] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
+- [x] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
   供 CLI 展示失败原因。
   *完成标准：* 坏 fixture 返回可读的错误信息。
 - [ ] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达

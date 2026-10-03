@@ -104,7 +104,7 @@ Conventions:
   build metadata next to it.
   *Done when:* artifacts survive a builder container restart (named
   volume).
-- [ ] **T3.5 — Failure reporting.** Return the tail of build stderr in
+- [x] **T3.5 — Failure reporting.** Return the tail of build stderr in
   `BuildResult` so the CLI can show why a deploy failed.
   *Done when:* a broken fixture yields a readable error message.
 - [ ] **T3.6 — Offline build verification.** Dependencies arrive

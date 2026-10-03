@@ -145,6 +145,28 @@ async test "run_build accepts a valid package and rejects missing files" {
 }
 
 ///|
+async test "a broken fixture reports a readable build error tail" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-fixture-")
+  write_fixture_files(fixture_dir, [
+    ("moon.mod", "name = \"fixture/broken-fn\"\nversion = \"0.1.0\"\n"),
+    ("moonless.toml", "name = \"broken-fn\"\n"),
+    ("moon.pkg", "pkgtype(kind: \"executable\")\n"),
+    // References an unbound identifier: moonc fails and cites main.mbt.
+    ("main.mbt", "fn main {\n  println(totally_unbound_name)\n}\n"),
+  ])
+  let archive = pack_tar_gz(fixture_dir)
+  let data_root = @fs.tmpdir(prefix="moonless-builder-test-")
+  let result = run_build("broken-fn", @base64.encode(archive[:]), data_root)
+  assert_eq(result.ok, false)
+  assert_eq(result.build_id, "")
+  assert_eq(result.wasm_path, "")
+  assert_true(result.error_tail != "")
+  // The tail carries the compiler diagnostic pointing at the source file,
+  // not a stack trace or an empty message.
+  assert_true(result.error_tail.contains("main.mbt"))
+}
+
+///|
 async test "POST /build answers over HTTP with a BuildResult" {
   let fixture_dir = @fs.tmpdir(prefix="moonless-fixture-")
   write_fixture_files(fixture_dir, [
