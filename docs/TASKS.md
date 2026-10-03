@@ -119,7 +119,7 @@ Conventions:
 
 ## Step 4. Runner service (P0)
 
-- [ ] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
+- [x] **T4.1 — Run API.** `POST /run` with `{name, event, env?}` →
   executes the stored wasm module with `MOONLESS_EVENT` set, returns
   `{stdout, stderr, exitCode, duration}`.
   *Done when:* curl against a deployed fixture returns captured output.

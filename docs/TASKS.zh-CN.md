@@ -103,7 +103,7 @@
 
 ## Step 4. Runner 服务（P0）
 
-- [ ] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
+- [x] **T4.1 — 执行 API。** `POST /run` 接收 `{name, event, env?}` →
   设置 `MOONLESS_EVENT` 执行已存储的 wasm 模块，返回
   `{stdout, stderr, exitCode, duration}`。
   *完成标准：* curl 调用已部署 fixture 能取回捕获的输出。

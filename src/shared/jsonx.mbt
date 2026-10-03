@@ -9,6 +9,7 @@ pub(all) suberror SharedError {
   InvalidEvent(String)
   InvalidManifest(String)
   InvalidArchive(String)
+  RunError(String)
   HttpError(String)
 } derive(Debug)
 
