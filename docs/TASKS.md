@@ -212,7 +212,7 @@ Conventions:
   with cron triggers; keep an in-memory schedule table.
   *Done when:* deploying a cron function is picked up within a poll
   cycle.
-- [ ] **T7.3 — Dispatch loop.** On each fire time, assemble the cron
+- [x] **T7.3 — Dispatch loop.** On each fire time, assemble the cron
   event and POST it to the gateway's `/api/events`.
   *Done when:* an `* * * * *` fixture fires within the minute.
 - [ ] **T7.4 — Missed-fire policy.** Document and implement

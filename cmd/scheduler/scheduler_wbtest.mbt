@@ -118,3 +118,49 @@ async test "sync_table picks up cron functions within a poll" {
     server.close()
   })
 }
+
+///|
+async test "dispatch_due fires due entries once and reschedules forward" {
+  let port = fixture_listen_port()
+  let fake = FakeGateway(functions=Json::array([]), events=[])
+  @async.with_task_group(group => {
+    let server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(server, fake_gateway_router(fake))
+    })
+    let now = @async.now()
+    let overdue = {
+      schedule: @shared.CronSchedule(
+        name="every-minute",
+        expression="* * * * *",
+      ),
+      // Overdue by many periods: skip-if-late must fire it exactly once.
+      next_fire_ms: now - 300_000,
+    }
+    let future = {
+      schedule: @shared.CronSchedule(name="nightly", expression="0 8 * * *"),
+      next_fire_ms: now + 3_600_000,
+    }
+    let table : Map[String, ScheduleEntry] = Map([])
+    table["every-minute"] = overdue
+    table["nightly"] = future
+    let updated = dispatch_due(config(port), table, now)
+    // One cron event was dispatched with schedule and scheduled time.
+    assert_eq(fake.events.length(), 1)
+    let event = fake.events[0].stringify()
+    assert_true(event.contains("\"source\":\"cron\""))
+    assert_true(event.contains("\"schedule\":\"* * * * *\""))
+    // The overdue entry fired once and rescheduled into the future; the
+    // future entry is untouched.
+    guard updated.get("every-minute") is Some(rescheduled) else {
+      fail("entry lost")
+    }
+    assert_true(rescheduled.next_fire_ms > now)
+    guard updated.get("nightly") is Some(kept) else { fail("nightly lost") }
+    assert_eq(kept.next_fire_ms, now + 3_600_000)
+    server.close()
+  })
+}

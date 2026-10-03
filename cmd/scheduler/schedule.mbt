@@ -73,9 +73,15 @@ async fn sync_table(
     match sched {
       Some(schedule) => {
         let carry_over = previous.get(r.name)
+        // Keep the pending fire time for unchanged expressions, with a
+        // grace window: a fire time that just passed must survive the sync
+        // so the dispatch step can still see it (the loop wakes exactly on
+        // the boundary). Beyond the grace the entry is recomputed from
+        // now — skip-if-late (T7.4).
+        let grace_ms : Int64 = 60_000
         let next = if carry_over is Some(old) &&
           old.schedule.expression == expression &&
-          old.next_fire_ms > now {
+          old.next_fire_ms > now - grace_ms {
           old.next_fire_ms
         } else {
           schedule.next_fire_ms(now) catch {
@@ -92,4 +98,48 @@ async fn sync_table(
     }
   }
   fresh
+}
+
+///|
+// Fires every due entry: assembles the cron event (schedule + scheduled
+// fire time) and POSTs it to the gateway's /api/events. Entries are then
+// rescheduled from `now` — a late wake-up fires once and skips the missed
+// periods (skip-if-late, T7.4).
+async fn dispatch_due(
+  cfg : SchedulerConfig,
+  table : Map[String, ScheduleEntry],
+  now : Int64,
+) -> Map[String, ScheduleEntry] {
+  let updated : Map[String, ScheduleEntry] = Map([])
+  for name, entry in table {
+    if entry.next_fire_ms <= now {
+      let event : Json = {
+        "source": "cron",
+        "schedule": entry.schedule.expression,
+        "time": @shared.format_timestamp(entry.next_fire_ms),
+      }
+      let _ = @shared.http_post_json(
+        cfg.gateway_url + "/api/events",
+        event,
+        timeout_ms=30_000,
+      ) catch {
+        _ => {
+          @shared.log_warn(
+            service="scheduler",
+            message="event dispatch failed for \{name}",
+          )
+          Json::null()
+        }
+      }
+      @shared.log_info(
+        service="scheduler",
+        message="fired \{name} (\{entry.schedule.expression})",
+      )
+      let next = entry.schedule.next_fire_ms(now) catch { _ => now + 60_000 }
+      updated[name] = { schedule: entry.schedule, next_fire_ms: next, }
+    } else {
+      updated[name] = entry
+    }
+  }
+  updated
 }
