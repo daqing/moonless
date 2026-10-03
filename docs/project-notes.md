@@ -196,8 +196,10 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
     `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
     `MOONLESS_POSTGRES_URL` / `MOONLESS_S3_ENDPOINT`（P2 起注入，
     凭据随 S3 端点一并注入）。
-  - 运行参数（超时/并发/输出上限）的 env 命名随 T4.3/T4.4/T4.8 落地
-    时确定，届时补进本清单。
+  - 运行参数（runner，T4.3/T4.4/T4.8 已落地）：`MOONLESS_RUN_TIMEOUT_MS`
+    （函数超时，默认 60000，超时杀死并返回 exitCode=124）、
+    `MOONLESS_MAX_CONCURRENCY`（并发 fork 上限，默认 8，超出排队）、
+    `MOONLESS_OUTPUT_LIMIT`（每流输出上限字节数，默认 10MB）。
 - **函数输出上限**：stdout/stderr 每流默认 10MB，超出截断并在结果中
   标记 `truncated`（R4）；上限可由环境变量调整（T4.8）。
 - **时区**：容器 `TZ`，默认 UTC（R8）；cron 语义按容器时区解释。
