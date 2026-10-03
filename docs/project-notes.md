@@ -213,6 +213,12 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
   表索引），镜像必须带 git。平台二进制在镜像构建期用
   `moon build --target native --release` 预编译到 `/app/bin/`，四个
   服务共用同一镜像、仅 entrypoint 不同（R3）。
+- **离线构建验证（T3.6，2026-10-03，R2）**：`docker network create
+  --internal` 组无外网环境（容器内 curl mooncakes.io 返回 000），builder
+  在其中完成一次完整 deploy（解包 → `moon build --target wasm` → 产物
+  落盘）全部成功。依赖为零的函数天然不需要网络；带依赖函数的"依赖随包
+  vendor（上传包内含 `.mooncakes/`）"由 T6.2 的 deploy 打包实现并在
+  CLI 侧复测。
 
 ## T0.1 spike 发现记录（2026-10-02，R7 关闭依据）
 

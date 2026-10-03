@@ -94,7 +94,7 @@
 - [x] **T3.5 — 失败回报。** `BuildResult` 中返回构建 stderr 尾部，
   供 CLI 展示失败原因。
   *完成标准：* 坏 fixture 返回可读的错误信息。
-- [ ] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达
+- [x] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达
   （R2）；确认 builder 构建全程完全不需要网络。
   *完成标准：* 禁用 builder 容器的网络访问后，deploy 依然成功。
 - [ ] **T3.7 — Builder 测试。** 集成测试：一个好 fixture、一个坏

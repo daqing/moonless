@@ -107,7 +107,7 @@ Conventions:
 - [x] **T3.5 — Failure reporting.** Return the tail of build stderr in
   `BuildResult` so the CLI can show why a deploy failed.
   *Done when:* a broken fixture yields a readable error message.
-- [ ] **T3.6 — Offline build verification.** Dependencies arrive
+- [x] **T3.6 — Offline build verification.** Dependencies arrive
   vendored inside the uploaded package (R2); confirm the builder needs no
   network at all during a build.
   *Done when:* a deploy succeeds with the builder container's network
