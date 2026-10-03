@@ -1,8 +1,22 @@
 import {
+  "daqing/moonless/src/shared",
   "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/process",
   "moonbitlang/async/stdio",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/http",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/env",
+} for "wbtest"
 
 supported_targets = "+native"
 

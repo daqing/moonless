@@ -15,7 +15,7 @@ async fn main {
 }
 
 ///|
-fn cli_main(args : Array[String]) -> Unit raise CliError {
+async fn cli_main(args : Array[String]) -> Unit raise CliError {
   // args[0] is the executable; the rest are the user's command line.
   let rest : Array[String] = []
   for i in 1..<args.length() {

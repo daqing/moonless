@@ -1,11 +1,5 @@
 ///|
-// Subcommand placeholders; T6.2–T6.4 fill them in.
-
-///|
-fn cli_deploy(server : String) -> Unit raise CliError {
-  ignore(server)
-  raise CliError("deploy is not implemented yet")
-}
+// Subcommand entry points for list and logs; deploy lives in deploy.mbt.
 
 ///|
 fn cli_list(server : String) -> Unit raise CliError {

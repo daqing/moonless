@@ -161,7 +161,7 @@
 - [x] **T6.1 — CLI 骨架。** 子命令分发（`deploy`、`list`、`logs`），
   `MOONLESS_SERVER` 环境变量 + `--server` 覆盖参数。
   *完成标准：* 无参数运行 `moonless` 打印用法说明。
-- [ ] **T6.2 — `deploy`。** 校验当前目录是含 `moonless.toml` 的
+- [x] **T6.2 — `deploy`。** 校验当前目录是含 `moonless.toml` 的
   MoonBit 项目；必要时先在本地解析依赖，然后把源码**连同** vendored
   的 `.mooncakes/` 缓存打包 tar.gz（排除 `_build/`、点文件），使
   builder 永不需要网络（R2）；上传；展示构建结果。

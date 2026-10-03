@@ -181,7 +181,7 @@ Conventions:
 - [x] **T6.1 — CLI skeleton.** Subcommand dispatch (`deploy`, `list`,
   `logs`), `MOONLESS_SERVER` env with `--server` override.
   *Done when:* `moonless` with no args prints usage.
-- [ ] **T6.2 — `deploy`.** Validate the current directory is a MoonBit
+- [x] **T6.2 — `deploy`.** Validate the current directory is a MoonBit
   project with a `moonless.toml`; resolve dependencies locally if needed,
   then tar.gz the sources **plus** the vendored `.mooncakes/` cache
   (excluding `_build/`, dotfiles) so the builder never needs network

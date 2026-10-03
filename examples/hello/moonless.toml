@@ -1,0 +1,4 @@
+name = "hello"
+
+[triggers]
+http = { enabled = true }
