@@ -196,7 +196,7 @@ Conventions:
 - [x] **T6.5 — Error UX.** Friendly messages for: server unreachable,
   not a MoonBit project, missing `moonless.toml`, unknown function.
   *Done when:* each case prints an actionable hint, not a stack trace.
-- [ ] **T6.6 — Smoke script.** A script under `scripts/` running the
+- [x] **T6.6 — Smoke script.** A script under `scripts/` running the
   whole P0 flow: deploy → curl → logs.
   *Done when:* the script passes on a fresh compose stack.
 
