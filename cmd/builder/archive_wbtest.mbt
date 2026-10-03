@@ -74,20 +74,20 @@ fn tar_archive(entries : Array[(String, String)]) -> Bytes {
 
 ///|
 test "tar_entries rejects zip-slip and absolute paths" {
-  try tar_entries(tar_archive([("../evil.txt", "pwned")])) catch {
+  try @shared.tar_entries(tar_archive([("../evil.txt", "pwned")])) catch {
     @shared.InvalidArchive(message) =>
       assert_true(message.contains("traversal"))
     _ => fail("expected InvalidArchive")
   } noraise {
     _ => fail("expected ../ entry to be rejected")
   }
-  try tar_entries(tar_archive([("/etc/passwd", "pwned")])) catch {
+  try @shared.tar_entries(tar_archive([("/etc/passwd", "pwned")])) catch {
     @shared.InvalidArchive(message) => assert_true(message.contains("absolute"))
     _ => fail("expected InvalidArchive")
   } noraise {
     _ => fail("expected absolute path to be rejected")
   }
-  try tar_entries(tar_archive([("a/../../evil.txt", "pwned")])) catch {
+  try @shared.tar_entries(tar_archive([("a/../../evil.txt", "pwned")])) catch {
     @shared.InvalidArchive(message) =>
       assert_true(message.contains("traversal"))
     _ => fail("expected InvalidArchive")
@@ -101,7 +101,9 @@ test "tar_entries rejects symlink entries" {
   // typeflag '2' (50) = symlink
   let evil = tar_file_header("innocent.txt", 3, 50) + @utf8.encode("../")
   try
-    tar_entries(evil + Bytes::make(509, b'\x00') + Bytes::make(1024, b'\x00'))
+    @shared.tar_entries(
+      evil + Bytes::make(509, b'\x00') + Bytes::make(1024, b'\x00'),
+    )
   catch {
     @shared.InvalidArchive(_) => ()
     _ => fail("expected InvalidArchive")

@@ -12,6 +12,8 @@ pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
 
 pub fn format_timestamp(Int64) -> String
 
+pub async fn gunzip(Bytes) -> Bytes raise SharedError
+
 pub async fn http_get(String, timeout_ms? : Int) -> ClientResponse raise SharedError
 
 pub async fn http_get_json(String, timeout_ms? : Int) -> Json raise SharedError
@@ -55,6 +57,10 @@ pub async fn send_text(@http.ServerConnection, Int, String) -> Unit
 pub async fn serve(String, Router) -> Unit
 
 pub async fn serve_on(@http.Server, Router) -> Unit
+
+pub fn tar_entries(Bytes) -> Array[TarEntry] raise SharedError
+
+pub async fn tar_gz_read_text(Bytes, String) -> String? raise SharedError
 
 // Errors
 pub(all) suberror SharedError {
@@ -210,6 +216,13 @@ pub struct S3Trigger {
 } derive(@debug.Debug)
 pub fn S3Trigger::S3Trigger(bucket~ : String, events~ : Array[String]) -> Self
 pub fn S3Trigger::to_repr(Self) -> @debug.Repr
+
+pub struct TarEntry {
+  path : String
+  is_dir : Bool
+  data : Bytes
+}
+pub fn TarEntry::TarEntry(path~ : String, is_dir~ : Bool, data~ : Bytes) -> Self
 
 // Type aliases
 

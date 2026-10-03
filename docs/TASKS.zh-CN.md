@@ -133,7 +133,7 @@
 
 ## Step 5. Gateway 服务（P0）
 
-- [ ] **T5.1 — 管理 API。** `POST /api/deploy`（tar.gz，转发给
+- [x] **T5.1 — 管理 API。** `POST /api/deploy`（tar.gz，转发给
   builder 后登记）、`GET /api/functions`、
   `GET /api/functions/<name>`、
   `GET /api/functions/<name>/logs?tail=N`。

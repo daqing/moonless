@@ -152,7 +152,7 @@ Conventions:
 
 ## Step 5. Gateway service (P0)
 
-- [ ] **T5.1 — Management API.** `POST /api/deploy` (tar.gz; forwards to
+- [x] **T5.1 — Management API.** `POST /api/deploy` (tar.gz; forwards to
   builder, then registers), `GET /api/functions`, `GET /api/functions/
   <name>`, `GET /api/functions/<name>/logs?tail=N`.
   *Done when:* curl drives a full deploy → list → logs cycle.
