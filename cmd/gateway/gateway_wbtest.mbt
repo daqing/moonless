@@ -58,7 +58,7 @@ async fn pack_tar_gz(dir : String) -> Bytes {
 ///|
 // A builder stand-in that records the deploy name and answers ok/failure.
 priv struct FakeBuilder {
-  result : @shared.BuildResult
+  mut result : @shared.BuildResult
   seen_names : Array[String]
 }
 
@@ -277,19 +277,21 @@ async test "concurrent deploys never corrupt the registry file" {
 }
 
 ///|
-// A runner stand-in that records the last RunRequest and answers canned
-// RunResults.
+// A runner stand-in that records the last RunRequest; functions not in
+// the installed list answer like the real runner's unknown-function path.
 priv struct FakeRunner {
   mut result : @shared.RunResult
   last_request : Ref[String]
+  installed : Ref[Array[String]]
 }
 
 ///|
 fn FakeRunner::FakeRunner(
   result~ : @shared.RunResult,
   last_request~ : Ref[String],
+  installed~ : Ref[Array[String]],
 ) -> FakeRunner {
-  { result, last_request, }
+  { result, last_request, installed, }
 }
 
 ///|
@@ -299,7 +301,34 @@ fn fake_runner_router(fake : FakeRunner) -> @shared.Router {
     @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
       let request = @shared.read_json_body(ctx)
       fake.last_request.val = request.stringify()
-      @shared.send_json(ctx.conn, 200, fake.result.to_json())
+      let name = match request {
+        Object(obj) =>
+          match obj.get("name") {
+            Some(String(n)) => n
+            _ => "?"
+          }
+        _ => "?"
+      }
+      let installed = fake.installed.val
+      let mut known = false
+      for entry in installed {
+        if entry == name {
+          known = true
+        }
+      }
+      if known {
+        @shared.send_json(ctx.conn, 200, fake.result.to_json())
+      } else {
+        @shared.send_json(
+          ctx.conn,
+          200,
+          @shared.RunResult(
+            stdout="",
+            stderr="unknown function: \{name}",
+            exit_code=127,
+          ).to_json(),
+        )
+      }
     }),
   )
   router
@@ -313,6 +342,7 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
   let fake = FakeRunner(
     result=@shared.RunResult(stdout="hello from fn\n", exit_code=0),
     last_request=Ref(""),
+    installed=Ref(["hello-fn"]),
   )
   @async.with_task_group(group => {
     let runner_server = @http.Server(
@@ -355,12 +385,8 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     )
     assert_eq(response.code, 200)
     assert_eq(body.text(), "got GET\n")
-    // Unknown functions map to 404.
-    fake.result = @shared.RunResult(
-      stdout="",
-      stderr="unknown function: ghost",
-      exit_code=127,
-    )
+    // Unknown functions map to 404 (the fake runner answers 127/unknown
+    // for anything not installed).
     let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
     assert_eq(response.code, 404)
     runner_server.close()
@@ -496,6 +522,94 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     )
     assert_eq(response.stringify(), "[]")
     assert_eq(dispatched.length(), 0)
+    runner_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
+async test "broken deploy surfaces the reason; a good deploy is callable" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let fake_builder = FakeBuilder(
+    result=@shared.BuildResult(
+      ok=false,
+      error_tail="Error: unresolved identifier totally_broken (main.mbt:3)",
+    ),
+    seen_names=[],
+  )
+  let fake_runner = FakeRunner(
+    result=@shared.RunResult(stdout="hello from fn\n", exit_code=0),
+    last_request=Ref(""),
+    installed=Ref([]),
+  )
+  let pkg_dir = @fs.tmpdir(prefix="moonless-gw-fixture-")
+  let archive = write_test_package(pkg_dir)
+  let builder_port = fixture_listen_port()
+  let runner_port = fixture_listen_port()
+  let gateway_port = fixture_listen_port()
+  @async.with_task_group(group => {
+    let builder_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{builder_port}"),
+      reuse_addr=true,
+    )
+    let runner_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
+      reuse_addr=true,
+    )
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:\{builder_port}",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+    }
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(builder_server, fake_builder_router(fake_builder))
+    })
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(runner_server, fake_runner_router(fake_runner))
+    })
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let payload : Json = {
+      "name": "hello-fn",
+      "archive": @base64.encode(archive[:]),
+    }
+    // Broken build: the reason propagates and nothing is registered.
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/deploy",
+      payload,
+    )
+    let text = response.stringify()
+    assert_true(text.contains("\"ok\":false"))
+    assert_true(text.contains("totally_broken"))
+    let not_callable = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn",
+    )
+    assert_eq(not_callable.status, 404)
+    // Good build: registered and callable through the trigger. The runner
+    // now knows the function (the builder stored its module).
+    fake_builder.result = @shared.BuildResult(
+      ok=true,
+      build_id="b-3001",
+      wasm_path="/var/lib/moonless/functions/hello-fn/b-3001/func.wasm",
+    )
+    fake_runner.installed.val = ["hello-fn"]
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/deploy",
+      payload,
+    )
+    assert_true(response.stringify().contains("\"ok\":true"))
+    let callable = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn",
+    )
+    assert_eq(callable.status, 200)
+    assert_eq(callable.body, "hello from fn\n")
+    builder_server.close()
     runner_server.close()
     gateway_server.close()
   })

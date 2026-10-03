@@ -169,7 +169,7 @@ Conventions:
   event source; match it against the registry's triggers and dispatch to
   the runner.
   *Done when:* a synthetic s3 event triggers the bound function.
-- [ ] **T5.5 — Deploy orchestration.** Sequence upload → build →
+- [x] **T5.5 — Deploy orchestration.** Sequence upload → build →
   register, propagating build failures to the caller with the reason.
   *Done when:* a broken deploy returns an error, a good one is callable.
 - [ ] **T5.6 — Gateway tests.** Integration test: deploy fixture, HTTP
