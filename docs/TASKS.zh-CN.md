@@ -181,7 +181,7 @@
 
 ## Step 7. Scheduler（P1）
 
-- [ ] **T7.1 — Cron 库。** 从 `lijunjie860/moonbit_cron`、
+- [x] **T7.1 — Cron 库。** 从 `lijunjie860/moonbit_cron`、
   `cxh04/cron_mbt`、`001-Elsa/mooncron` 中选型集成（或论证自写五段
   式解析器的理由）。三者均非 moonbit-community 包；若任务启动前出现
   社区包，按 project-notes 中的依赖选型原则优先换用。

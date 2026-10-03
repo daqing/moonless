@@ -28,4 +28,5 @@ description = ""
 import {
   "moonbitlang/async@0.22.4",
   "moonbit-community/toml@0.5.0",
+  "lijunjie860/moonbit_cron@0.1.0",
 }

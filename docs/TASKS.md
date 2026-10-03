@@ -202,7 +202,7 @@ Conventions:
 
 ## Step 7. Scheduler (P1)
 
-- [ ] **T7.1 — Cron library.** Pick and integrate one of
+- [x] **T7.1 — Cron library.** Pick and integrate one of
   `lijunjie860/moonbit_cron`, `cxh04/cron_mbt`, `001-Elsa/mooncron` (or
   justify writing our own five-field parser). None of these are
   moonbit-community packages; if one emerges before this task, prefer it
