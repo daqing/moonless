@@ -97,7 +97,7 @@
 - [x] **T3.6 — 离线构建验证。** 依赖以 vendored 形式随上传包到达
   （R2）；确认 builder 构建全程完全不需要网络。
   *完成标准：* 禁用 builder 容器的网络访问后，deploy 依然成功。
-- [ ] **T3.7 — Builder 测试。** 集成测试：一个好 fixture、一个坏
+- [x] **T3.7 — Builder 测试。** 集成测试：一个好 fixture、一个坏
   fixture。
   *完成标准：* 两条路径都被 `moon test` 或 `scripts/` 下脚本覆盖。
 

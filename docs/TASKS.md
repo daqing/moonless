@@ -112,7 +112,7 @@ Conventions:
   network at all during a build.
   *Done when:* a deploy succeeds with the builder container's network
   access disabled.
-- [ ] **T3.7 — Builder tests.** Integration tests: one good fixture
+- [x] **T3.7 — Builder tests.** Integration tests: one good fixture
   project, one broken one.
   *Done when:* both paths covered by `moon test` or a script under
   `scripts/`.
