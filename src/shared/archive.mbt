@@ -126,7 +126,11 @@ fn is_all_zero(block : BytesView) -> Bool {
 }
 
 ///|
-fn tar_cstr(bytes : Bytes, offset : Int, len : Int) -> String raise SharedError {
+fn tar_cstr(
+  bytes : Bytes,
+  offset : Int32,
+  len : Int32,
+) -> String raise SharedError {
   let mut end = offset + len
   for i in offset..<(offset + len) {
     if bytes[i] == b'\x00' {
@@ -140,7 +144,7 @@ fn tar_cstr(bytes : Bytes, offset : Int, len : Int) -> String raise SharedError 
 }
 
 ///|
-fn tar_octal(bytes : Bytes, offset : Int, len : Int) -> Int {
+fn tar_octal(bytes : Bytes, offset : Int32, len : Int32) -> Int32 {
   let mut value = 0
   for i in offset..<(offset + len) {
     let byte = bytes[i].to_int()

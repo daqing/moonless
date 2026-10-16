@@ -214,10 +214,12 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
   cron 库选型 `lijunjie860/moonbit_cron@0.1.0`（五字段、dom/dow OR
   语义、带 CI 测试；注意其 dow 只接受 0–6，不接受 7）。
 - **工具链锁定（R1 落地）**：镜像内 moon 工具链版本由 Dockerfile
-  `ARG MOONBIT_VERSION=0.10.14+7d59c7ec9` 锁定（对应 moon CLI
-  0.1.20260920、moonrun 同版，与开发机一致）。版本化下载 URL 用
-  moonc 风格版本号（`https://cli.moonbitlang.com/binaries/<moonc 版
-  本>/moonbit-<target>.tar.gz`；moon CLI 风格的 `0.1.20260920` 会
+  `ARG MOONBIT_VERSION=0.10.15+943464bfa` 锁定（对应 moon CLI
+  0.1.20261012、moonrun 同版，与开发机一致；2026-10-17 起随开发机
+  从 0.10.14+7d59c7ec9 升级——新版 `moon fmt` 会自动把 `Int` 迁移为
+  `Int32`，旧 pin 的 core 没有 Int32，必须同步升级）。版本化下载 URL
+  用 moonc 风格版本号（`https://cli.moonbitlang.com/binaries/<moonc 版
+  本>/moonbit-<target>.tar.gz`；moon CLI 风格的 `0.1.20261012` 会
   403，`latest` 永远可达但不可复现）。
 - **镜像构建实测要点（T1.2）**：Linux 上 native 链接需要系统 C 编
   译器（镜像装 `gcc` + `libc6-dev`）；"wasm 构建无需 C 工具链"只针对

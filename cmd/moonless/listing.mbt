@@ -91,7 +91,7 @@ fn trigger_summary(record : @shared.RegistryRecord) -> String {
 ///|
 // Pads to at least width; long cells overflow instead of truncating so
 // trigger details stay visible.
-fn pad(text : String, width : Int) -> String {
+fn pad(text : String, width : Int32) -> String {
   let mut out = text
   while out.length() < width {
     out += " "

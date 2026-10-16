@@ -24,9 +24,9 @@ pub extend BitFieldEncoding with Show::{to_string, output}
 
 ///|
 pub(all) enum BitFieldOperation {
-  Get(encoding~ : BitFieldEncoding, offset~ : Int)
-  Set(encoding~ : BitFieldEncoding, offset~ : Int, value~ : Bit)
-  Incrby(encoding~ : BitFieldEncoding, offset~ : Int, value~ : Int)
+  Get(encoding~ : BitFieldEncoding, offset~ : Int32)
+  Set(encoding~ : BitFieldEncoding, offset~ : Int32, value~ : Bit)
+  Incrby(encoding~ : BitFieldEncoding, offset~ : Int32, value~ : Int32)
   Overflow(behavior~ : String)
 }
 
@@ -80,7 +80,7 @@ pub impl Show for Bit with fn to_string(self : Bit) -> String {
 pub async fn RedisClient::setbit(
   self : RedisClient,
   key : String,
-  offset : Int,
+  offset : Int32,
   value : Bit,
 ) -> RedisInt {
   self.send(["SETBIT", key, offset.to_string(), value.to_string()]).to_int()
@@ -90,7 +90,7 @@ pub async fn RedisClient::setbit(
 pub async fn RedisClient::getbit(
   self : RedisClient,
   key : String,
-  offset : Int,
+  offset : Int32,
 ) -> RedisInt {
   self.send(["GETBIT", key, offset.to_string()]).to_int()
 }
@@ -107,8 +107,8 @@ pub async fn RedisClient::bitcount(
 pub async fn RedisClient::bitcount_range(
   self : RedisClient,
   key : String,
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> RedisInt {
   self.send(["BITCOUNT", key, start.to_string(), end.to_string()]).to_int()
 }
@@ -158,8 +158,8 @@ pub async fn RedisClient::bitpos_range(
   self : RedisClient,
   key : String,
   bit : Bit,
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> RedisInt {
   self
   .send(["BITPOS", key, bit.to_string(), start.to_string(), end.to_string()])

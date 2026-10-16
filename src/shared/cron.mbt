@@ -66,7 +66,7 @@ pub fn epoch_ms_to_time(ms : Int64) -> @cron.Time {
 
 ///|
 // Inverse of civil_from_days (Howard Hinnant's days_from_civil).
-pub fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
+pub fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
   let y = if month <= 2 { year - 1 } else { year }
   let era = (if y >= 0 { y } else { y - 399 }) / 400
   let yoe = y - era * 400

@@ -10,7 +10,7 @@ priv suberror FixtureError {
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen
 // ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int {
+fn fixture_listen_port() -> Int32 {
   match @env.rand(2) {
     Some(bytes) =>
       20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
@@ -86,7 +86,7 @@ fn fake_builder_router(fake : FakeBuilder) -> @shared.Router {
 }
 
 ///|
-fn test_config(data_root : String, builder_port : Int) -> GatewayConfig {
+fn test_config(data_root : String, builder_port : Int32) -> GatewayConfig {
   {
     data_root,
     builder_url: "http://127.0.0.1:\{builder_port}",
@@ -226,7 +226,7 @@ async test "concurrent deploys never corrupt the registry file" {
     registry_lock: @async.Mutex::Mutex(),
   }
   let path = data_root + "/registry/registry.json"
-  let torn_reads : Ref[Int] = Ref(0)
+  let torn_reads : Ref[Int32] = Ref(0)
   @async.with_task_group(group => {
     // Reader: every on-disk snapshot must be complete, parseable JSON.
     group.spawn_bg(() => {

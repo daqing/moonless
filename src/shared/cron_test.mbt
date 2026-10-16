@@ -2,11 +2,11 @@
 // Fixed UTC timestamps for next-fire assertions (from the same civil
 // conversions used by the code under test, computed independently here).
 fn epoch_ms(
-  year : Int,
-  month : Int,
-  day : Int,
-  hour : Int,
-  minute : Int,
+  year : Int32,
+  month : Int32,
+  day : Int32,
+  hour : Int32,
+  minute : Int32,
 ) -> Int64 {
   let days = civil_days(year, month, day)
   (
@@ -20,7 +20,7 @@ fn epoch_ms(
 ///|
 // Independent days-from-civil for test data (mirrors the standard
 // algorithm so tests do not just re-run the implementation).
-fn civil_days(year : Int, month : Int, day : Int) -> Int {
+fn civil_days(year : Int32, month : Int32, day : Int32) -> Int32 {
   let y = if month <= 2 { year - 1 } else { year }
   let era = (if y >= 0 { y } else { y - 399 }) / 400
   let yoe = y - era * 400

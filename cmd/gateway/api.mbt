@@ -145,7 +145,7 @@ async fn handle_logs(ctx : @shared.RequestContext, cfg : GatewayConfig) -> Unit 
 
 ///|
 // Last `tail` lines (or the whole text when tail <= 0).
-fn tail_lines(text : String, tail : Int) -> String {
+fn tail_lines(text : String, tail : Int32) -> String {
   if tail <= 0 {
     return text
   }

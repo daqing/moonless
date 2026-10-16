@@ -101,7 +101,7 @@ async fn build_steps(
 ///|
 // Returns the last at-most-max characters, so CLI-visible build errors stay
 // readable even when the toolchain scrolls for hundreds of lines.
-fn tail(text : String, max : Int) -> String {
+fn tail(text : String, max : Int32) -> String {
   let len = text.length()
   if len <= max {
     text

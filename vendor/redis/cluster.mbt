@@ -3,7 +3,7 @@
 ///|
 pub async fn RedisClient::cluster_addslots(
   self : RedisClient,
-  slots : Array[Int],
+  slots : Array[Int32],
 ) -> RedisString {
   let slot_strings = slots.map(fn(slot) { slot.to_string() })
   let args = ["CLUSTER", "ADDSLOTS", ..slot_strings]
@@ -13,7 +13,7 @@ pub async fn RedisClient::cluster_addslots(
 ///|
 pub async fn RedisClient::cluster_addslotsrange(
   self : RedisClient,
-  ranges : Array[(Int, Int)],
+  ranges : Array[(Int32, Int32)],
 ) -> RedisString {
   let range_strings = []
   for range in ranges {
@@ -41,7 +41,7 @@ pub async fn RedisClient::cluster_count_failure_reports(
 ///|
 pub async fn RedisClient::cluster_countkeysinslot(
   self : RedisClient,
-  slot : Int,
+  slot : Int32,
 ) -> RedisInt {
   self.send(["CLUSTER", "COUNTKEYSINSLOT", slot.to_string()]).to_int()
 }
@@ -49,7 +49,7 @@ pub async fn RedisClient::cluster_countkeysinslot(
 ///|
 pub async fn RedisClient::cluster_delslots(
   self : RedisClient,
-  slots : Array[Int],
+  slots : Array[Int32],
 ) -> RedisString {
   let slot_strings = slots.map(fn(slot) { slot.to_string() })
   let args = ["CLUSTER", "DELSLOTS", ..slot_strings]
@@ -59,7 +59,7 @@ pub async fn RedisClient::cluster_delslots(
 ///|
 pub async fn RedisClient::cluster_delslotsrange(
   self : RedisClient,
-  ranges : Array[(Int, Int)],
+  ranges : Array[(Int32, Int32)],
 ) -> RedisString {
   let range_strings = []
   for range in ranges {
@@ -99,8 +99,8 @@ pub async fn RedisClient::cluster_forget(
 ///|
 pub async fn RedisClient::cluster_getkeysinslot(
   self : RedisClient,
-  slot : Int,
-  count : Int,
+  slot : Int32,
+  count : Int32,
 ) -> RedisArray {
   self
   .send(["CLUSTER", "GETKEYSINSLOT", slot.to_string(), count.to_string()])
@@ -129,8 +129,8 @@ pub async fn RedisClient::cluster_links(self : RedisClient) -> RedisArray {
 pub async fn RedisClient::cluster_meet(
   self : RedisClient,
   ip : String,
-  port : Int,
-  cluster_bus_port? : Int,
+  port : Int32,
+  cluster_bus_port? : Int32,
 ) -> RedisString {
   let args = match cluster_bus_port {
     Some(bus_port) =>
@@ -191,7 +191,7 @@ pub async fn RedisClient::cluster_saveconfig(self : RedisClient) -> RedisString 
 ///|
 pub async fn RedisClient::cluster_set_config_epoch(
   self : RedisClient,
-  config_epoch : Int,
+  config_epoch : Int32,
 ) -> RedisString {
   self
   .send(["CLUSTER", "SET-CONFIG-EPOCH", config_epoch.to_string()])
@@ -201,7 +201,7 @@ pub async fn RedisClient::cluster_set_config_epoch(
 ///|
 pub async fn RedisClient::cluster_setslot(
   self : RedisClient,
-  slot : Int,
+  slot : Int32,
   subcommand : String,
   node_id? : String,
 ) -> RedisString {
@@ -228,7 +228,7 @@ pub async fn RedisClient::cluster_slaves(
 ///|
 pub async fn RedisClient::cluster_slot_stats(
   self : RedisClient,
-  slots : Array[Int],
+  slots : Array[Int32],
 ) -> RedisArray {
   let slot_strings = slots.map(fn(slot) { slot.to_string() })
   let args = ["CLUSTER", "SLOTS", "STATS", ..slot_strings]

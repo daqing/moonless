@@ -20,13 +20,13 @@ pub(all) enum SetCondition {
 /// SET 命令的过期时间选项
 pub(all) enum SetExpiration {
   /// 以秒为单位设置过期时间
-  EX(Int)
+  EX(Int32)
   /// 以毫秒为单位设置过期时间
-  PX(Int)
+  PX(Int32)
   /// 设置过期时间为 Unix 时间戳（秒）
-  EXAT(Int)
+  EXAT(Int32)
   /// 设置过期时间为 Unix 时间戳（毫秒）
-  PXAT(Int)
+  PXAT(Int32)
   /// 保持现有的 TTL
   KEEPTTL
 }
@@ -38,7 +38,7 @@ pub async fn RedisClient::set(
   key : String,
   value : String,
   condition? : SetCondition,
-  get? : Bool = false,
+  get~ : Bool = false,
   expiration? : SetExpiration,
 ) -> RedisString {
   let args = ["SET", key, value]
@@ -257,8 +257,8 @@ pub async fn RedisClient::msetnx(
 pub async fn RedisClient::substr(
   self : RedisClient,
   key : String,
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> RedisString {
   self.send(["SUBSTR", key, start.to_string(), end.to_string()]).to_string()
 }

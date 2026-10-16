@@ -37,7 +37,7 @@ pub extend ManifestTriggers with Debug::{to_repr}
 
 ///|
 pub fn ManifestTriggers::ManifestTriggers(
-  http_enabled? : Bool = false,
+  http_enabled~ : Bool = false,
   cron? : String,
   s3? : S3Trigger,
 ) -> ManifestTriggers {
@@ -57,19 +57,19 @@ pub extend Manifest with Debug::{to_repr}
 ///|
 pub fn Manifest::Manifest(
   name~ : String,
-  triggers? : ManifestTriggers = ManifestTriggers(),
+  triggers~ : ManifestTriggers = ManifestTriggers(),
   toolchain? : String,
 ) -> Manifest {
   { name, triggers, toolchain, }
 }
 
 ///|
-fn version_parts(version : String) -> Array[Int] raise SharedError {
+fn version_parts(version : String) -> Array[Int32] raise SharedError {
   let numeric : StringView = match version.split_once("+") {
     Some((head, _)) => head
     None => version[:]
   }
-  let parts : Array[Int] = []
+  let parts : Array[Int32] = []
   for part in numeric.split(".") {
     parts.push(
       @string.parse_int(part) catch {
@@ -89,7 +89,7 @@ fn version_parts(version : String) -> Array[Int] raise SharedError {
 pub fn compare_toolchain_versions(
   lhs : String,
   rhs : String,
-) -> Int raise SharedError {
+) -> Int32 raise SharedError {
   let l = version_parts(lhs)
   let r = version_parts(rhs)
   let len = if l.length() > r.length() { l.length() } else { r.length() }

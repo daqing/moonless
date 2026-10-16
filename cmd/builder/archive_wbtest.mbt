@@ -4,7 +4,7 @@
 // unpacker exactly as an attacker would ship them.
 
 ///|
-fn write_str(header : FixedArray[Byte], offset : Int, text : String) -> Unit {
+fn write_str(header : FixedArray[Byte], offset : Int32, text : String) -> Unit {
   let bytes = @utf8.encode(text)
   for i in 0..<bytes.length() {
     header[offset + i] = bytes[i]
@@ -14,9 +14,9 @@ fn write_str(header : FixedArray[Byte], offset : Int, text : String) -> Unit {
 ///|
 fn write_octal(
   header : FixedArray[Byte],
-  offset : Int,
-  digits : Int,
-  value : Int,
+  offset : Int32,
+  digits : Int32,
+  value : Int32,
 ) -> Unit {
   let mut v = value
   let mut i = digits - 1
@@ -32,7 +32,7 @@ fn write_octal(
 
 ///|
 // One 512-byte ustar header for a regular file, checksum included.
-fn tar_file_header(name : String, size : Int, typeflag : Int) -> Bytes {
+fn tar_file_header(name : String, size : Int32, typeflag : Int32) -> Bytes {
   let header : FixedArray[Byte] = FixedArray::makei(512, _ => b'\x00')
   write_str(header, 0, name)
   write_str(header, 100, "0000644")

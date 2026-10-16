@@ -20,7 +20,7 @@ pub extend SharedError with Debug::{to_repr}
 pub fn json_field_string(
   obj : Map[String, Json],
   key : String,
-  default? : String = "",
+  default~ : String = "",
 ) -> String raise SharedError {
   match obj.get(key) {
     Some(String(s)) => s
@@ -33,8 +33,8 @@ pub fn json_field_string(
 pub fn json_field_int(
   obj : Map[String, Json],
   key : String,
-  default? : Int = 0,
-) -> Int raise SharedError {
+  default~ : Int32 = 0,
+) -> Int32 raise SharedError {
   match obj.get(key) {
     Some(Number(v, ..)) => v.to_int()
     Some(Null) | None => default
@@ -46,7 +46,7 @@ pub fn json_field_int(
 pub fn json_field_bool(
   obj : Map[String, Json],
   key : String,
-  default? : Bool = false,
+  default~ : Bool = false,
 ) -> Bool raise SharedError {
   match obj.get(key) {
     Some(True) => true

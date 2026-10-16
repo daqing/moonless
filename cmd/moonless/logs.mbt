@@ -30,7 +30,7 @@ async fn cli_logs(
 ///|
 priv struct LogsArgs {
   name : String
-  tail : Int
+  tail : Int32
 }
 
 ///|

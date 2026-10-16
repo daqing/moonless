@@ -11,7 +11,7 @@ priv suberror FixtureError {
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen
 // ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int {
+fn fixture_listen_port() -> Int32 {
   match @env.rand(2) {
     Some(bytes) =>
       20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
@@ -47,7 +47,7 @@ async fn build_fixture_module(
   dir : String,
   pkg : String,
   main : String,
-  moon_mod? : String = "name = \"fixture/probe\"\nversion = \"0.1.0\"\n",
+  moon_mod~ : String = "name = \"fixture/probe\"\nversion = \"0.1.0\"\n",
 ) -> Bytes {
   write_fixture_files(dir, [
     ("moon.mod", moon_mod),
@@ -163,9 +163,9 @@ fn crash_main() -> String {
 ///|
 fn test_config(
   data_root : String,
-  timeout_ms? : Int = 60_000,
-  max_concurrency? : Int = 8,
-  output_cap? : Int = 10 * 1024 * 1024,
+  timeout_ms~ : Int32 = 60_000,
+  max_concurrency~ : Int32 = 8,
+  output_cap~ : Int32 = 10 * 1024 * 1024,
 ) -> RunnerConfig {
   make_runner_config(data_root, timeout_ms, max_concurrency, output_cap)
 }
