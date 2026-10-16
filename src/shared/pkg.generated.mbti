@@ -47,9 +47,13 @@ pub fn match_path(String, String) -> Map[String, String]?
 
 pub fn parse_manifest(String) -> Manifest raise SharedError
 
+pub fn parse_run_log_line(String) -> RunLogRecord?
+
 pub let platform_toolchain : String
 
 pub async fn read_json_body(RequestContext) -> Json raise SharedError
+
+pub async fn read_run_log_records(String, since? : String, source? : String) -> Array[RunLogRecord]
 
 pub fn route(http_method~ : @http.RequestMethod, pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
 
@@ -128,6 +132,7 @@ pub(all) enum Event {
   S3(S3EventData)
 } derive(@debug.Debug)
 pub fn Event::from_json(Json) -> Self raise SharedError
+pub fn Event::source_name(Self) -> String
 pub fn Event::to_json(Self) -> Json
 pub fn Event::to_repr(Self) -> @debug.Repr
 
@@ -202,6 +207,23 @@ pub struct Router {
 }
 pub fn Router::add(Self, Route) -> Unit
 pub fn Router::new() -> Self
+
+pub struct RunLogRecord {
+  ts : String
+  name : String
+  source : String
+  event : Event
+  exit_code : Int
+  duration_ms : Int
+  truncated : Bool
+  stderr : String
+} derive(@debug.Debug)
+pub fn RunLogRecord::RunLogRecord(ts~ : String, name~ : String, event~ : Event, exit_code~ : Int, duration_ms~ : Int, truncated~ : Bool, stderr~ : String) -> Self
+pub fn RunLogRecord::from_json(Json) -> Self raise SharedError
+pub fn RunLogRecord::render(Self) -> String
+pub fn RunLogRecord::to_json(Self) -> Json
+pub fn RunLogRecord::to_line(Self) -> String
+pub fn RunLogRecord::to_repr(Self) -> @debug.Repr
 
 pub struct RunRequest {
   name : String

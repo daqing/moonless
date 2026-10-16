@@ -203,9 +203,10 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
     （函数超时，默认 60000，超时杀死并返回 exitCode=124）、
     `MOONLESS_MAX_CONCURRENCY`（并发 fork 上限，默认 8，超出排队）、
     `MOONLESS_OUTPUT_LIMIT`（每流输出上限字节数，默认 10MB）、
-    `MOONLESS_LOG_MAX_BYTES`（单个日志文件上限，默认 16MB，超过轮转为
-    `<date>.<NNNNNN>.log`）、`MOONLESS_LOG_KEEP`（每个函数保留的日志
-    文件数，默认 14，超出删除最旧）。
+    `MOONLESS_LOG_MAX_BYTES`（单个日志文件上限，默认 16MB；日志文件按
+    `<date>.<NNNNNN>.log` 命名、序号从 000000 起，超限开下一序号）、
+    `MOONLESS_LOG_KEEP`（每个函数保留的日志文件数，默认 14，超出删除
+    最旧）。
 - **函数输出上限**：stdout/stderr 每流默认 10MB，超出截断并在结果中
   标记 `truncated`（R4）；上限可由环境变量调整（T4.8）。
 - **时区**：容器 `TZ`，默认 UTC（R8）；cron 语义按容器时区解释。

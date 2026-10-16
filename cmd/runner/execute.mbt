@@ -74,23 +74,29 @@ async fn run_function(
 }
 
 ///|
-// One record per invocation under logs/<name>/<YYYY-MM-DD>.log: the event
-// JSON, outcome summary, and the function's stderr for gateway-side queries.
-// The store rotates the day file past the size cap and prunes old files.
+// One record per invocation under logs/<name>/<YYYY-MM-DD>.log as a JSON
+// line (event, outcome, stderr) for gateway-side queries; the store
+// rotates the day file past the size cap and prunes old files.
 async fn append_run_log(
   cfg : RunnerConfig,
   request : @shared.RunRequest,
   result : @shared.RunResult,
 ) -> Unit {
-  let timestamp = @shared.format_timestamp(@async.now())
-  let dir = cfg.data_root + "/logs/" + request.name
-  let record = "\{timestamp} event=\{request.event.to_json().stringify()} exit=\{result.exit_code} dur=\{result.duration_ms}ms truncated=\{result.truncated}\n\{result.stderr}\n"
+  let record = @shared.RunLogRecord(
+    ts=@shared.format_timestamp(@async.now()),
+    name=request.name,
+    event=request.event,
+    exit_code=result.exit_code,
+    duration_ms=result.duration_ms,
+    truncated=result.truncated,
+    stderr=result.stderr,
+  )
   let store = @shared.LogStore::new(
-    dir~,
+    dir=cfg.data_root + "/logs/" + request.name,
     max_bytes=cfg.log_max_bytes,
     keep=cfg.log_keep,
   )
-  store.append(record) catch {
+  store.append(record.to_line()) catch {
     _ =>
       @shared.log_warn(
         service="runner",

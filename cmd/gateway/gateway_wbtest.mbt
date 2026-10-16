@@ -115,21 +115,58 @@ async fn write_test_package(dir : String) -> Bytes {
 }
 
 ///|
-async fn write_test_log(
+fn test_record(
+  name : String,
+  ts : String,
+  event : @shared.Event,
+  stderr : String,
+  exit_code~ : Int32 = 0,
+) -> @shared.RunLogRecord {
+  @shared.RunLogRecord(
+    ts~,
+    name~,
+    event~,
+    exit_code~,
+    duration_ms=5,
+    truncated=false,
+    stderr~,
+  )
+}
+
+///|
+fn http_event() -> @shared.Event {
+  @shared.Event::Http(
+    @shared.HttpEventData(http_method="GET", path="/fn/f", query="", body=""),
+  )
+}
+
+///|
+fn cron_event() -> @shared.Event {
+  @shared.Event::Cron(
+    @shared.CronEventData(schedule="0 8 * * *", time="2026-10-16T08:00:00Z"),
+  )
+}
+
+///|
+// Writes records into per-day log files named after each record's ts, the
+// same layout the runner produces.
+async fn write_test_records(
   data_root : String,
   name : String,
-  lines : Array[String],
+  records : Array[@shared.RunLogRecord],
 ) -> Unit {
   let dir = data_root + "/logs/" + name
   @fs.mkdir(dir, recursive=true, allow_exist=true) catch {
     _ => ()
   }
-  let date = @shared.format_timestamp(@async.now())[:10].to_owned()
-  let mut content = ""
-  for line in lines {
-    content = content + line + "\n"
+  let by_day : Map[String, String] = Map([])
+  for record in records {
+    let day = record.ts[:10].to_owned()
+    by_day[day] = by_day.get(day).unwrap_or("") + record.to_line()
   }
-  @fs.write_file(dir + "/\{date}.log", content)
+  for day, content in by_day {
+    @fs.write_file(dir + "/\{day}.000000.log", content)
+  }
 }
 
 ///|
@@ -201,17 +238,94 @@ async test "deploy registers the function; list, detail, and logs answer" {
     )
     assert_eq(missing.status, 404)
     // logs
-    write_test_log(data_root, "hello-fn", ["line-one", "line-two", "line-three"])
+    let r1 = test_record(
+      "hello-fn",
+      "2026-10-16T08:00:00.000Z",
+      http_event(),
+      "line-one",
+    )
+    let r2 = test_record(
+      "hello-fn",
+      "2026-10-16T09:00:00.000Z",
+      http_event(),
+      "line-two",
+    )
+    let r3 = test_record(
+      "hello-fn",
+      "2026-10-16T10:00:00.000Z",
+      http_event(),
+      "line-three",
+    )
+    write_test_records(data_root, "hello-fn", [r1, r2, r3])
     let response = @shared.http_get(
       "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs?tail=2",
     )
     assert_eq(response.status, 200)
-    assert_eq(response.body, "line-two\nline-three\n")
+    // tail counts rendered lines: a record is its header line + stderr.
+    assert_eq(response.body, r3.render())
+    let response = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs?tail=4",
+    )
+    assert_eq(response.body, r2.render() + r3.render())
     let response = @shared.http_get(
       "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs",
     )
-    assert_eq(response.body, "line-one\nline-two\nline-three\n")
+    assert_eq(response.body, r1.render() + r2.render() + r3.render())
     builder_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
+async test "logs filter by trigger source and since timestamp" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let gateway_port = fixture_listen_port()
+  // Two sources across two day files: http + cron on the 16th, cron on 17th.
+  let r1 = test_record(
+    "multi-fn",
+    "2026-10-16T08:00:00.000Z",
+    http_event(),
+    "first",
+  )
+  let r2 = test_record(
+    "multi-fn",
+    "2026-10-16T09:00:00.000Z",
+    cron_event(),
+    "second",
+  )
+  let r3 = test_record(
+    "multi-fn",
+    "2026-10-17T08:00:00.000Z",
+    cron_event(),
+    "third",
+  )
+  write_test_records(data_root, "multi-fn", [r1, r2, r3])
+  @async.with_task_group(group => {
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(
+        gateway_server,
+        gateway_router(test_config(data_root, 65534)),
+      )
+    })
+    let base = "http://127.0.0.1:\{gateway_port}/api/functions/multi-fn/logs"
+    // Source filter: only the cron runs, oldest first.
+    let response = @shared.http_get("\{base}?source=cron")
+    assert_eq(response.body, r2.render() + r3.render())
+    // Since filter: a bare date matches that whole day.
+    let response = @shared.http_get("\{base}?since=2026-10-17")
+    assert_eq(response.body, r3.render())
+    // A full timestamp cuts inside a day.
+    let response = @shared.http_get("\{base}?since=2026-10-16T08:30:00.000Z")
+    assert_eq(response.body, r2.render() + r3.render())
+    // Filters compose: r2 (09:00) falls before the window.
+    let response = @shared.http_get(
+      "\{base}?source=cron&since=2026-10-16T09:30:00.000Z",
+    )
+    assert_eq(response.body, r3.render())
     gateway_server.close()
   })
 }

@@ -103,6 +103,17 @@ pub fn Event::to_json(self : Event) -> Json {
 }
 
 ///|
+// The trigger source tag ("http" / "cron" / "s3"), matching the JSON
+// `source` field; used for log filtering.
+pub fn Event::source_name(self : Event) -> String {
+  match self {
+    Http(_) => "http"
+    Cron(_) => "cron"
+    S3(_) => "s3"
+  }
+}
+
+///|
 pub fn Event::from_json(json : Json) -> Event raise SharedError {
   guard json is Object(obj) else {
     raise InvalidEvent("event expected an object")

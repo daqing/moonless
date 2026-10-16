@@ -203,6 +203,20 @@ test "parse_logs_args handles name, tail, and server flags" {
   assert_eq(parsed.tail, 5)
   let parsed = parse_logs_args(["hello"])
   assert_eq(parsed.tail, 50)
+  assert_eq(parsed.source, "")
+  assert_eq(parsed.since, "")
+  let parsed = parse_logs_args([
+    "hello", "--source", "cron", "--since=2026-10-16T08:00:00Z",
+  ])
+  assert_eq(parsed.source, "cron")
+  assert_eq(parsed.since, "2026-10-16T08:00:00Z")
+  let parsed = parse_logs_args(["--source=s3", "hello"])
+  assert_eq(parsed.source, "s3")
+  try parse_logs_args(["hello", "--source", "ftp"]) catch {
+    CliError(message) => assert_true(message.contains("--source must be"))
+  } noraise {
+    _ => fail("expected error for an unknown source")
+  }
   try parse_logs_args(["--tail", "10"]) catch {
     CliError(message) => assert_true(message.contains("usage"))
   } noraise {

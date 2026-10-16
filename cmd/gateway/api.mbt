@@ -116,31 +116,27 @@ async fn handle_get(ctx : @shared.RequestContext, cfg : GatewayConfig) -> Unit {
 }
 
 ///|
+// Log query: records from every (rotated) day file of the function,
+// filtered by trigger source and an ISO-8601 UTC lower bound, rendered as
+// the human-readable run format and tailed by line count.
 async fn handle_logs(ctx : @shared.RequestContext, cfg : GatewayConfig) -> Unit {
   let name = ctx.params["name"]
   let tail = match query_param(ctx.request.path, "tail") {
     Some(value) => @string.parse_int(value) catch { _ => 50 }
     None => 50
   }
+  let source = query_param(ctx.request.path, "source").unwrap_or("")
+  let since = query_param(ctx.request.path, "since").unwrap_or("")
   let logs_dir = cfg.data_root + "/logs/" + name
-  let entries = @fs.readdir(logs_dir) catch {
-    _ => return @shared.send_text(ctx.conn, 404, "no logs for function\n")
-  }
-  let mut latest = ""
-  for entry in entries {
-    if entry.has_suffix(".log") && entry > latest {
-      latest = entry
-    }
-  }
-  if latest == "" {
+  if !(@fs.exists(logs_dir) catch { _ => false }) {
     return @shared.send_text(ctx.conn, 404, "no logs for function\n")
   }
-  let content = (@fs.read_file(logs_dir + "/" + latest) catch {
-    _ => return @shared.send_text(ctx.conn, 500, "log unreadable\n")
-  }).text() catch {
-    _ => ""
+  let records = @shared.read_run_log_records(logs_dir, since~, source~)
+  let mut rendered = ""
+  for record in records {
+    rendered += record.render()
   }
-  @shared.send_text(ctx.conn, 200, tail_lines(content, tail))
+  @shared.send_text(ctx.conn, 200, tail_lines(rendered, tail))
 }
 
 ///|
