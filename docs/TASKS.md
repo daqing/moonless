@@ -224,7 +224,7 @@ Conventions:
 
 ## Step 8. Log collection deepening (P1)
 
-- [ ] **T8.1 — Rotation.** Rotate log files by day (or size cap), keep
+- [x] **T8.1 — Rotation.** Rotate log files by day (or size cap), keep
   the last N files.
   *Done when:* synthetic writes trigger rotation as configured.
 - [ ] **T8.2 — Query enhancements.** Filter logs by trigger source and

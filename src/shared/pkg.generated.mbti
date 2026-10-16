@@ -147,6 +147,14 @@ pub enum LogLevel {
 } derive(@debug.Debug)
 pub fn LogLevel::to_repr(Self) -> @debug.Repr
 
+pub struct LogStore {
+  dir : String
+  max_bytes : Int
+  keep : Int
+}
+pub async fn LogStore::append(Self, String) -> Unit
+pub fn LogStore::new(dir~ : String, max_bytes? : Int, keep? : Int) -> Self
+
 pub struct Manifest {
   name : String
   triggers : ManifestTriggers
