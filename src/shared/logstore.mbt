@@ -211,6 +211,21 @@ pub fn RunLogRecord::render(self : RunLogRecord) -> String {
 }
 
 ///|
+// The per-invocation metadata served by the runs API (T8.3): everything
+// except the event payload and stderr.
+pub fn RunLogRecord::summary_json(self : RunLogRecord) -> Json {
+  let json : Json = {
+    "ts": self.ts,
+    "name": self.name,
+    "source": self.source,
+    "exitCode": self.exit_code,
+    "durationMs": self.duration_ms,
+    "truncated": self.truncated,
+  }
+  json
+}
+
+///|
 // Every stored record for one function, oldest first. `since` is an
 // ISO-8601 UTC lower bound compared lexically against record timestamps
 // (a bare date matches that whole day); `source` matches exactly. Files

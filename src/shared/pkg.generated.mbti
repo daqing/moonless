@@ -221,6 +221,7 @@ pub struct RunLogRecord {
 pub fn RunLogRecord::RunLogRecord(ts~ : String, name~ : String, event~ : Event, exit_code~ : Int, duration_ms~ : Int, truncated~ : Bool, stderr~ : String) -> Self
 pub fn RunLogRecord::from_json(Json) -> Self raise SharedError
 pub fn RunLogRecord::render(Self) -> String
+pub fn RunLogRecord::summary_json(Self) -> Json
 pub fn RunLogRecord::to_json(Self) -> Json
 pub fn RunLogRecord::to_line(Self) -> String
 pub fn RunLogRecord::to_repr(Self) -> @debug.Repr

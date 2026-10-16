@@ -140,6 +140,34 @@ async fn handle_logs(ctx : @shared.RequestContext, cfg : GatewayConfig) -> Unit 
 }
 
 ///|
+// The last `tail` run records of a function as JSON metadata (T8.3);
+// accepts the same source/since filters as the logs endpoint.
+async fn handle_runs(ctx : @shared.RequestContext, cfg : GatewayConfig) -> Unit {
+  let name = ctx.params["name"]
+  let tail = match query_param(ctx.request.path, "tail") {
+    Some(value) => @string.parse_int(value) catch { _ => 20 }
+    None => 20
+  }
+  let source = query_param(ctx.request.path, "source").unwrap_or("")
+  let since = query_param(ctx.request.path, "since").unwrap_or("")
+  let logs_dir = cfg.data_root + "/logs/" + name
+  if !(@fs.exists(logs_dir) catch { _ => false }) {
+    return @shared.send_text(ctx.conn, 404, "no runs for function\n")
+  }
+  let records = @shared.read_run_log_records(logs_dir, since~, source~)
+  let start = if tail > 0 && records.length() > tail {
+    records.length() - tail
+  } else {
+    0
+  }
+  let items = []
+  for i in start..<records.length() {
+    items.push(records[i].summary_json())
+  }
+  @shared.send_json(ctx.conn, 200, Json::array(items))
+}
+
+///|
 // Last `tail` lines (or the whole text when tail <= 0).
 fn tail_lines(text : String, tail : Int32) -> String {
   if tail <= 0 {

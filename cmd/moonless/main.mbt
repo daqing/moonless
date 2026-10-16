@@ -35,6 +35,7 @@ async fn cli_main(args : Array[String]) -> Unit raise CliError {
     "deploy" => cli_deploy(server)
     "list" => cli_list(server)
     "logs" => cli_logs(flags, server)
+    "runs" => cli_runs(flags, server)
     "help" | "--help" | "-h" => print_usage()
     other => raise CliError("unknown command '\{other}'")
   }
@@ -73,6 +74,10 @@ fn print_usage() -> Unit {
   )
   println(
     "                                     show the last runs of a function",
+  )
+  println("  moonless runs <name> [--tail N] [--server URL]")
+  println(
+    "                                     show recent invocations (source, exit, duration)",
   )
   println("")
   println("Environment:")

@@ -331,6 +331,82 @@ async test "logs filter by trigger source and since timestamp" {
 }
 
 ///|
+async test "runs endpoint lists the last N invocations with metadata" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let gateway_port = fixture_listen_port()
+  let r1 = @shared.RunLogRecord(
+    ts="2026-10-16T08:00:00.000Z",
+    name="jobs-fn",
+    event=http_event(),
+    exit_code=0,
+    duration_ms=12,
+    truncated=false,
+    stderr="",
+  )
+  let r2 = @shared.RunLogRecord(
+    ts="2026-10-16T09:00:00.000Z",
+    name="jobs-fn",
+    event=cron_event(),
+    exit_code=1,
+    duration_ms=870,
+    truncated=true,
+    stderr="boom",
+  )
+  let r3 = @shared.RunLogRecord(
+    ts="2026-10-17T08:00:00.000Z",
+    name="jobs-fn",
+    event=cron_event(),
+    exit_code=0,
+    duration_ms=33,
+    truncated=false,
+    stderr="",
+  )
+  write_test_records(data_root, "jobs-fn", [r1, r2, r3])
+  @async.with_task_group(group => {
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(
+        gateway_server,
+        gateway_router(test_config(data_root, 65534)),
+      )
+    })
+    let base = "http://127.0.0.1:\{gateway_port}/api/functions/jobs-fn/runs"
+    // Default: all three, oldest first, metadata only.
+    let response = @shared.http_get_json(base)
+    guard response is Array(items) else { fail("runs is not an array") }
+    assert_eq(items.length(), 3)
+    guard items[1] is Object(run) else { fail("run is not an object") }
+    let expected : Json = {
+      "ts": "2026-10-16T09:00:00.000Z",
+      "name": "jobs-fn",
+      "source": "cron",
+      "exitCode": 1,
+      "durationMs": 870,
+      "truncated": true,
+    }
+    assert_eq(items[1], expected)
+    // No event payload or stderr in run records.
+    assert_true(run.get("event") is None)
+    assert_true(run.get("stderr") is None)
+    // tail=2 keeps the newest two.
+    let response = @shared.http_get_json("\{base}?tail=2")
+    guard response is Array(items) else { fail("runs is not an array") }
+    assert_eq(items.length(), 2)
+    assert_true(items[0].stringify().contains("2026-10-16T09:00"))
+    assert_true(items[1].stringify().contains("2026-10-17T08:00"))
+    // Unknown function: 404.
+    let missing = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/api/functions/ghost/runs",
+    )
+    assert_eq(missing.status, 404)
+    gateway_server.close()
+  })
+}
+
+///|
 async test "concurrent deploys never corrupt the registry file" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
   let cfg = {
