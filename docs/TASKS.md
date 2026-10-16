@@ -202,23 +202,23 @@ Conventions:
 
 ## Step 7. Scheduler (P1)
 
-- [ ] **T7.1 — Cron library.** Pick and integrate one of
+- [x] **T7.1 — Cron library.** Pick and integrate one of
   `lijunjie860/moonbit_cron`, `cxh04/cron_mbt`, `001-Elsa/mooncron` (or
   justify writing our own five-field parser). None of these are
   moonbit-community packages; if one emerges before this task, prefer it
   per the dependency rule in project-notes.
   *Done when:* next-fire-time computation is unit-tested.
-- [ ] **T7.2 — Registry sync.** Poll the gateway every 30s for functions
+- [x] **T7.2 — Registry sync.** Poll the gateway every 30s for functions
   with cron triggers; keep an in-memory schedule table.
   *Done when:* deploying a cron function is picked up within a poll
   cycle.
-- [ ] **T7.3 — Dispatch loop.** On each fire time, assemble the cron
+- [x] **T7.3 — Dispatch loop.** On each fire time, assemble the cron
   event and POST it to the gateway's `/api/events`.
   *Done when:* an `* * * * *` fixture fires within the minute.
-- [ ] **T7.4 — Missed-fire policy.** Document and implement
+- [x] **T7.4 — Missed-fire policy.** Document and implement
   skip-if-late (no catch-up bursts after downtime).
   *Done when:* behavior verified by a short-period test.
-- [ ] **T7.5 — Scheduler tests.** Cover parsing, next-fire, and the
+- [x] **T7.5 — Scheduler tests.** Cover parsing, next-fire, and the
   dispatch path with a fake clock where possible.
   *Done when:* suite is green.
 

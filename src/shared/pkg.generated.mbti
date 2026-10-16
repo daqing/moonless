@@ -2,6 +2,7 @@
 package "daqing/moonless/src/shared"
 
 import {
+  "lijunjie860/moonbit_cron",
   "moonbitlang/async/http",
   "moonbitlang/async/io",
   "moonbitlang/core/debug",
@@ -9,6 +10,10 @@ import {
 
 // Values
 pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
+
+pub fn days_from_civil(Int, Int, Int) -> Int
+
+pub fn epoch_ms_to_time(Int64) -> @moonbit_cron.Time
 
 pub fn format_timestamp(Int64) -> String
 
@@ -62,6 +67,8 @@ pub fn tar_entries(Bytes) -> Array[TarEntry] raise SharedError
 
 pub async fn tar_gz_read_text(Bytes, String) -> String? raise SharedError
 
+pub fn time_to_epoch_ms(@moonbit_cron.Time) -> Int64
+
 // Errors
 pub(all) suberror SharedError {
   InvalidJson(String)
@@ -97,6 +104,14 @@ pub struct CronEventData {
 } derive(@debug.Debug)
 pub fn CronEventData::CronEventData(schedule~ : String, time~ : String) -> Self
 pub fn CronEventData::to_repr(Self) -> @debug.Repr
+
+pub struct CronSchedule {
+  name : String
+  expression : String
+  spec : @moonbit_cron.CronExpr
+}
+pub fn CronSchedule::CronSchedule(name~ : String, expression~ : String) -> Self raise SharedError
+pub fn CronSchedule::next_fire_ms(Self, Int64) -> Int64 raise SharedError
 
 pub struct DeployRequest {
   name : String
