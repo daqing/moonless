@@ -2,6 +2,7 @@ import {
   "moonbit-community/toml",
   "lijunjie860/moonbit_cron" @cron,
   "moonbitlang/async",
+  "moonbitlang/async/fs",
   "moonbitlang/async/gzip",
   "moonbitlang/async/http",
   "moonbitlang/async/io",

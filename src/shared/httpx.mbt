@@ -153,7 +153,7 @@ fn split_segments(s : String) -> Array[StringView] {
 ///|
 pub async fn send_text(
   conn : @http.ServerConnection,
-  status : Int,
+  status : Int32,
   text : String,
 ) -> Unit {
   conn
@@ -167,7 +167,7 @@ pub async fn send_text(
 ///|
 pub async fn send_json(
   conn : @http.ServerConnection,
-  status : Int,
+  status : Int32,
   json : Json,
 ) -> Unit {
   conn
@@ -189,7 +189,7 @@ pub async fn read_json_body(ctx : RequestContext) -> Json raise SharedError {
 }
 
 ///|
-fn reason_phrase(status : Int) -> String {
+fn reason_phrase(status : Int32) -> String {
   match status {
     200 => "OK"
     201 => "Created"
@@ -207,13 +207,13 @@ fn reason_phrase(status : Int) -> String {
 
 ///|
 pub struct ClientResponse {
-  status : Int
+  status : Int32
   body : String
 }
 
 ///|
 pub fn ClientResponse::ClientResponse(
-  status~ : Int,
+  status~ : Int32,
   body~ : String,
 ) -> ClientResponse {
   { status, body, }
@@ -222,7 +222,7 @@ pub fn ClientResponse::ClientResponse(
 ///|
 pub async fn http_get(
   url : String,
-  timeout_ms? : Int = 10_000,
+  timeout_ms~ : Int32 = 10_000,
 ) -> ClientResponse raise SharedError {
   let (response, data) = @async.with_timeout(
     timeout_ms,
@@ -241,7 +241,7 @@ pub async fn http_get(
 ///|
 pub async fn http_get_json(
   url : String,
-  timeout_ms? : Int = 10_000,
+  timeout_ms~ : Int32 = 10_000,
 ) -> Json raise SharedError {
   let response = http_get(url, timeout_ms~)
   @json.parse(response.body) catch {
@@ -253,7 +253,7 @@ pub async fn http_get_json(
 pub async fn http_post_json(
   url : String,
   payload : Json,
-  timeout_ms? : Int = 10_000,
+  timeout_ms~ : Int32 = 10_000,
 ) -> Json raise SharedError {
   let (_, data) = @async.with_timeout(
     timeout_ms,

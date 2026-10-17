@@ -60,7 +60,7 @@ pub fn format_timestamp(ms_since_epoch : Int64) -> String {
 
 ///|
 // Howard Hinnant's civil_from_days: days since 1970-01-01 -> (y, m, d).
-fn civil_from_days(days : Int) -> (Int, Int, Int) {
+fn civil_from_days(days : Int32) -> (Int32, Int32, Int32) {
   let z = days + 719468
   let era = (if z >= 0 { z } else { z - 146096 }) / 146097
   let doe = z - era * 146097
@@ -75,7 +75,7 @@ fn civil_from_days(days : Int) -> (Int, Int, Int) {
 }
 
 ///|
-fn pad2(n : Int) -> String {
+fn pad2(n : Int32) -> String {
   if n < 10 {
     "0\{n}"
   } else {
@@ -84,7 +84,7 @@ fn pad2(n : Int) -> String {
 }
 
 ///|
-fn pad3(n : Int) -> String {
+fn pad3(n : Int32) -> String {
   if n < 10 {
     "00\{n}"
   } else if n < 100 {

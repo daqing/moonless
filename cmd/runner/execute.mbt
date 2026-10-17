@@ -6,13 +6,15 @@
 ///|
 priv struct RunnerConfig {
   data_root : String
-  timeout_ms : Int
-  output_cap : Int
+  timeout_ms : Int32
+  output_cap : Int32
+  log_max_bytes : Int32
+  log_keep : Int32
   sem : @semaphore.Semaphore
 }
 
 ///|
-fn env_int(name : String, default : Int) -> Int {
+fn env_int(name : String, default : Int32) -> Int32 {
   match @env.get_env_var(name) {
     Some(value) => @string.parse_int(value) catch { _ => default }
     None => default
@@ -22,14 +24,18 @@ fn env_int(name : String, default : Int) -> Int {
 ///|
 fn make_runner_config(
   data_root : String,
-  timeout_ms : Int,
-  max_concurrency : Int,
-  output_cap : Int,
+  timeout_ms : Int32,
+  max_concurrency : Int32,
+  output_cap : Int32,
+  log_max_bytes~ : Int32 = 16 * 1024 * 1024,
+  log_keep~ : Int32 = 14,
 ) -> RunnerConfig {
   {
     data_root,
     timeout_ms,
     output_cap,
+    log_max_bytes,
+    log_keep,
     sem: @semaphore.Semaphore(max_concurrency),
   }
 }
@@ -42,7 +48,16 @@ fn load_runner_config() -> RunnerConfig {
   let timeout_ms = env_int("MOONLESS_RUN_TIMEOUT_MS", 60_000)
   let max_concurrency = env_int("MOONLESS_MAX_CONCURRENCY", 8)
   let output_cap = env_int("MOONLESS_OUTPUT_LIMIT", 10 * 1024 * 1024)
-  make_runner_config(data_root, timeout_ms, max_concurrency, output_cap)
+  let log_max_bytes = env_int("MOONLESS_LOG_MAX_BYTES", 16 * 1024 * 1024)
+  let log_keep = env_int("MOONLESS_LOG_KEEP", 14)
+  make_runner_config(
+    data_root,
+    timeout_ms,
+    max_concurrency,
+    output_cap,
+    log_max_bytes~,
+    log_keep~,
+  )
 }
 
 ///|
@@ -59,21 +74,29 @@ async fn run_function(
 }
 
 ///|
-// One record per invocation under logs/<name>/<YYYY-MM-DD>.log: the event
-// JSON, outcome summary, and the function's stderr for gateway-side queries.
+// One record per invocation under logs/<name>/<YYYY-MM-DD>.log as a JSON
+// line (event, outcome, stderr) for gateway-side queries; the store
+// rotates the day file past the size cap and prunes old files.
 async fn append_run_log(
   cfg : RunnerConfig,
   request : @shared.RunRequest,
   result : @shared.RunResult,
 ) -> Unit {
-  let timestamp = @shared.format_timestamp(@async.now())
-  let date = timestamp[:10].to_owned()
-  let dir = cfg.data_root + "/logs/" + request.name
-  let record = "\{timestamp} event=\{request.event.to_json().stringify()} exit=\{result.exit_code} dur=\{result.duration_ms}ms truncated=\{result.truncated}\n\{result.stderr}\n"
-  @fs.mkdir(dir, recursive=true, allow_exist=true) catch {
-    _ => ()
-  }
-  @fs.write_file(dir + "/\{date}.log", record, append=true) catch {
+  let record = @shared.RunLogRecord(
+    ts=@shared.format_timestamp(@async.now()),
+    name=request.name,
+    event=request.event,
+    exit_code=result.exit_code,
+    duration_ms=result.duration_ms,
+    truncated=result.truncated,
+    stderr=result.stderr,
+  )
+  let store = @shared.LogStore::new(
+    dir=cfg.data_root + "/logs/" + request.name,
+    max_bytes=cfg.log_max_bytes,
+    keep=cfg.log_keep,
+  )
+  store.append(record.to_line()) catch {
     _ =>
       @shared.log_warn(
         service="runner",
@@ -162,13 +185,13 @@ async fn run_steps(
 // discarding) past the cap so the child never blocks on a full pipe.
 priv struct StreamCapture {
   buf : @buffer.Buffer
-  cap : Int
-  mut total : Int
+  cap : Int32
+  mut total : Int32
   mut truncated : Bool
 }
 
 ///|
-fn StreamCapture::StreamCapture(cap~ : Int) -> StreamCapture {
+fn StreamCapture::StreamCapture(cap~ : Int32) -> StreamCapture {
   { buf: @buffer.Buffer::Buffer(), cap, total: 0, truncated: false, }
 }
 

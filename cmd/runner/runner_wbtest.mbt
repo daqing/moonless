@@ -11,7 +11,7 @@ priv suberror FixtureError {
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen
 // ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int {
+fn fixture_listen_port() -> Int32 {
   match @env.rand(2) {
     Some(bytes) =>
       20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
@@ -47,7 +47,7 @@ async fn build_fixture_module(
   dir : String,
   pkg : String,
   main : String,
-  moon_mod? : String = "name = \"fixture/probe\"\nversion = \"0.1.0\"\n",
+  moon_mod~ : String = "name = \"fixture/probe\"\nversion = \"0.1.0\"\n",
 ) -> Bytes {
   write_fixture_files(dir, [
     ("moon.mod", moon_mod),
@@ -163,9 +163,9 @@ fn crash_main() -> String {
 ///|
 fn test_config(
   data_root : String,
-  timeout_ms? : Int = 60_000,
-  max_concurrency? : Int = 8,
-  output_cap? : Int = 10 * 1024 * 1024,
+  timeout_ms~ : Int32 = 60_000,
+  max_concurrency~ : Int32 = 8,
+  output_cap~ : Int32 = 10 * 1024 * 1024,
 ) -> RunnerConfig {
   make_runner_config(data_root, timeout_ms, max_concurrency, output_cap)
 }
@@ -449,7 +449,7 @@ async test "runs resolve to the newest stored build" {
 }
 
 ///|
-async test "each run appends an event+stderr record to the day log" {
+async test "each run appends a JSONL record to the day log" {
   let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
   let wasm_module = build_fixture_module(fixture_dir, echo_pkg(), crash_main())
   let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
@@ -465,17 +465,35 @@ async test "each run appends an event+stderr record to the day log" {
   )
   assert_eq(result.exit_code, 1)
   let date = @shared.format_timestamp(@async.now())[:10].to_owned()
-  let log_path = data_root + "/logs/log-fn/\{date}.log"
+  let log_path = data_root + "/logs/log-fn/\{date}.000000.log"
   assert_true(@fs.exists(log_path))
   let log = (@fs.read_file(log_path) catch {
     _ => raise FixtureError("log unreadable")
   }).text() catch {
     _ => raise FixtureError("log not text")
   }
-  assert_true(log.contains("event="))
-  assert_true(log.contains("uploads"))
-  assert_true(log.contains("exit=1"))
-  assert_true(log.contains("RuntimeError"))
+  guard parse_run_log_line(log) is Some(record) else {
+    fail("log line is not a run record: \{log}")
+  }
+  assert_eq(record.name, "log-fn")
+  assert_eq(record.source, "s3")
+  assert_eq(record.exit_code, 1)
+  assert_true(record.stderr.contains("RuntimeError"))
+  assert_true(record.event.to_json().stringify().contains("uploads"))
+}
+
+///|
+fn parse_run_log_line(log : String) -> @shared.RunLogRecord? {
+  for line in log.split("\n") {
+    if line == "" {
+      continue
+    }
+    match @shared.parse_run_log_line(line.to_owned()) {
+      Some(record) => return Some(record)
+      None => ()
+    }
+  }
+  None
 }
 
 ///|

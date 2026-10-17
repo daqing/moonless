@@ -8,7 +8,7 @@ pub(all) enum RedisValue {
   // 错误: -ERR message\r\n  
   Error(String)
   // 整数: :1000\r\n
-  Integer(Int)
+  Integer(Int32)
   // 批量字符串: $6\r\nfoobar\r\n 或 $-1\r\n (null)
   BulkString(String?)
   // 数组: *count\r\n<element1><element2>...
@@ -52,7 +52,7 @@ pub type RedisJson = RedisResult[Json]
 pub type RedisBulkString = RedisResult[String?]
 
 ///|
-pub type RedisInt = RedisResult[Int]
+pub type RedisInt = RedisResult[Int32]
 
 ///|
 pub type RedisBool = RedisResult[Bool]
@@ -289,7 +289,7 @@ pub fn parse_redis_response(response : String) -> RedisValue {
 
 ///|
 /// 提取行内容直到\r\n
-fn extract_line_content(text : String, start : Int) -> String {
+fn extract_line_content(text : String, start : Int32) -> String {
   let mut i = start
   let len = text.length()
   let mut result = ""
@@ -387,8 +387,8 @@ fn parse_array_value(response : String) -> RedisValue {
 /// 从响应中提取单个元素的完整数据
 fn extract_element_data(
   response : String,
-  start_pos : Int,
-) -> Result[(String, Int), String] {
+  start_pos : Int32,
+) -> Result[(String, Int32), String] {
   if start_pos >= response.length() {
     return Err("Position out of bounds")
   }
@@ -433,8 +433,8 @@ fn extract_element_data(
 /// 提取数组数据（支持嵌套）
 fn extract_array_data(
   response : String,
-  start_pos : Int,
-) -> Result[(String, Int), String] {
+  start_pos : Int32,
+) -> Result[(String, Int32), String] {
   let count_str = extract_line_content(response, start_pos + 1)
   if count_str == "-1" {
     // null数组：*-1\r\n
@@ -468,7 +468,7 @@ fn extract_array_data(
 
 ///|
 /// 找到行结束位置（\r\n之前的位置）
-fn find_line_end(text : String, start : Int) -> Int {
+fn find_line_end(text : String, start : Int32) -> Int32 {
   let mut i = start
   while i < text.length() - 1 {
     if text[i] == '\r'.to_int().to_uint16() &&

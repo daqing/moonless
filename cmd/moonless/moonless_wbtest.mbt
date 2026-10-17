@@ -10,7 +10,7 @@ priv suberror FixtureError {
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen
 // ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int {
+fn fixture_listen_port() -> Int32 {
   match @env.rand(2) {
     Some(bytes) =>
       20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
@@ -203,6 +203,20 @@ test "parse_logs_args handles name, tail, and server flags" {
   assert_eq(parsed.tail, 5)
   let parsed = parse_logs_args(["hello"])
   assert_eq(parsed.tail, 50)
+  assert_eq(parsed.source, "")
+  assert_eq(parsed.since, "")
+  let parsed = parse_logs_args([
+    "hello", "--source", "cron", "--since=2026-10-16T08:00:00Z",
+  ])
+  assert_eq(parsed.source, "cron")
+  assert_eq(parsed.since, "2026-10-16T08:00:00Z")
+  let parsed = parse_logs_args(["--source=s3", "hello"])
+  assert_eq(parsed.source, "s3")
+  try parse_logs_args(["hello", "--source", "ftp"]) catch {
+    CliError(message) => assert_true(message.contains("--source must be"))
+  } noraise {
+    _ => fail("expected error for an unknown source")
+  }
   try parse_logs_args(["--tail", "10"]) catch {
     CliError(message) => assert_true(message.contains("usage"))
   } noraise {
@@ -213,6 +227,58 @@ test "parse_logs_args handles name, tail, and server flags" {
   } noraise {
     _ => fail("expected error for extra positional")
   }
+}
+
+///|
+test "parse_runs_args handles name and tail" {
+  let parsed = parse_runs_args(["hello"])
+  assert_eq(parsed.name, "hello")
+  assert_eq(parsed.tail, 20)
+  let parsed = parse_runs_args(["hello", "--tail", "5"])
+  assert_eq(parsed.tail, 5)
+  let parsed = parse_runs_args(["--tail=7", "hello"])
+  assert_eq(parsed.tail, 7)
+  try parse_runs_args(["--tail", "5"]) catch {
+    CliError(message) => assert_true(message.contains("usage"))
+  } noraise {
+    _ => fail("expected usage error for missing name")
+  }
+  try parse_runs_args(["a", "b"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected error for extra positional")
+  }
+}
+
+///|
+test "render_runs_table shows run metadata in columns" {
+  let items : Array[Json] = [
+    {
+      "ts": "2026-10-16T09:00:00.000Z",
+      "name": "hello",
+      "source": "cron",
+      "exitCode": 1,
+      "durationMs": 870,
+      "truncated": false,
+    },
+    {
+      "ts": "2026-10-17T08:00:00.000Z",
+      "name": "hello",
+      "source": "http",
+      "exitCode": 0,
+      "durationMs": 12,
+      "truncated": true,
+    },
+  ]
+  let table = render_runs_table(items)
+  assert_true(table.contains("TIME"))
+  assert_true(table.contains("SOURCE"))
+  assert_true(table.contains("2026-10-16T09:00:00.000Z"))
+  assert_true(table.contains("cron"))
+  assert_true(table.contains("870ms"))
+  assert_true(table.contains("2026-10-17T08:00:00.000Z"))
+  assert_true(table.contains("http"))
+  assert_eq(render_runs_table([]), "no runs recorded\n")
 }
 
 ///|

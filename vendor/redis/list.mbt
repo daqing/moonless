@@ -59,8 +59,8 @@ pub async fn RedisClient::llen(self : RedisClient, key : String) -> RedisInt {
 pub async fn RedisClient::lrange(
   self : RedisClient,
   key : String,
-  start~ : Int,
-  stop~ : Int,
+  start~ : Int32,
+  stop~ : Int32,
 ) -> RedisArray {
   self.send(["LRANGE", key, start.to_string(), stop.to_string()]).to_array()
 }
@@ -69,7 +69,7 @@ pub async fn RedisClient::lrange(
 pub async fn RedisClient::lindex(
   self : RedisClient,
   key : String,
-  index~ : Int,
+  index~ : Int32,
 ) -> RedisString {
   self.send(["LINDEX", key, index.to_string()]).to_string()
 }
@@ -78,7 +78,7 @@ pub async fn RedisClient::lindex(
 pub async fn RedisClient::lset(
   self : RedisClient,
   key : String,
-  index~ : Int,
+  index~ : Int32,
   value~ : String,
 ) -> RedisString {
   self.send(["LSET", key, index.to_string(), value]).to_string()
@@ -88,7 +88,7 @@ pub async fn RedisClient::lset(
 pub async fn RedisClient::lrem(
   self : RedisClient,
   key : String,
-  count~ : Int,
+  count~ : Int32,
   value~ : String,
 ) -> RedisInt {
   self.send(["LREM", key, count.to_string(), value]).to_int()
@@ -98,8 +98,8 @@ pub async fn RedisClient::lrem(
 pub async fn RedisClient::ltrim(
   self : RedisClient,
   key : String,
-  start~ : Int,
-  stop~ : Int,
+  start~ : Int32,
+  stop~ : Int32,
 ) -> RedisString {
   self.send(["LTRIM", key, start.to_string(), stop.to_string()]).to_string()
 }
@@ -129,8 +129,8 @@ pub async fn RedisClient::lmove(
   self : RedisClient,
   source : String,
   destination : String,
-  wherefrom~ : Int,
-  whereto~ : Int,
+  wherefrom~ : Int32,
+  whereto~ : Int32,
 ) -> RedisValue {
   self.send([
     "LMOVE",
@@ -154,7 +154,7 @@ pub async fn RedisClient::lpos(
 pub async fn RedisClient::blpop(
   self : RedisClient,
   keys : Array[String],
-  timeout~ : Int,
+  timeout~ : Int32,
 ) -> RedisValue {
   let args = ["BLPOP", ..keys, timeout.to_string()]
   self.send(args)
@@ -164,7 +164,7 @@ pub async fn RedisClient::blpop(
 pub async fn RedisClient::brpop(
   self : RedisClient,
   keys : Array[String],
-  timeout~ : Int,
+  timeout~ : Int32,
 ) -> RedisValue {
   let args = ["BRPOP", ..keys, timeout.to_string()]
   self.send(args)
@@ -175,7 +175,7 @@ pub async fn RedisClient::brpoplpush(
   self : RedisClient,
   source : String,
   destination : String,
-  timeout~ : Int,
+  timeout~ : Int32,
 ) -> RedisValue {
   self.send(["BRPOPLPUSH", source, destination, timeout.to_string()])
 }
@@ -185,9 +185,9 @@ pub async fn RedisClient::blmove(
   self : RedisClient,
   source : String,
   destination : String,
-  wherefrom~ : Int,
-  whereto~ : Int,
-  timeout~ : Int,
+  wherefrom~ : Int32,
+  whereto~ : Int32,
+  timeout~ : Int32,
 ) -> RedisValue {
   self.send([
     "BLMOVE",
@@ -213,7 +213,7 @@ pub async fn RedisClient::lmpop(
 ///|
 pub async fn RedisClient::blmpop(
   self : RedisClient,
-  timeout~ : Int,
+  timeout~ : Int32,
   numkeys : String,
   keys : Array[String],
   where_~ : String,

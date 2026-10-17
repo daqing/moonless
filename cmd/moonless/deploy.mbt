@@ -4,7 +4,7 @@
 // upload it, and report the server-side build outcome.
 
 ///|
-async fn cli_deploy(server : String, dir? : String = "") -> Unit raise CliError {
+async fn cli_deploy(server : String, dir~ : String = "") -> Unit raise CliError {
   let dir = if dir == "" {
     match @env.current_dir() {
       Some(d) => d

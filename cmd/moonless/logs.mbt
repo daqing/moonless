@@ -1,6 +1,6 @@
 ///|
-// `moonless logs <name> [--tail N]`: the last runs of a function.
-// --follow streaming is deferred (T12.4).
+// `moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS]`:
+// the last runs of a function. --follow streaming is deferred (T12.4).
 
 ///|
 async fn cli_logs(
@@ -8,10 +8,15 @@ async fn cli_logs(
   server : String,
 ) -> Unit raise CliError {
   let parsed = parse_logs_args(flags)
-  let response = @shared.http_get(
-    server + "/api/functions/\{parsed.name}/logs?tail=\{parsed.tail}",
-    timeout_ms=30_000,
-  ) catch {
+  let mut url = server +
+    "/api/functions/\{parsed.name}/logs?tail=\{parsed.tail}"
+  if parsed.source != "" {
+    url += "&source=\{parsed.source}"
+  }
+  if parsed.since != "" {
+    url += "&since=\{parsed.since}"
+  }
+  let response = @shared.http_get(url, timeout_ms=30_000) catch {
     _ =>
       raise CliError(
         "cannot reach the moonless server at \{server}\n(hint: is the stack running? try 'docker compose up -d')",
@@ -30,15 +35,19 @@ async fn cli_logs(
 ///|
 priv struct LogsArgs {
   name : String
-  tail : Int
+  tail : Int32
+  source : String
+  since : String
 }
 
 ///|
-// Positional name plus --tail N; --server flags were consumed by the
-// dispatcher and are skipped here.
+// Positional name plus --tail N, --source, --since; --server flags were
+// consumed by the dispatcher and are skipped here.
 fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
   let mut name = ""
   let mut tail = 50
+  let mut source = ""
+  let mut since = ""
   let mut i = 0
   while i < flags.length() {
     let flag = flags[i]
@@ -67,6 +76,32 @@ fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
       i += 1
       continue
     }
+    if flag == "--source" {
+      if i + 1 >= flags.length() {
+        raise CliError("--source needs http, cron, or s3")
+      }
+      source = parse_source_flag(flags[i + 1])
+      i += 2
+      continue
+    }
+    if flag.has_prefix("--source=") {
+      source = parse_source_flag(flag[9:])
+      i += 1
+      continue
+    }
+    if flag == "--since" {
+      if i + 1 >= flags.length() {
+        raise CliError("--since needs an ISO-8601 timestamp argument")
+      }
+      since = flags[i + 1]
+      i += 2
+      continue
+    }
+    if flag.has_prefix("--since=") {
+      since = flag[8:].to_owned()
+      i += 1
+      continue
+    }
     if name == "" {
       name = flag
       i += 1
@@ -75,7 +110,19 @@ fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
     raise CliError("unexpected argument '\{flag}' for logs")
   }
   if name == "" {
-    raise CliError("usage: moonless logs <name> [--tail N]")
+    raise CliError(
+      "usage: moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS]",
+    )
   }
-  { name, tail, }
+  { name, tail, source, since, }
+}
+
+///|
+fn parse_source_flag(value : StringView) -> String raise CliError {
+  let source = value.to_owned()
+  if source == "http" || source == "cron" || source == "s3" {
+    source
+  } else {
+    raise CliError("--source must be http, cron, or s3 (got '\{source}')")
+  }
 }

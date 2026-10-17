@@ -22,8 +22,8 @@ pub extend GeoUnits with Show::{to_string, output}
 
 ///|
 pub(all) struct GeoSearchByBox {
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
   unit : GeoUnits
 }
 

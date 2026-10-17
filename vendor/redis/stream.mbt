@@ -21,8 +21,8 @@ pub async fn RedisClient::xadd(
 /// 读取流条目
 pub async fn RedisClient::xread(
   self : RedisClient,
-  count? : Int,
-  block? : Int,
+  count? : Int32,
+  block? : Int32,
   streams : Array[(String, String)],
 ) -> RedisStreamResult {
   let args = ["XREAD"]
@@ -44,7 +44,7 @@ pub async fn RedisClient::xrange(
   key : String,
   start~ : String,
   end~ : String,
-  count? : Int,
+  count? : Int32,
 ) -> RedisStreamMessageArray {
   let args = ["XRANGE", key, start, end]
   if count is Some(c) {
@@ -60,7 +60,7 @@ pub async fn RedisClient::xrevrange(
   key : String,
   end~ : String,
   start~ : String,
-  count? : Int,
+  count? : Int32,
 ) -> RedisStreamMessageArray {
   let args = ["XREVRANGE", key, end, start]
   if count is Some(c) {
@@ -112,11 +112,11 @@ pub async fn RedisClient::xtrim(
   key : String,
   strategy~ : XTrimStrategy,
   threshold~ : Int64,
-  approximate? : Bool = false,
-  limit? : Int,
-  keepref? : Bool = false,
-  delref? : Bool = false,
-  acked? : Bool = false,
+  approximate~ : Bool = false,
+  limit? : Int32,
+  keepref~ : Bool = false,
+  delref~ : Bool = false,
+  acked~ : Bool = false,
 ) -> RedisInt {
   let args = ["XTRIM", key, Show::to_string(strategy)]
   if approximate {
@@ -203,9 +203,9 @@ pub async fn RedisClient::xreadgroup(
   self : RedisClient,
   group : String,
   consumer : String,
-  count? : Int,
-  block? : Int,
-  noack? : Bool = false,
+  count? : Int32,
+  block? : Int32,
+  noack~ : Bool = false,
   streams : Array[(String, String)],
 ) -> RedisResult[RedisStream] {
   let args = ["XREADGROUP", "GROUP", group, consumer]
@@ -253,7 +253,7 @@ pub async fn RedisClient::xpending_range(
   group : String,
   start~ : String,
   end~ : String,
-  count~ : Int,
+  count~ : Int32,
   consumer? : String,
 ) -> RedisArray {
   let args = ["XPENDING", key, group, start, end, count.to_string()]
@@ -270,7 +270,7 @@ pub async fn RedisClient::xclaim(
   key : String,
   group : String,
   consumer : String,
-  min_idle_time : Int,
+  min_idle_time : Int32,
   ids : Array[String],
 ) -> RedisArray {
   let args = ["XCLAIM", key, group, consumer, min_idle_time.to_string(), ..ids]
@@ -284,9 +284,9 @@ pub async fn RedisClient::xautoclaim(
   key : String,
   group : String,
   consumer : String,
-  min_idle_time : Int,
+  min_idle_time : Int32,
   start~ : String,
-  count? : Int,
+  count? : Int32,
 ) -> RedisArray {
   let args = [
     "XAUTOCLAIM",

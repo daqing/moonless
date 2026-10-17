@@ -10,7 +10,7 @@ priv suberror FixtureError {
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen
 // ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int {
+fn fixture_listen_port() -> Int32 {
   match @env.rand(2) {
     Some(bytes) =>
       20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
@@ -86,7 +86,7 @@ fn fake_builder_router(fake : FakeBuilder) -> @shared.Router {
 }
 
 ///|
-fn test_config(data_root : String, builder_port : Int) -> GatewayConfig {
+fn test_config(data_root : String, builder_port : Int32) -> GatewayConfig {
   {
     data_root,
     builder_url: "http://127.0.0.1:\{builder_port}",
@@ -115,21 +115,58 @@ async fn write_test_package(dir : String) -> Bytes {
 }
 
 ///|
-async fn write_test_log(
+fn test_record(
+  name : String,
+  ts : String,
+  event : @shared.Event,
+  stderr : String,
+  exit_code~ : Int32 = 0,
+) -> @shared.RunLogRecord {
+  @shared.RunLogRecord(
+    ts~,
+    name~,
+    event~,
+    exit_code~,
+    duration_ms=5,
+    truncated=false,
+    stderr~,
+  )
+}
+
+///|
+fn http_event() -> @shared.Event {
+  @shared.Event::Http(
+    @shared.HttpEventData(http_method="GET", path="/fn/f", query="", body=""),
+  )
+}
+
+///|
+fn cron_event() -> @shared.Event {
+  @shared.Event::Cron(
+    @shared.CronEventData(schedule="0 8 * * *", time="2026-10-16T08:00:00Z"),
+  )
+}
+
+///|
+// Writes records into per-day log files named after each record's ts, the
+// same layout the runner produces.
+async fn write_test_records(
   data_root : String,
   name : String,
-  lines : Array[String],
+  records : Array[@shared.RunLogRecord],
 ) -> Unit {
   let dir = data_root + "/logs/" + name
   @fs.mkdir(dir, recursive=true, allow_exist=true) catch {
     _ => ()
   }
-  let date = @shared.format_timestamp(@async.now())[:10].to_owned()
-  let mut content = ""
-  for line in lines {
-    content = content + line + "\n"
+  let by_day : Map[String, String] = Map([])
+  for record in records {
+    let day = record.ts[:10].to_owned()
+    by_day[day] = by_day.get(day).unwrap_or("") + record.to_line()
   }
-  @fs.write_file(dir + "/\{date}.log", content)
+  for day, content in by_day {
+    @fs.write_file(dir + "/\{day}.000000.log", content)
+  }
 }
 
 ///|
@@ -201,17 +238,170 @@ async test "deploy registers the function; list, detail, and logs answer" {
     )
     assert_eq(missing.status, 404)
     // logs
-    write_test_log(data_root, "hello-fn", ["line-one", "line-two", "line-three"])
+    let r1 = test_record(
+      "hello-fn",
+      "2026-10-16T08:00:00.000Z",
+      http_event(),
+      "line-one",
+    )
+    let r2 = test_record(
+      "hello-fn",
+      "2026-10-16T09:00:00.000Z",
+      http_event(),
+      "line-two",
+    )
+    let r3 = test_record(
+      "hello-fn",
+      "2026-10-16T10:00:00.000Z",
+      http_event(),
+      "line-three",
+    )
+    write_test_records(data_root, "hello-fn", [r1, r2, r3])
     let response = @shared.http_get(
       "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs?tail=2",
     )
     assert_eq(response.status, 200)
-    assert_eq(response.body, "line-two\nline-three\n")
+    // tail counts rendered lines: a record is its header line + stderr.
+    assert_eq(response.body, r3.render())
+    let response = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs?tail=4",
+    )
+    assert_eq(response.body, r2.render() + r3.render())
     let response = @shared.http_get(
       "http://127.0.0.1:\{gateway_port}/api/functions/hello-fn/logs",
     )
-    assert_eq(response.body, "line-one\nline-two\nline-three\n")
+    assert_eq(response.body, r1.render() + r2.render() + r3.render())
     builder_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
+async test "logs filter by trigger source and since timestamp" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let gateway_port = fixture_listen_port()
+  // Two sources across two day files: http + cron on the 16th, cron on 17th.
+  let r1 = test_record(
+    "multi-fn",
+    "2026-10-16T08:00:00.000Z",
+    http_event(),
+    "first",
+  )
+  let r2 = test_record(
+    "multi-fn",
+    "2026-10-16T09:00:00.000Z",
+    cron_event(),
+    "second",
+  )
+  let r3 = test_record(
+    "multi-fn",
+    "2026-10-17T08:00:00.000Z",
+    cron_event(),
+    "third",
+  )
+  write_test_records(data_root, "multi-fn", [r1, r2, r3])
+  @async.with_task_group(group => {
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(
+        gateway_server,
+        gateway_router(test_config(data_root, 65534)),
+      )
+    })
+    let base = "http://127.0.0.1:\{gateway_port}/api/functions/multi-fn/logs"
+    // Source filter: only the cron runs, oldest first.
+    let response = @shared.http_get("\{base}?source=cron")
+    assert_eq(response.body, r2.render() + r3.render())
+    // Since filter: a bare date matches that whole day.
+    let response = @shared.http_get("\{base}?since=2026-10-17")
+    assert_eq(response.body, r3.render())
+    // A full timestamp cuts inside a day.
+    let response = @shared.http_get("\{base}?since=2026-10-16T08:30:00.000Z")
+    assert_eq(response.body, r2.render() + r3.render())
+    // Filters compose: r2 (09:00) falls before the window.
+    let response = @shared.http_get(
+      "\{base}?source=cron&since=2026-10-16T09:30:00.000Z",
+    )
+    assert_eq(response.body, r3.render())
+    gateway_server.close()
+  })
+}
+
+///|
+async test "runs endpoint lists the last N invocations with metadata" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let gateway_port = fixture_listen_port()
+  let r1 = @shared.RunLogRecord(
+    ts="2026-10-16T08:00:00.000Z",
+    name="jobs-fn",
+    event=http_event(),
+    exit_code=0,
+    duration_ms=12,
+    truncated=false,
+    stderr="",
+  )
+  let r2 = @shared.RunLogRecord(
+    ts="2026-10-16T09:00:00.000Z",
+    name="jobs-fn",
+    event=cron_event(),
+    exit_code=1,
+    duration_ms=870,
+    truncated=true,
+    stderr="boom",
+  )
+  let r3 = @shared.RunLogRecord(
+    ts="2026-10-17T08:00:00.000Z",
+    name="jobs-fn",
+    event=cron_event(),
+    exit_code=0,
+    duration_ms=33,
+    truncated=false,
+    stderr="",
+  )
+  write_test_records(data_root, "jobs-fn", [r1, r2, r3])
+  @async.with_task_group(group => {
+    let gateway_server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(
+        gateway_server,
+        gateway_router(test_config(data_root, 65534)),
+      )
+    })
+    let base = "http://127.0.0.1:\{gateway_port}/api/functions/jobs-fn/runs"
+    // Default: all three, oldest first, metadata only.
+    let response = @shared.http_get_json(base)
+    guard response is Array(items) else { fail("runs is not an array") }
+    assert_eq(items.length(), 3)
+    guard items[1] is Object(run) else { fail("run is not an object") }
+    let expected : Json = {
+      "ts": "2026-10-16T09:00:00.000Z",
+      "name": "jobs-fn",
+      "source": "cron",
+      "exitCode": 1,
+      "durationMs": 870,
+      "truncated": true,
+    }
+    assert_eq(items[1], expected)
+    // No event payload or stderr in run records.
+    assert_true(run.get("event") is None)
+    assert_true(run.get("stderr") is None)
+    // tail=2 keeps the newest two.
+    let response = @shared.http_get_json("\{base}?tail=2")
+    guard response is Array(items) else { fail("runs is not an array") }
+    assert_eq(items.length(), 2)
+    assert_true(items[0].stringify().contains("2026-10-16T09:00"))
+    assert_true(items[1].stringify().contains("2026-10-17T08:00"))
+    // Unknown function: 404.
+    let missing = @shared.http_get(
+      "http://127.0.0.1:\{gateway_port}/api/functions/ghost/runs",
+    )
+    assert_eq(missing.status, 404)
     gateway_server.close()
   })
 }
@@ -226,7 +416,7 @@ async test "concurrent deploys never corrupt the registry file" {
     registry_lock: @async.Mutex::Mutex(),
   }
   let path = data_root + "/registry/registry.json"
-  let torn_reads : Ref[Int] = Ref(0)
+  let torn_reads : Ref[Int32] = Ref(0)
   @async.with_task_group(group => {
     // Reader: every on-disk snapshot must be complete, parseable JSON.
     group.spawn_bg(() => {

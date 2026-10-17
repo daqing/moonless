@@ -79,7 +79,7 @@ pub async fn RedisClient::json_arrinsert(
   self : RedisClient,
   key : String,
   path : String,
-  index : Int,
+  index : Int32,
   values : Array[String],
 ) -> RedisInt {
   let args = ["JSON.ARRINSERT", key, path, index.to_string(), ..values]
@@ -92,7 +92,7 @@ pub async fn RedisClient::json_arrpop(
   self : RedisClient,
   key : String,
   path : String,
-  index : Int,
+  index : Int32,
 ) -> RedisString {
   self.send(["JSON.ARRPOP", key, path, index.to_string()]).to_string()
 }
@@ -103,8 +103,8 @@ pub async fn RedisClient::json_arrtrim(
   self : RedisClient,
   key : String,
   path : String,
-  start : Int,
-  stop : Int,
+  start : Int32,
+  stop : Int32,
 ) -> RedisInt {
   self
   .send(["JSON.ARRTRIM", key, path, start.to_string(), stop.to_string()])

@@ -11,11 +11,11 @@ priv struct ScheduleEntry {
 ///|
 priv struct SchedulerConfig {
   gateway_url : String
-  poll_ms : Int
+  poll_ms : Int32
 }
 
 ///|
-fn scheduler_env_int(name : String, default : Int) -> Int {
+fn scheduler_env_int(name : String, default : Int32) -> Int32 {
   match @env.get_env_var(name) {
     Some(value) => @string.parse_int(value) catch { _ => default }
     None => default

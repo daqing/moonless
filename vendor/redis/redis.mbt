@@ -24,11 +24,11 @@ pub(all) suberror ConnectError {
 /// 认证或选库失败时会关闭连接并抛出 `ConnectError`。
 pub async fn connect(
   host : StringView,
-  port? : Int = 6379,
+  port~ : Int32 = 6379,
   protocol? : @socket.IpProtocolPreference,
   username? : String,
   password? : String,
-  db? : Int,
+  db? : Int32,
 ) -> RedisClient {
   let conn = @socket.Tcp::connect_to_host(host, port~, protocol?)
   conn.enable_keepalive()
@@ -109,7 +109,7 @@ pub async fn RedisClient::write(self : RedisClient, data : String) -> Unit {
 pub async fn RedisClient::read(
   self : RedisClient,
   buf : FixedArray[Byte],
-) -> Int {
+) -> Int32 {
   self.conn.read(buf)
 }
 

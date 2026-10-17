@@ -33,9 +33,9 @@ pub extend BuildResult with Debug::{to_repr}
 ///|
 pub fn BuildResult::BuildResult(
   ok~ : Bool,
-  build_id? : String = "",
-  wasm_path? : String = "",
-  error_tail? : String = "",
+  build_id~ : String = "",
+  wasm_path~ : String = "",
+  error_tail~ : String = "",
 ) -> BuildResult {
   { ok, build_id, wasm_path, error_tail, }
 }
@@ -54,7 +54,7 @@ pub extend RunRequest with Debug::{to_repr}
 pub fn RunRequest::RunRequest(
   name~ : String,
   event~ : Event,
-  env? : Map[String, String] = Map([]),
+  env~ : Map[String, String] = Map([]),
 ) -> RunRequest {
   { name, event, env, }
 }
@@ -63,8 +63,8 @@ pub fn RunRequest::RunRequest(
 pub struct RunResult {
   stdout : String
   stderr : String
-  exit_code : Int
-  duration_ms : Int
+  exit_code : Int32
+  duration_ms : Int32
   truncated : Bool // per-stream output cap hit, R4
 } derive(Debug)
 
@@ -73,11 +73,11 @@ pub extend RunResult with Debug::{to_repr}
 
 ///|
 pub fn RunResult::RunResult(
-  stdout? : String = "",
-  stderr? : String = "",
-  exit_code? : Int = 0,
-  duration_ms? : Int = 0,
-  truncated? : Bool = false,
+  stdout~ : String = "",
+  stderr~ : String = "",
+  exit_code~ : Int32 = 0,
+  duration_ms~ : Int32 = 0,
+  truncated~ : Bool = false,
 ) -> RunResult {
   { stdout, stderr, exit_code, duration_ms, truncated, }
 }

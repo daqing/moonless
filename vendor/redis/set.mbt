@@ -146,9 +146,9 @@ pub async fn RedisClient::sunionstore(
 pub async fn RedisClient::sscan(
   self : RedisClient,
   key : String,
-  cursor : Int,
+  cursor : Int32,
   match_pattern? : String,
-  count? : Int,
+  count? : Int32,
 ) -> RedisArray {
   let args = ["SSCAN", key, cursor.to_string()]
   if match_pattern is Some(m) {

@@ -224,13 +224,13 @@ Conventions:
 
 ## Step 8. Log collection deepening (P1)
 
-- [ ] **T8.1 — Rotation.** Rotate log files by day (or size cap), keep
+- [x] **T8.1 — Rotation.** Rotate log files by day (or size cap), keep
   the last N files.
   *Done when:* synthetic writes trigger rotation as configured.
-- [ ] **T8.2 — Query enhancements.** Filter logs by trigger source and
+- [x] **T8.2 — Query enhancements.** Filter logs by trigger source and
   time window in the gateway API; surface filters in `moonless logs`.
   *Done when:* CLI flags `--source` and `--since` work.
-- [ ] **T8.3 — Run records.** One record per invocation (function,
+- [x] **T8.3 — Run records.** One record per invocation (function,
   source, duration, exit code) queryable via
   `GET /api/functions/<name>/runs`; `moonless runs <name>` shows them.
   *Done when:* the last N runs are listed with correct metadata.

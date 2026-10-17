@@ -4,7 +4,7 @@
 
 FROM ubuntu:24.04
 
-ARG MOONBIT_VERSION=0.10.14+7d59c7ec9
+ARG MOONBIT_VERSION=0.10.15+943464bfa
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
