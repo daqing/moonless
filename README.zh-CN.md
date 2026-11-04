@@ -211,7 +211,13 @@ MOONLESS_REDIS_URL=redis://redis.internal:6379
 MOONLESS_MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
 MOONLESS_POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
 MOONLESS_S3_ENDPOINT=http://seaweedfs:8333
+AWS_ACCESS_KEY_ID=moonless
+AWS_SECRET_ACCESS_KEY=moonless-secret
+AWS_REGION=us-east-1
 ```
+
+AWS 变量使用标准名称，便于 S3 客户端直接读取。上述值是来自
+`deploy/seaweedfs/s3.json` 的本地开发凭据；部署到其他环境时应同步更换。
 
 用 MoonBit 生态的 driver 连接（两者均可在 wasm 函数中使用）：
 

@@ -10,6 +10,7 @@ priv struct RunnerConfig {
   output_cap : Int32
   log_max_bytes : Int32
   log_keep : Int32
+  function_env : Map[String, String]
   sem : @semaphore.Semaphore
 }
 
@@ -29,6 +30,7 @@ fn make_runner_config(
   output_cap : Int32,
   log_max_bytes~ : Int32 = 16 * 1024 * 1024,
   log_keep~ : Int32 = 14,
+  function_env~ : Map[String, String] = Map([]),
 ) -> RunnerConfig {
   {
     data_root,
@@ -36,6 +38,7 @@ fn make_runner_config(
     output_cap,
     log_max_bytes,
     log_keep,
+    function_env,
     sem: @semaphore.Semaphore(max_concurrency),
   }
 }
@@ -50,6 +53,15 @@ fn load_runner_config() -> RunnerConfig {
   let output_cap = env_int("MOONLESS_OUTPUT_LIMIT", 10 * 1024 * 1024)
   let log_max_bytes = env_int("MOONLESS_LOG_MAX_BYTES", 16 * 1024 * 1024)
   let log_keep = env_int("MOONLESS_LOG_KEEP", 14)
+  let function_env : Map[String, String] = Map([])
+  for
+    name in [
+      "MOONLESS_S3_ENDPOINT", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION",
+    ] {
+    if @env.get_env_var(name) is Some(value) {
+      function_env[name] = value
+    }
+  }
   make_runner_config(
     data_root,
     timeout_ms,
@@ -57,6 +69,7 @@ fn load_runner_config() -> RunnerConfig {
     output_cap,
     log_max_bytes~,
     log_keep~,
+    function_env~,
   )
 }
 
@@ -123,6 +136,9 @@ async fn run_steps(
   let started = @async.now()
   let env : Map[String, String] = Map([])
   env["MOONLESS_EVENT"] = request.event.to_json().stringify()
+  for key, value in cfg.function_env {
+    env[key] = value
+  }
   for key, value in request.env {
     env[key] = value
   }

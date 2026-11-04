@@ -225,7 +225,14 @@ MOONLESS_REDIS_URL=redis://redis.internal:6379
 MOONLESS_MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
 MOONLESS_POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
 MOONLESS_S3_ENDPOINT=http://seaweedfs:8333
+AWS_ACCESS_KEY_ID=moonless
+AWS_SECRET_ACCESS_KEY=moonless-secret
+AWS_REGION=us-east-1
 ```
+
+The AWS variables use the standard names so S3 clients can consume them
+directly. The values above are the local development credentials from
+`deploy/seaweedfs/s3.json`; change them together for other deployments.
 
 Connect with the MoonBit ecosystem drivers (both work from wasm
 functions):

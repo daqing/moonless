@@ -122,8 +122,12 @@ fn env_echo_main() -> String {
     #|fn main {
     #|  let event = @env.get_env_var("MOONLESS_EVENT").unwrap_or("NOEVT")
     #|  let redis = @env.get_env_var("MOONLESS_REDIS_URL").unwrap_or("NOREDIS")
+    #|  let s3 = @env.get_env_var("MOONLESS_S3_ENDPOINT").unwrap_or("NOS3")
+    #|  let key = @env.get_env_var("AWS_ACCESS_KEY_ID").unwrap_or("NOKEY")
     #|  println("EVT:\{event}")
     #|  println("REDIS:\{redis}")
+    #|  println("S3:\{s3}")
+    #|  println("AWS_KEY:\{key}")
     #|}
   )
 }
@@ -225,7 +229,7 @@ async test "run_function reports unknown functions" {
 }
 
 ///|
-async test "injected service-URL env reaches the function" {
+async test "injected service and S3 env reaches the function" {
   let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
   let wasm_module = build_fixture_module(
     fixture_dir,
@@ -236,8 +240,18 @@ async test "injected service-URL env reaches the function" {
   install_function(data_root, "env-fn", "b-1001", wasm_module)
   let env : Map[String, String] = Map([])
   env["MOONLESS_REDIS_URL"] = "redis://redis.internal:6379"
+  let function_env : Map[String, String] = Map([])
+  function_env["MOONLESS_S3_ENDPOINT"] = "http://seaweedfs:8333"
+  function_env["AWS_ACCESS_KEY_ID"] = "moonless"
+  let cfg = make_runner_config(
+    data_root,
+    60_000,
+    8,
+    10 * 1024 * 1024,
+    function_env~,
+  )
   let result = run_function(
-    test_config(data_root),
+    cfg,
     @shared.RunRequest(
       name="env-fn",
       event=@shared.Event::Cron(
@@ -248,6 +262,8 @@ async test "injected service-URL env reaches the function" {
   )
   assert_eq(result.exit_code, 0)
   assert_true(result.stdout.contains("REDIS:redis://redis.internal:6379"))
+  assert_true(result.stdout.contains("S3:http://seaweedfs:8333"))
+  assert_true(result.stdout.contains("AWS_KEY:moonless"))
   assert_true(result.stdout.contains("EVT:"))
   assert_true(result.stdout.contains("0 8 * * *"))
 }

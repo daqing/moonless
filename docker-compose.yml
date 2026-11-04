@@ -24,6 +24,11 @@ services:
     build: .
     image: moonless
     command: ["/app/bin/runner"]
+    environment:
+      MOONLESS_S3_ENDPOINT: http://seaweedfs:8333
+      AWS_ACCESS_KEY_ID: moonless
+      AWS_SECRET_ACCESS_KEY: moonless-secret
+      AWS_REGION: us-east-1
     volumes:
       - moonless-data:/var/lib/moonless
 

@@ -207,8 +207,9 @@ compose、代码与本文三者保持一致；改动任何一项须同步其余�
     compose 网络内服务名，本地裸跑时设为 `http://127.0.0.1:80xx`）。
   - 函数侧注入：`MOONLESS_EVENT`（触发事件 JSON）；数据服务地址
     `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
-    `MOONLESS_POSTGRES_URL` / `MOONLESS_S3_ENDPOINT`（P2 起注入，
-    凭据随 S3 端点一并注入）。
+    `MOONLESS_POSTGRES_URL` / `MOONLESS_S3_ENDPOINT`（S3 于 T9.7 落地）。
+    S3 凭据与区域使用标准 `AWS_ACCESS_KEY_ID` /
+    `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`，runner 将这些平台配置转发给函数。
   - 运行参数（runner，T4.3/T4.4/T4.8/T8.1 已落地）：`MOONLESS_RUN_TIMEOUT_MS`
     （函数超时，默认 60000，超时杀死并返回 exitCode=124）、
     `MOONLESS_MAX_CONCURRENCY`（并发 fork 上限，默认 8，超出排队）、
@@ -424,6 +425,17 @@ moon run scripts/e2e_s3.mbtx
 脚本要求 mc 在 PATH 中，也可用 `MC=/path/to/mc` 指定；`MOONLESS_SERVER`
 可覆盖 gateway 地址。脚本创建唯一 key，通过 `mc cp` 上传并轮询日志。
 2026-11-04 实测输出 `S3 e2e OK: mc cp -> webhook -> function log`。
+
+## T9.7 S3 配置注入
+
+compose 为 runner 配置 `MOONLESS_S3_ENDPOINT=http://seaweedfs:8333`、
+`AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY` 与 `AWS_REGION`；runner 仅把
+已设置的值转发给函数。中英文 README 的数据服务章节已同步这些变量。
+
+`examples/on-upload` 使用 `kaashyapan/s3@0.6.0`（支持 wasm），在收到事件后
+调用 `list_objects_v2("uploads")`。实际重新部署并运行 `e2e_s3.mbtx` 后，
+函数 exit=0，日志含 `listed uploads: 3 objects`；脚本现已把该列桶结果纳入
+通过条件。
 
 ## 待澄清问题
 

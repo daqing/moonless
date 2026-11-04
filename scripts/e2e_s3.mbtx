@@ -43,7 +43,8 @@ async fn main {
     if response.code == 200 &&
       logs.contains("\"bucket\":\"uploads\"") &&
       logs.contains("\"key\":\"\{key}\"") &&
-      logs.contains("on-upload received:") {
+      logs.contains("on-upload received:") &&
+      logs.contains("listed uploads:") {
       println(logs)
       println("S3 e2e OK: mc cp -> webhook -> function log")
       return
