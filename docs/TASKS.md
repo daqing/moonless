@@ -242,7 +242,7 @@ Conventions:
   gateway in one container, R6) with a persistent volume and static S3
   credentials.
   *Done when:* the S3 gateway answers from inside the compose network.
-- [ ] **T9.2 — S3 smoke test.** Using `aws` CLI (or `mc`) with the
+- [x] **T9.2 — S3 smoke test.** Using `aws` CLI (or `mc`) with the
   endpoint and credentials: create a bucket, upload, download.
   *Done when:* commands succeed from the host through the published
   port; document exact commands.

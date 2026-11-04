@@ -218,7 +218,7 @@
   volume / filer / S3 gateway 单容器，R6）在 compose 中加入
   SeaweedFS，配置持久化 volume 和静态 S3 凭据。
   *完成标准：* S3 gateway 在 compose 网络内应答。
-- [ ] **T9.2 — S3 冒烟测试。** 用 `aws` CLI（或 `mc`）配置 endpoint
+- [x] **T9.2 — S3 冒烟测试。** 用 `aws` CLI（或 `mc`）配置 endpoint
   和凭据：建桶、上传、下载。
   *完成标准：* 宿主机经映射端口操作成功；文档化确切命令。
 - [ ] **T9.3 — Filer webhook。** 配置 filer 的通知 webhook，把事件

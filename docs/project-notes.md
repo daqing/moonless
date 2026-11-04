@@ -373,6 +373,21 @@ hackwaly/redis 与 valkey 作为备选记录。
 - **R9 赛期内 moon 工具链 breaking change** — **已决**：接受风险，
   由 R1 的工具链版本锁定覆盖，不额外动作。
 
+## T9.2 S3 冒烟测试
+
+在仓库根目录执行以下命令；宿主机需安装 AWS CLI，SeaweedFS 已通过
+`docker compose up -d seaweedfs` 启动：
+
+```bash
+export AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1
+aws --endpoint-url http://127.0.0.1:8333 s3 mb s3://moonless-smoke
+aws --endpoint-url http://127.0.0.1:8333 s3 cp README.md s3://moonless-smoke/smoke/README.md
+aws --endpoint-url http://127.0.0.1:8333 s3 cp s3://moonless-smoke/smoke/README.md _build/s3-smoke-t92-download.md
+cmp README.md _build/s3-smoke-t92-download.md
+```
+
+2026-11-04 实测建桶、上传、下载均成功，`cmp` 退出码为 0。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。
