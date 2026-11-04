@@ -286,7 +286,7 @@ Conventions:
 
 ## Step 11. End-to-end & demo (final validation)
 
-- [ ] **T11.1 — Examples.** Ship `examples/hello`,
+- [x] **T11.1 — Examples.** Ship `examples/hello`,
   `examples/nightly-cleanup` (cron), and `examples/on-upload` (s3)
   projects in the repo.
   *Done when:* each deploys cleanly via `moonless deploy`.

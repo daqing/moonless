@@ -1,0 +1,7 @@
+import {
+  "moonbitlang/core/env",
+}
+
+supported_targets = "+wasm"
+
+pkgtype(kind: "executable")

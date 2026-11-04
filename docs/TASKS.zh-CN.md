@@ -256,7 +256,7 @@
 
 ## Step 11. 端到端与演示（最终验收）
 
-- [ ] **T11.1 — 示例项目。** 仓库内置 `examples/hello`、
+- [x] **T11.1 — 示例项目。** 仓库内置 `examples/hello`、
   `examples/nightly-cleanup`（cron）、`examples/on-upload`（s3）。
   *完成标准：* 每个示例都能经 `moonless deploy` 干净部署。
 - [ ] **T11.2 — Quick-start 走查。** 在全新机器/VM 上逐字执行 README

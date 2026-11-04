@@ -485,6 +485,13 @@ moon run scripts/e2e_redis_counter.mbtx
 中英文 README 均补充 Compose 输入设置方法、空值不注入的说明，以及 Redis
 计数器示例和端到端脚本入口。
 
+## T11.1 官方示例
+
+`examples/hello`（HTTP）、`examples/nightly-cleanup`（每分钟 cron）与
+`examples/on-upload`（S3 put + 列桶）均已通过 wasm 编译检查，并于
+2026-11-05 分别使用 `moonless deploy` 成功部署。`moonless list` 显示三者
+均注册了预期触发器。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。
