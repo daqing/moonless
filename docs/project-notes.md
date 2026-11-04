@@ -179,16 +179,26 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 compose、代码与本文三者保持一致；改动任何一项须同步其余两项。
 
 - **端口分配**：gateway 8080、builder 8081、runner 8082、scheduler
-  8083。仅 gateway 发布到宿主机（compose `8080:8080`），其余三个端口
-  只在 compose 内部网络使用，服务间互调用服务名（如
-  `http://builder:8081`）。
+  8083，SeaweedFS S3 8333。gateway 与 S3 分别通过 compose
+  `8080:8080`、`8333:8333` 发布到宿主机，其余三个端口只在 compose
+  内部网络使用，服务间互调用服务名（如 `http://builder:8081`、
+  `http://seaweedfs:8333`）。
 - **共享卷**：named volume `moonless-data` 挂载 `/var/lib/moonless`，
   builder、runner、gateway 三个服务共享（scheduler 无状态不挂）。
+  SeaweedFS 使用独立的 `seaweedfs-data` named volume 挂载 `/data`
+  （镜像入口脚本只自动修正此路径的权限），持久化 master、volume 与
+  filer 数据。
   子目录布局：`functions/`（函数 wasm 产物）、`builds/`（构建工作
   目录）、`logs/`（函数运行日志）、`registry/`（函数注册表）。子目录
   由各服务按需创建——不要烘焙进镜像：多个容器并发首次挂载同一个空
   named volume 时，Docker 的 volume copy-up 会与预建目录发生
   `mkdir: file exists` 竞态（T1.2 实测）。
+- **SeaweedFS（T9.1 落地）**：镜像固定为 `chrislusf/seaweedfs:4.52`，
+  以 `weed server -filer -s3` 单进程运行并关闭遥测。静态身份配置挂载
+  `deploy/seaweedfs/s3.json`；本地开发凭据为 `moonless` /
+  `moonless-secret`，部署到非受信网络前必须更换。S3 服务地址为
+  `http://seaweedfs:8333`（compose 内）或 `http://127.0.0.1:8333`
+  （宿主机）。
 - **MOONLESS_\* 环境变量清单**：
   - 平台侧：`MOONLESS_DATA`（共享卷路径，默认 `/var/lib/moonless`，
     Dockerfile 已设）；`MOONLESS_SERVER`（CLI 定位 gateway 地址）；

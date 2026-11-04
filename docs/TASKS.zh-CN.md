@@ -214,7 +214,7 @@
 
 ## Step 9. SeaweedFS 集成（P2）
 
-- [ ] **T9.1 — Compose 集成。** 以 `weed server` 单进程模式（master /
+- [x] **T9.1 — Compose 集成。** 以 `weed server` 单进程模式（master /
   volume / filer / S3 gateway 单容器，R6）在 compose 中加入
   SeaweedFS，配置持久化 volume 和静态 S3 凭据。
   *完成标准：* S3 gateway 在 compose 网络内应答。

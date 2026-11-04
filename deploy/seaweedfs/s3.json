@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "moonless",
+      "credentials": [
+        {
+          "accessKey": "moonless",
+          "secretKey": "moonless-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

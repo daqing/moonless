@@ -237,7 +237,7 @@ Conventions:
 
 ## Step 9. SeaweedFS integration (P2)
 
-- [ ] **T9.1 — Compose integration.** Add SeaweedFS to compose using the
+- [x] **T9.1 — Compose integration.** Add SeaweedFS to compose using the
   single-process `weed server` mode (master / volume / filer / S3
   gateway in one container, R6) with a persistent volume and static S3
   credentials.

@@ -1,6 +1,6 @@
 # moonless platform stack. One shared image (see Dockerfile); services differ
 # only in the binary they run. Internal ports: gateway 8080, builder 8081,
-# runner 8082, scheduler 8083 — only the gateway is published to the host.
+# runner 8082, scheduler 8083. Gateway 8080 and SeaweedFS S3 8333 are published.
 # Builder, runner, and gateway share the named volume /var/lib/moonless.
 
 services:
@@ -32,5 +32,23 @@ services:
     image: moonless
     command: ["/app/bin/scheduler"]
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.52
+    command:
+      - server
+      - -ip=seaweedfs
+      - -ip.bind=0.0.0.0
+      - -filer=true
+      - -s3=true
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+      - -master.telemetry=false
+    ports:
+      - "8333:8333"
+    volumes:
+      - seaweedfs-data:/data
+      - ./deploy/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
 volumes:
   moonless-data:
+  seaweedfs-data:
