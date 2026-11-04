@@ -246,7 +246,7 @@ Conventions:
   endpoint and credentials: create a bucket, upload, download.
   *Done when:* commands succeed from the host through the published
   port; document exact commands.
-- [ ] **T9.3 — Filer webhook.** Configure the filer's notification
+- [x] **T9.3 — Filer webhook.** Configure the filer's notification
   webhook to POST events to the gateway's `/api/events`.
   *Done when:* an upload produces an event arriving at the gateway
   (log line is enough).

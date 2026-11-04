@@ -48,6 +48,7 @@ services:
     volumes:
       - seaweedfs-data:/data
       - ./deploy/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - ./deploy/seaweedfs/notification.toml:/etc/seaweedfs/notification.toml:ro
 
 volumes:
   moonless-data:

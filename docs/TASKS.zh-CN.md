@@ -221,7 +221,7 @@
 - [x] **T9.2 — S3 冒烟测试。** 用 `aws` CLI（或 `mc`）配置 endpoint
   和凭据：建桶、上传、下载。
   *完成标准：* 宿主机经映射端口操作成功；文档化确切命令。
-- [ ] **T9.3 — Filer webhook。** 配置 filer 的通知 webhook，把事件
+- [x] **T9.3 — Filer webhook。** 配置 filer 的通知 webhook，把事件
   POST 到 gateway 的 `/api/events`。
   *完成标准：* 一次上传产生一条到达 gateway 的事件（有日志即可）。
 - [ ] **T9.4 — 事件适配器。** 解析 SeaweedFS filer 事件 JSON，映射

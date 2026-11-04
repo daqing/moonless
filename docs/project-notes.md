@@ -388,6 +388,16 @@ cmp README.md _build/s3-smoke-t92-download.md
 
 2026-11-04 实测建桶、上传、下载均成功，`cmp` 退出码为 0。
 
+## T9.3 Filer webhook
+
+`deploy/seaweedfs/notification.toml` 挂载到
+`/etc/seaweedfs/notification.toml`，将 `/buckets/` 下的 create、update、
+delete 事件 POST 到 `http://gateway:8080/api/events`。gateway 在事件适配器
+落地前记录原始 payload 并以空派发列表确认接收；webhook 最多重试两次。
+2026-11-04 实测上传对象后 gateway 收到完整 create payload。并发 webhook
+曾触发 async stdio 的 `IoHandle::write_via_worker` panic；共享日志 helper
+现以 mutex 串行化 stderr 写入，并有双并发回归测试。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

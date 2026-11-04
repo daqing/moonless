@@ -26,3 +26,14 @@ async test "log helpers write without raising" {
   @shared.log_warn(service="shared-test", message="warn line")
   @shared.log_error(service="shared-test", message="error line")
 }
+
+///|
+async test "concurrent log writes complete without raising" {
+  @async.with_task_group(group => {
+    for i in 0..<2 {
+      group.spawn_bg(() => {
+        @shared.log_info(service="shared-test", message="concurrent line \{i}")
+      })
+    }
+  })
+}

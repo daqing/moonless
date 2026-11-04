@@ -13,7 +13,12 @@ pub enum LogLevel {
 pub extend LogLevel with Debug::{to_repr}
 
 ///|
+let log_write_lock : @async.Mutex = @async.Mutex::Mutex()
+
+///|
 pub async fn log(service : String, level : LogLevel, message : String) -> Unit {
+  log_write_lock.acquire()
+  defer log_write_lock.release()
   let line = "\{format_timestamp(@async.now())} [\{service}] \{level_name(level)} \{message}\n"
   @stdio.stderr.write(line) catch {
     _ => ()

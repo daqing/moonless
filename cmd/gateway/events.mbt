@@ -8,7 +8,15 @@ async fn handle_event(
   ctx : @shared.RequestContext,
   cfg : GatewayConfig,
 ) -> Unit {
-  let event = @shared.Event::from_json(@shared.read_json_body(ctx))
+  let payload = @shared.read_json_body(ctx)
+  if payload is Object(obj) && obj.get("event_type") is Some(_) {
+    @shared.log_info(
+      service="gateway",
+      message="received SeaweedFS filer event: \{payload.stringify()}",
+    )
+    return @shared.send_json(ctx.conn, 200, Json::array([]))
+  }
+  let event = @shared.Event::from_json(payload)
   let records = registry_all(cfg)
   let dispatches = []
   for name, record in records {
