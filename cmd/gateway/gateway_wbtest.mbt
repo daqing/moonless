@@ -712,6 +712,19 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     )
     assert_eq(response.stringify(), "[]")
     assert_eq(dispatched.length(), 0)
+    // A delete does not match a put-only trigger, even in a bound bucket.
+    let s3_event : Json = {
+      "source": "s3",
+      "event": "delete",
+      "bucket": "archive",
+      "key": "x",
+    }
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      s3_event,
+    )
+    assert_eq(response.stringify(), "[]")
+    assert_eq(dispatched.length(), 0)
     runner_server.close()
     gateway_server.close()
   })

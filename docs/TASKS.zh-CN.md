@@ -228,7 +228,7 @@
   为我们的 s3 事件（`bucket`、`key`），处理 SeaweedFS 的
   `/buckets/<bucket>/...` 路径约定；忽略非 S3 路径。
   *完成标准：* 基于录制事件 fixture 的单元测试。
-- [ ] **T9.5 — 触发器匹配。** 将 s3 事件与 `moonless.toml` 的 s3
+- [x] **T9.5 — 触发器匹配。** 将 s3 事件与 `moonless.toml` 的 s3
   触发器（bucket + events）匹配并派发。
   *完成标准：* 上传到已绑定桶触发函数，其他桶不触发。
 - [ ] **T9.6 — 端到端。** `mc cp` 上传文件 → 绑定函数的日志出现含

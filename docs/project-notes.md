@@ -402,9 +402,16 @@ delete 事件 POST 到 `http://gateway:8080/api/events`。gateway 在事件适�
 
 `cmd/gateway/testdata/` 保存从 SeaweedFS 4.52 实际录制的 create、update、
 delete 与目录事件。适配器仅接受 `/buckets/<bucket>/<key>` 对象路径；
-create/update 映射为 `put`，delete 映射为 `delete`，目录、桶根、其他路径
-及 rename 均忽略。原始 webhook 与内部事件共用 `/api/events` 和现有注册表
-匹配、runner 派发流程。
+create/update 映射为 `put`，delete 映射为 `delete`，目录、桶根、`.system`
+内部元数据、其他路径及 rename 均忽略。原始 webhook 与内部事件共用
+`/api/events` 和现有注册表匹配、runner 派发流程。
+
+## T9.5 触发匹配实测
+
+新增 `examples/on-upload`，绑定 `uploads` 桶的 put 事件。实际部署后上传
+`uploads/t95/report.txt`，函数以 exit=0 执行且日志含正确 bucket/key；上传
+`moonless-smoke/t95-unbound.txt` 未产生新运行。单元测试另覆盖已绑定桶但
+事件类型不匹配的情况。
 
 ## 待澄清问题
 

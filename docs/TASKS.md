@@ -254,7 +254,7 @@ Conventions:
   map it to our s3 event (`bucket`, `key`), handling SeaweedFS's
   `/buckets/<bucket>/...` path convention; ignore non-S3 paths.
   *Done when:* unit tests over recorded event fixtures.
-- [ ] **T9.5 — Trigger matching.** Match s3 events against
+- [x] **T9.5 — Trigger matching.** Match s3 events against
   `moonless.toml` s3 triggers (bucket + events) and dispatch.
   *Done when:* an upload to a bound bucket triggers the function; other
   buckets do not.

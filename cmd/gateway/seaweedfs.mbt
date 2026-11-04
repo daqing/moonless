@@ -17,7 +17,10 @@ fn adapt_seaweedfs_event(
   let path = @shared.json_field_string(obj, "key")
   guard path.has_prefix("/buckets/") else { return None }
   guard path[9:].split_once("/") is Some((bucket, key)) else { return None }
-  if bucket == "" || key == "" || filer_entry_is_directory(obj, event_type) {
+  if bucket == "" ||
+    bucket == ".system" ||
+    key == "" ||
+    filer_entry_is_directory(obj, event_type) {
     return None
   }
   Some(

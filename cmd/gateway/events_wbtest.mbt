@@ -67,6 +67,12 @@ async test "SeaweedFS adapter ignores directories and non-S3 paths" {
     "message": { "new_entry": { "is_directory": false } },
   }
   assert_true(adapt_seaweedfs_event(non_s3) is None)
+  let internal_metadata : Json = {
+    "event_type": "create",
+    "key": "/buckets/.system/owners/moonless/uploads",
+    "message": { "new_entry": { "name": "uploads" } },
+  }
+  assert_true(adapt_seaweedfs_event(internal_metadata) is None)
   let bucket_root : Json = {
     "event_type": "create",
     "key": "/buckets/uploads",
