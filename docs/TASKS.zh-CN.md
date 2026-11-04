@@ -224,7 +224,7 @@
 - [x] **T9.3 — Filer webhook。** 配置 filer 的通知 webhook，把事件
   POST 到 gateway 的 `/api/events`。
   *完成标准：* 一次上传产生一条到达 gateway 的事件（有日志即可）。
-- [ ] **T9.4 — 事件适配器。** 解析 SeaweedFS filer 事件 JSON，映射
+- [x] **T9.4 — 事件适配器。** 解析 SeaweedFS filer 事件 JSON，映射
   为我们的 s3 事件（`bucket`、`key`），处理 SeaweedFS 的
   `/buckets/<bucket>/...` 路径约定；忽略非 S3 路径。
   *完成标准：* 基于录制事件 fixture 的单元测试。

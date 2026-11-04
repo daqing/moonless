@@ -250,7 +250,7 @@ Conventions:
   webhook to POST events to the gateway's `/api/events`.
   *Done when:* an upload produces an event arriving at the gateway
   (log line is enough).
-- [ ] **T9.4 — Event adapter.** Parse the SeaweedFS filer event JSON;
+- [x] **T9.4 — Event adapter.** Parse the SeaweedFS filer event JSON;
   map it to our s3 event (`bucket`, `key`), handling SeaweedFS's
   `/buckets/<bucket>/...` path convention; ignore non-S3 paths.
   *Done when:* unit tests over recorded event fixtures.

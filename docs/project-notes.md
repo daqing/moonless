@@ -398,6 +398,14 @@ delete 事件 POST 到 `http://gateway:8080/api/events`。gateway 在事件适�
 曾触发 async stdio 的 `IoHandle::write_via_worker` panic；共享日志 helper
 现以 mutex 串行化 stderr 写入，并有双并发回归测试。
 
+## T9.4 事件适配器
+
+`cmd/gateway/testdata/` 保存从 SeaweedFS 4.52 实际录制的 create、update、
+delete 与目录事件。适配器仅接受 `/buckets/<bucket>/<key>` 对象路径；
+create/update 映射为 `put`，delete 映射为 `delete`，目录、桶根、其他路径
+及 rename 均忽略。原始 webhook 与内部事件共用 `/api/events` 和现有注册表
+匹配、runner 派发流程。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。
