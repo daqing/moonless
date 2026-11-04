@@ -413,6 +413,18 @@ create/update 映射为 `put`，delete 映射为 `delete`，目录、桶根、`.
 `moonless-smoke/t95-unbound.txt` 未产生新运行。单元测试另覆盖已绑定桶但
 事件类型不匹配的情况。
 
+## T9.6 S3 端到端脚本
+
+在 compose 栈运行且 `examples/on-upload` 已部署后，从仓库根目录执行：
+
+```bash
+moon run scripts/e2e_s3.mbtx
+```
+
+脚本要求 mc 在 PATH 中，也可用 `MC=/path/to/mc` 指定；`MOONLESS_SERVER`
+可覆盖 gateway 地址。脚本创建唯一 key，通过 `mc cp` 上传并轮询日志。
+2026-11-04 实测输出 `S3 e2e OK: mc cp -> webhook -> function log`。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

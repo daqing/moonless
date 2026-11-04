@@ -258,7 +258,7 @@ Conventions:
   `moonless.toml` s3 triggers (bucket + events) and dispatch.
   *Done when:* an upload to a bound bucket triggers the function; other
   buckets do not.
-- [ ] **T9.6 — E2E.** `mc cp` a file → the bound function logs an s3
+- [x] **T9.6 — E2E.** `mc cp` a file → the bound function logs an s3
   event with the right bucket/key.
   *Done when:* scripted and passing.
 - [ ] **T9.7 — S3 endpoint injection.** Expose `MOONLESS_S3_ENDPOINT`
