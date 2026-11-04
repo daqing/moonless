@@ -1,0 +1,4 @@
+name = "redis-counter"
+
+[triggers]
+http = { enabled = true }

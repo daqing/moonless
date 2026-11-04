@@ -452,6 +452,24 @@ runner 将非空 `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
 `/fn/data-env` 返回 `redis://redis.internal:6379`，验证 compose → runner →
 moonrun 的完整路径。
 
+## T10.3 Redis 计数器示例
+
+`examples/redis-counter` 是根模块中的 executable package，直接导入
+`daqing/moonless/vendor/redis`，通过 `INCR moonless:example:counter` 计数并在
+HTTP stdout 中返回新值。它读取 `MOONLESS_REDIS_URL`，支持 `redis://host:port`
+地址；未配置时默认本机 Redis，便于本地调试。
+
+由于该示例直接复用根目录 vendor，`scripts/e2e_redis_counter.mbtx` 会在临时
+目录生成独立部署项目并携带同一份 driver，避免复制维护。运行前将 runner 的
+`REDIS_URL` 指向用户实例，然后在仓库根目录执行：
+
+```bash
+moon run scripts/e2e_redis_counter.mbtx
+```
+
+2026-11-05 使用 Compose 网络内的 Redis 7 实测：脚本部署成功，两次 curl 返回
+1、2；再次手工调用返回 3、4，Redis 中值同步更新。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

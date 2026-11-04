@@ -247,7 +247,7 @@
   `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
   `MOONLESS_POSTGRES_URL`。
   *完成标准：* 函数读回任一变量并回显。
-- [ ] **T10.3 — 示例函数。** 用 `vendor/redis/` 下的 vendored 补丁版
+- [x] **T10.3 — 示例函数。** 用 `vendor/redis/` 下的 vendored 补丁版
   driver 实现一个 Redis 计数器示例，部署后经 HTTP 触发。
   *完成标准：* 连续 curl 使计数递增。
 - [ ] **T10.4 — 文档核对。** 按运行中的系统逐条走查 README 数据服务

@@ -276,7 +276,7 @@ Conventions:
   `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` / `MOONLESS_POSTGRES_URL`
   set from the configured values.
   *Done when:* a function reads one back and echoes it.
-- [ ] **T10.3 — Example function.** A Redis-backed counter example
+- [x] **T10.3 — Example function.** A Redis-backed counter example
   using the vendored patched driver at `vendor/redis/`, deployed and
   triggered over HTTP.
   *Done when:* repeated curls increment the counter.
