@@ -24,7 +24,14 @@ services:
     build: .
     image: moonless
     command: ["/app/bin/runner"]
+    # Optional user-provided data services:
+    # REDIS_URL=redis://redis.internal:6379
+    # MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
+    # POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
     environment:
+      MOONLESS_REDIS_URL: ${REDIS_URL:-}
+      MOONLESS_MYSQL_URL: ${MYSQL_URL:-}
+      MOONLESS_POSTGRES_URL: ${POSTGRES_URL:-}
       MOONLESS_S3_ENDPOINT: http://seaweedfs:8333
       AWS_ACCESS_KEY_ID: moonless
       AWS_SECRET_ACCESS_KEY: moonless-secret

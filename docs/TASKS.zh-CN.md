@@ -240,7 +240,7 @@
 
 ## Step 10. 数据服务注入（P2）
 
-- [ ] **T10.1 — Compose 配置项。** compose 中加入 `REDIS_URL`、
+- [x] **T10.1 — Compose 配置项。** compose 中加入 `REDIS_URL`、
   `MYSQL_URL`、`POSTGRES_URL` 条目（默认注释掉，指向用户自备实例）。
   *完成标准：* 设置后能传递到 runner。
 - [ ] **T10.2 — Runner 注入。** fork 函数时按配置值设置

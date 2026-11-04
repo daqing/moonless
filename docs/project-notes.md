@@ -437,6 +437,13 @@ compose 为 runner 配置 `MOONLESS_S3_ENDPOINT=http://seaweedfs:8333`、
 函数 exit=0，日志含 `listed uploads: 3 objects`；脚本现已把该列桶结果纳入
 通过条件。
 
+## T10.1 外部数据服务配置
+
+runner 的 compose 环境把可选 `REDIS_URL` / `MYSQL_URL` / `POSTGRES_URL`
+分别映射为 `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
+`MOONLESS_POSTGRES_URL`，缺省为空；注释提供用户自备实例示例。2026-11-05
+设置三个地址并重建 runner 后，已通过 `printenv` 逐项确认容器内值一致。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

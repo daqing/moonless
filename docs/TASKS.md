@@ -268,7 +268,7 @@ Conventions:
 
 ## Step 10. Data-service injection (P2)
 
-- [ ] **T10.1 — Compose knobs.** `REDIS_URL`, `MYSQL_URL`,
+- [x] **T10.1 — Compose knobs.** `REDIS_URL`, `MYSQL_URL`,
   `POSTGRES_URL` entries in compose (commented-out examples by default,
   pointing at user-provided instances).
   *Done when:* setting them propagates to the runner.
