@@ -216,8 +216,15 @@ AWS_SECRET_ACCESS_KEY=moonless-secret
 AWS_REGION=us-east-1
 ```
 
-AWS 变量使用标准名称，便于 S3 客户端直接读取。上述值是来自
-`deploy/seaweedfs/s3.json` 的本地开发凭据；部署到其他环境时应同步更换。
+设置对应的 Compose 输入并重建 runner，例如：
+
+```bash
+REDIS_URL=redis://redis.internal:6379 docker compose up -d runner
+```
+
+未设置或为空的数据服务地址不会注入。AWS 变量使用标准名称，便于 S3
+客户端直接读取。上述值是来自 `deploy/seaweedfs/s3.json` 的本地开发凭据；
+部署到其他环境时应同步更换。
 
 用 MoonBit 生态的 driver 连接（两者均可在 wasm 函数中使用）：
 
@@ -228,6 +235,10 @@ AWS 变量使用标准名称，便于 S3 客户端直接读取。上述值是来
 > 声明仅支持 native target，因此 moonless 在仓库内维护其 vendored
 > 补丁版（`vendor/redis/`）——wasm 支持已放开，并经 moonrun 对真实
 > Redis 端到端验证。
+
+完整 Redis 示例见 `examples/redis-counter`。将 `REDIS_URL` 指向你的实例后，
+运行 `moon run scripts/e2e_redis_counter.mbtx`，即可打包 vendored driver、
+部署函数并验证连续两次计数递增。
 
 ## Roadmap
 

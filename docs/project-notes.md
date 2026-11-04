@@ -470,6 +470,21 @@ moon run scripts/e2e_redis_counter.mbtx
 2026-11-05 使用 Compose 网络内的 Redis 7 实测：脚本部署成功，两次 curl 返回
 1、2；再次手工调用返回 3、4，Redis 中值同步更新。
 
+## T10.4 数据服务文档走查
+
+2026-11-05 对照运行系统逐项核对：
+
+- `MOONLESS_REDIS_URL` 已经真实 Redis 计数器验证；MySQL / Postgres 地址的
+  compose 映射、runner 注入及 wasm 回显测试均通过。
+- `MOONLESS_S3_ENDPOINT` 与标准 `AWS_*` 变量已由 wasm S3 客户端列桶验证。
+- `moonbitstack/moonmysql@0.7.3` 的 client 明确支持 native+wasm；
+  `moonbit-community/postgres@0.1.1` 文档明确支持 native+classic wasm；
+  `oboard/redis@0.2.1` 上游链接有效，仓库内 patched driver 已经真实 Redis
+  计数器验证。
+
+中英文 README 均补充 Compose 输入设置方法、空值不注入的说明，以及 Redis
+计数器示例和端到端脚本入口。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

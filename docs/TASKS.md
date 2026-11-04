@@ -280,7 +280,7 @@ Conventions:
   using the vendored patched driver at `vendor/redis/`, deployed and
   triggered over HTTP.
   *Done when:* repeated curls increment the counter.
-- [ ] **T10.4 — Docs check.** Walk the README data-services section
+- [x] **T10.4 — Docs check.** Walk the README data-services section
   against the running system.
   *Done when:* every documented env var and driver link is accurate.
 

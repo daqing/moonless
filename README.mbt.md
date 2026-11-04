@@ -230,9 +230,16 @@ AWS_SECRET_ACCESS_KEY=moonless-secret
 AWS_REGION=us-east-1
 ```
 
-The AWS variables use the standard names so S3 clients can consume them
-directly. The values above are the local development credentials from
-`deploy/seaweedfs/s3.json`; change them together for other deployments.
+Set the corresponding Compose inputs and recreate the runner, for example:
+
+```bash
+REDIS_URL=redis://redis.internal:6379 docker compose up -d runner
+```
+
+Unset or empty data-service URLs are not injected. The AWS variables use the
+standard names so S3 clients can consume them directly. The values above are
+the local development credentials from `deploy/seaweedfs/s3.json`; change them
+together for other deployments.
 
 Connect with the MoonBit ecosystem drivers (both work from wasm
 functions):
@@ -244,6 +251,11 @@ functions):
 > declares native-only targets, so moonless maintains a vendored, patched
 > copy inside the repo (`vendor/redis/`, wasm support opened and verified
 > end-to-end with moonrun against a real Redis).
+
+For a complete Redis example, see `examples/redis-counter`. With `REDIS_URL`
+pointing at your instance, run `moon run scripts/e2e_redis_counter.mbtx` to
+package the vendored driver, deploy the function, and verify two consecutive
+increments.
 
 ## Roadmap
 
