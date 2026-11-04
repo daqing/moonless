@@ -56,10 +56,13 @@ fn load_runner_config() -> RunnerConfig {
   let function_env : Map[String, String] = Map([])
   for
     name in [
-      "MOONLESS_S3_ENDPOINT", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION",
+      "MOONLESS_REDIS_URL", "MOONLESS_MYSQL_URL", "MOONLESS_POSTGRES_URL", "MOONLESS_S3_ENDPOINT",
+      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION",
     ] {
     if @env.get_env_var(name) is Some(value) {
-      function_env[name] = value
+      if value != "" {
+        function_env[name] = value
+      }
     }
   }
   make_runner_config(

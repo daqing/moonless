@@ -444,6 +444,14 @@ runner 的 compose 环境把可选 `REDIS_URL` / `MYSQL_URL` / `POSTGRES_URL`
 `MOONLESS_POSTGRES_URL`，缺省为空；注释提供用户自备实例示例。2026-11-05
 设置三个地址并重建 runner 后，已通过 `printenv` 逐项确认容器内值一致。
 
+## T10.2 数据服务地址注入
+
+runner 将非空 `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` /
+`MOONLESS_POSTGRES_URL` 加入每次函数进程的环境，与 S3 配置共用同一注入
+表。单元测试用一个 wasm 函数同时回显三个地址；实际部署临时 HTTP 函数后，
+`/fn/data-env` 返回 `redis://redis.internal:6379`，验证 compose → runner →
+moonrun 的完整路径。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

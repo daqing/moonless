@@ -123,9 +123,13 @@ fn env_echo_main() -> String {
     #|  let event = @env.get_env_var("MOONLESS_EVENT").unwrap_or("NOEVT")
     #|  let redis = @env.get_env_var("MOONLESS_REDIS_URL").unwrap_or("NOREDIS")
     #|  let s3 = @env.get_env_var("MOONLESS_S3_ENDPOINT").unwrap_or("NOS3")
+    #|  let mysql = @env.get_env_var("MOONLESS_MYSQL_URL").unwrap_or("NOMYSQL")
+    #|  let postgres = @env.get_env_var("MOONLESS_POSTGRES_URL").unwrap_or("NOPG")
     #|  let key = @env.get_env_var("AWS_ACCESS_KEY_ID").unwrap_or("NOKEY")
     #|  println("EVT:\{event}")
     #|  println("REDIS:\{redis}")
+    #|  println("MYSQL:\{mysql}")
+    #|  println("POSTGRES:\{postgres}")
     #|  println("S3:\{s3}")
     #|  println("AWS_KEY:\{key}")
     #|}
@@ -238,9 +242,10 @@ async test "injected service and S3 env reaches the function" {
   )
   let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
   install_function(data_root, "env-fn", "b-1001", wasm_module)
-  let env : Map[String, String] = Map([])
-  env["MOONLESS_REDIS_URL"] = "redis://redis.internal:6379"
   let function_env : Map[String, String] = Map([])
+  function_env["MOONLESS_REDIS_URL"] = "redis://redis.internal:6379"
+  function_env["MOONLESS_MYSQL_URL"] = "mysql://user:pass@mysql.internal:3306/db"
+  function_env["MOONLESS_POSTGRES_URL"] = "postgres://user:pass@pg.internal:5432/db"
   function_env["MOONLESS_S3_ENDPOINT"] = "http://seaweedfs:8333"
   function_env["AWS_ACCESS_KEY_ID"] = "moonless"
   let cfg = make_runner_config(
@@ -257,11 +262,16 @@ async test "injected service and S3 env reaches the function" {
       event=@shared.Event::Cron(
         @shared.CronEventData(schedule="0 8 * * *", time="2026-10-03T08:00:00Z"),
       ),
-      env~,
     ),
   )
   assert_eq(result.exit_code, 0)
   assert_true(result.stdout.contains("REDIS:redis://redis.internal:6379"))
+  assert_true(
+    result.stdout.contains("MYSQL:mysql://user:pass@mysql.internal:3306/db"),
+  )
+  assert_true(
+    result.stdout.contains("POSTGRES:postgres://user:pass@pg.internal:5432/db"),
+  )
   assert_true(result.stdout.contains("S3:http://seaweedfs:8333"))
   assert_true(result.stdout.contains("AWS_KEY:moonless"))
   assert_true(result.stdout.contains("EVT:"))

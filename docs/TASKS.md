@@ -272,7 +272,7 @@ Conventions:
   `POSTGRES_URL` entries in compose (commented-out examples by default,
   pointing at user-provided instances).
   *Done when:* setting them propagates to the runner.
-- [ ] **T10.2 — Runner injection.** Fork functions with
+- [x] **T10.2 — Runner injection.** Fork functions with
   `MOONLESS_REDIS_URL` / `MOONLESS_MYSQL_URL` / `MOONLESS_POSTGRES_URL`
   set from the configured values.
   *Done when:* a function reads one back and echoes it.
