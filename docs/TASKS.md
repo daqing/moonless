@@ -297,7 +297,7 @@ Conventions:
 - [x] **T11.3 — README sync.** Update the Roadmap checkboxes in both
   READMEs to reflect reality; keep the Chinese version in lockstep.
   *Done when:* both files agree with the shipped state.
-- [ ] **T11.4 — Demo script.** A judge-friendly demo flow: start stack,
+- [x] **T11.4 — Demo script.** A judge-friendly demo flow: start stack,
   deploy, trigger all three ways, show logs.
   *Done when:* dry-run takes under five minutes.
 

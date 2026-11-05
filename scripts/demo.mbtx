@@ -1,0 +1,145 @@
+---
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/http",
+  "moonbitlang/async@0.22.4/shell",
+  "moonbitlang/core/env",
+}
+---
+
+///|
+async fn wait_for_log(
+  server : String,
+  name : String,
+  source : String,
+  marker : String,
+  since? : String,
+  tail~ : Int32 = 4,
+) -> String {
+  let mut url = server +
+    "/api/functions/" +
+    name +
+    "/logs?tail=" +
+    tail.to_string() +
+    "&source=" +
+    source
+  if since is Some(value) {
+    url += "&since=" + value
+  }
+  for _ in 0..<90 {
+    let (response, data) = @http.get(url)
+    let logs = data.text()
+    if response.code == 200 && logs.contains(marker) {
+      return logs
+    }
+    @async.sleep(1000)
+  }
+  fail("timed out waiting for \{name} log containing \{marker}")
+}
+
+///|
+async fn main {
+  let started = @async.now()
+  let root = @shell.Cmd("pwd", []).output().stdout().trim().to_owned()
+  let server = @env.get_env_var("MOONLESS_SERVER").unwrap_or(
+    "http://127.0.0.1:8080",
+  )
+  let started_at = @shell.Cmd("date", ["-u", "+%Y-%m-%dT%H:%M:%SZ"])
+    .output()
+    .stdout()
+    .trim()
+    .to_owned()
+
+  println("==> Starting gateway, builder, runner, scheduler, and SeaweedFS")
+  @shell.Cmd("docker", ["compose", "up", "-d"], cwd=root).run()
+  @shell.Cmd("curl", [
+    "-fsS",
+    "--retry",
+    "30",
+    "--retry-connrefused",
+    "--retry-delay",
+    "1",
+    server + "/healthz",
+  ]).run()
+
+  println("\n==> Building the CLI and deploying all three examples")
+  @shell.Cmd("moon", ["build", "--target", "native", "cmd/moonless"], cwd=root).run()
+  let cli = root + "/_build/native/debug/build/cmd/moonless/moonless.exe"
+  for name in ["hello", "nightly-cleanup", "on-upload"] {
+    @shell.Cmd(
+      cli,
+      ["deploy", "--server", server],
+      cwd=root + "/examples/" + name,
+    ).run()
+  }
+
+  println("\n==> HTTP trigger")
+  let hello = @shell.Cmd("curl", ["-fsS", server + "/fn/hello"]).output()
+  assert_true(hello.stdout().contains("hello! triggered by:"))
+  println(hello.stdout())
+
+  println("\n==> S3 trigger: upload a unique object")
+  let aws_env : Map[String, String] = {
+    "AWS_ACCESS_KEY_ID": "moonless",
+    "AWS_SECRET_ACCESS_KEY": "moonless-secret",
+    "AWS_REGION": "us-east-1",
+  }
+  let bucket = @shell.Cmd(
+    "aws",
+    [
+      "--endpoint-url", "http://127.0.0.1:8333", "s3api", "head-bucket", "--bucket",
+      "uploads",
+    ],
+    env=aws_env,
+  ).output()
+  if bucket.exit_code() != 0 {
+    @shell.Cmd(
+      "aws",
+      ["--endpoint-url", "http://127.0.0.1:8333", "s3", "mb", "s3://uploads"],
+      env=aws_env,
+    ).run()
+  }
+  let work = @fs.tmpdir(prefix="moonless-demo-")
+  let input = work + "/demo.txt"
+  let key = "demo/\{started}.txt"
+  @fs.write_file(input, "moonless demo\n")
+  @shell.Cmd(
+    "aws",
+    [
+      "--endpoint-url",
+      "http://127.0.0.1:8333",
+      "s3",
+      "cp",
+      input,
+      "s3://uploads/" + key,
+    ],
+    env=aws_env,
+  ).run()
+  let s3_logs = wait_for_log(server, "on-upload", "s3", key)
+  assert_true(s3_logs.contains("listed uploads:"))
+  println(s3_logs)
+
+  println("\n==> Cron trigger: waiting for the next real schedule")
+  let cron_logs = wait_for_log(
+    server,
+    "nightly-cleanup",
+    "cron",
+    "nightly-cleanup received:",
+    since=started_at,
+    tail=3,
+  )
+  println(cron_logs)
+
+  println("\n==> HTTP logs via moonless logs")
+  @shell.Cmd(
+    cli,
+    ["logs", "hello", "--tail", "3", "--server", server],
+    cwd=root,
+  ).run()
+  let elapsed = @async.now() - started
+  if elapsed >= 300_000L {
+    fail("demo exceeded five minutes: \{elapsed}ms")
+  }
+  println("\nmoonless demo OK: HTTP + cron + S3 in \{elapsed}ms")
+}

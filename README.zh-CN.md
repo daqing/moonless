@@ -250,6 +250,17 @@ REDIS_URL=redis://redis.internal:6379 docker compose up -d runner
 运行 `moon run scripts/e2e_redis_counter.mbtx`，即可打包 vendored driver、
 部署函数并验证连续两次计数递增。
 
+## 引导式演示
+
+安装 Docker、MoonBit 和 AWS CLI 后，运行：
+
+```bash
+moon run scripts/demo.mbtx
+```
+
+脚本会启动 Compose 栈、部署三个核心示例，通过 HTTP、cron 和 S3 实际触发，
+并展示日志；同时检查整个流程不超过五分钟。
+
 ## Roadmap
 
 - [x] **P0 —— 最小闭环：** `deploy` / `list` / `logs` CLI、源码上传、

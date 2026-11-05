@@ -508,6 +508,14 @@ symlink，并有回归测试。最终 deploy、curl 与 `moonless logs hello` �
 中英文 README 的 P0（最小闭环）、P1（定时与日志）、P2（S3 事件与数据服务
 注入）均已勾选；P3 因版本回滚、HTTP 响应控制等仍未完成，保持未勾选。
 
+## T11.4 引导式演示
+
+`scripts/demo.mbtx` 自动起栈、构建 CLI、部署三个核心示例，随后执行真实
+HTTP 调用、唯一 key 的 S3 上传并等待 cron 调度，最后展示对应日志。脚本按
+唯一 key 与开始时间过滤验收，限制日志为当前记录，并在超过五分钟时报错。
+2026-11-05 最终彩排耗时 6594ms，输出 `moonless demo OK: HTTP + cron + S3`。
+中英文 README 已加入运行入口。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

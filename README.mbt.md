@@ -267,6 +267,18 @@ pointing at your instance, run `moon run scripts/e2e_redis_counter.mbtx` to
 package the vendored driver, deploy the function, and verify two consecutive
 increments.
 
+## Guided demo
+
+With Docker, MoonBit, and the AWS CLI installed, run:
+
+```bash
+moon run scripts/demo.mbtx
+```
+
+The script starts the Compose stack, deploys all three core examples, triggers
+them over HTTP, cron, and S3, and prints their logs. It also checks that the
+whole run stays within five minutes.
+
 ## Roadmap
 
 - [x] **P0 — the minimum loop:** `deploy` / `list` / `logs` CLI, source
