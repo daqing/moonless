@@ -275,7 +275,7 @@
   由 runner 执行。
 - [x] **T12.2 — 版本与回滚。** 每个函数保留构建历史；
   `moonless rollback <name>` 切换生效构建。
-- [ ] **T12.3 — HTTP 响应控制。** 函数设置状态码与 headers 的协议
+- [x] **T12.3 — HTTP 响应控制。** 函数设置状态码与 headers 的协议
   （如 stdout 首行输出 JSON header），替代固定 200。
 - [ ] **T12.4 — `logs --follow`。** 日志流式输出到终端。
 - [ ] **T12.5 — 多节点 runner。** runner 向 gateway 注册、跨节点部署

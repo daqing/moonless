@@ -180,8 +180,19 @@ moonless logs hello
 {"source": "s3", "event": "put", "bucket": "uploads", "key": "report.csv"}
 ```
 
-MVP 简化：HTTP 响应固定返回 `200`，stdout 原样作为响应体；状态码与
-headers 的控制在 Roadmap 中。
+### HTTP 响应控制
+
+默认情况下，stdout 是响应体，状态码为 `200`。需要设置状态码或 headers 时，
+在响应体之前写一行 JSON 控制行：
+
+```text
+{"status":201,"headers":{"Content-Type":"application/json","X-Request-Id":"abc"}}
+{"created":true}
+```
+
+控制行必须包含 `status` 或 `headers`。没有合法控制行的输出保持原样。
+`Content-Length`、`Transfer-Encoding` 和 `Connection` 由 gateway 管理，函数
+不能覆盖。
 
 ### 本地调试——平台可缺席
 
@@ -291,8 +302,8 @@ moon run scripts/demo.mbtx
 - [x] **P1 —— 定时：** cron 调度器、日志收集
 - [x] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
-- [ ] **P3 —— 加固：** HTTP 状态码与 headers 控制、多节点 runner
-      （Redis wasm 支持：补丁已验证，上游 PR 待合并）
+- [ ] **P3 —— 加固：** 多节点 runner 与沙箱策略（Redis wasm 支持：
+      补丁已验证，上游 PR 待合并）
 
 后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化、
 多节点 runner。

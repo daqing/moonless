@@ -1,6 +1,6 @@
 ///|
 // HTTP trigger intake: /fn/<name> (any method) builds the http event,
-// dispatches to the runner, and returns the function's stdout as a 200.
+// dispatches to the runner, and applies the optional stdout response header.
 
 ///|
 async fn handle_trigger(
@@ -38,7 +38,13 @@ async fn handle_trigger(
   if result.exit_code == 127 && result.stderr.contains("unknown function") {
     return @shared.send_text(ctx.conn, 404, "unknown function \{name}\n")
   }
-  @shared.send_text(ctx.conn, 200, result.stdout)
+  let output = parse_function_response(result.stdout)
+  @shared.send_response(
+    ctx.conn,
+    output.status,
+    output.body,
+    headers=output.headers,
+  )
 }
 
 ///|

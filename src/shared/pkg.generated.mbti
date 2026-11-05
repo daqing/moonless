@@ -61,6 +61,8 @@ pub fn route_any(pattern~ : String, handler~ : async (RequestContext) -> Unit) -
 
 pub async fn send_json(@http.ServerConnection, Int32, Json) -> Unit
 
+pub async fn send_response(@http.ServerConnection, Int32, String, headers? : Map[String, String]) -> Unit
+
 pub async fn send_text(@http.ServerConnection, Int32, String) -> Unit
 
 pub async fn serve(String, Router) -> Unit

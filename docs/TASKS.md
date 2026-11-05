@@ -307,7 +307,7 @@ Conventions:
   in `moonless.toml`, honored by the runner.
 - [x] **T12.2 — Versioning & rollback.** Keep a build history per
   function; `moonless rollback <name>` switches the active build.
-- [ ] **T12.3 — HTTP response control.** A protocol for functions to
+- [x] **T12.3 — HTTP response control.** A protocol for functions to
   set status code and headers (e.g. a leading JSON header line on
   stdout), replacing the fixed 200.
 - [ ] **T12.4 — `logs --follow`.** Stream logs to the terminal.

@@ -191,8 +191,19 @@ The event payload by trigger source:
 {"source": "s3", "event": "put", "bucket": "uploads", "key": "report.csv"}
 ```
 
-MVP simplification: HTTP responses always return `200` with stdout as the
-body. Status-code and header control is on the roadmap.
+### HTTP response control
+
+By default, stdout is the response body with status `200`. To set a status code
+or headers, write one JSON control line before the body:
+
+```text
+{"status":201,"headers":{"Content-Type":"application/json","X-Request-Id":"abc"}}
+{"created":true}
+```
+
+The control line must contain `status` or `headers`. Output without a valid
+control line remains unchanged. `Content-Length`, `Transfer-Encoding`, and
+`Connection` are managed by the gateway and cannot be overridden.
 
 ### Debug locally — platform optional
 
@@ -311,8 +322,8 @@ whole run stays within five minutes.
 - [x] **P1 — schedules:** cron scheduler, log collection
 - [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
-- [ ] **P3 — hardening:** HTTP status-code and header control,
-      multi-node runners (Redis wasm support:
+- [ ] **P3 — hardening:** multi-node runners and sandbox policies
+      (Redis wasm support:
       patch verified, upstream PR pending)
 
 Ideas for later: multi-language functions (the function contract is

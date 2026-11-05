@@ -535,6 +535,16 @@ concurrency=1 时两次 300ms 调用串行完成。双语 README 已加入配置
 测试覆盖历史去重、默认/指定版本回滚及 runner 旧产物解析。实际部署
 rollback-demo 后，HTTP 输出依次为一版、二版、回滚到一版。双语 README 已同步。
 
+## T12.3 HTTP 响应控制
+
+函数 stdout 首行若为含 `status` 或 `headers` 的合法 JSON 对象，则作为控制行，
+剩余内容为响应体；普通输出仍返回原来的 200。支持 100–599 状态码和字符串
+headers，并过滤 Content-Length / Transfer-Encoding / Connection。
+
+shared 新增自定义响应发送 helper；gateway 测试覆盖普通输出、控制行解析、
+header 过滤，以及经真实 HTTP 服务返回 202 + X-Moonless + body。双语 README
+已替换“固定 200”的旧说明。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

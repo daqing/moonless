@@ -179,6 +179,23 @@ pub async fn send_json(
 }
 
 ///|
+pub async fn send_response(
+  conn : @http.ServerConnection,
+  status : Int32,
+  body : String,
+  headers~ : Map[String, String] = Map([]),
+) -> Unit {
+  let extra_headers : Map[@http.CaseInsensitiveString, String] = Map([])
+  for name, value in headers {
+    extra_headers[@http.CaseInsensitiveString(name)] = value
+  }
+  conn
+  ..send_response(status, reason_phrase(status), extra_headers~)
+  ..write_string(body)
+  .end_response()
+}
+
+///|
 pub async fn read_json_body(ctx : RequestContext) -> Json raise SharedError {
   let text = ctx.body.read_all().text() catch {
       _ => raise InvalidJson("failed to read request body")
