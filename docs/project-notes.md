@@ -573,6 +573,13 @@ moonrun。路径校验拒绝绝对路径、反斜杠与 `..` 等不安全片段�
 程序的直接执行。实际 Linux C 函数部署后通过 HTTP 收到正确 MOONLESS_EVENT。
 双语 README 明确其 OS/架构要求及“不经 wasm 沙箱”的信任边界。
 
+## T12.7 CI
+
+新增 `.github/workflows/ci.yml`，在 push 和 pull request 上使用
+ubuntu-24.04，安装与 Dockerfile 相同的 `0.10.15+943464bfa` 工具链，依次执行
+`moon update`、`moon test`、`moon fmt --check`，并设置最小 contents:read
+权限。YAML 已解析验证，固定工具链容器中的测试与格式检查均通过。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

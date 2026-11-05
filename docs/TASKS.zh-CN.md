@@ -282,7 +282,7 @@
   函数。
 - [x] **T12.6 — 多语言函数。** 说明契约天然语言无关；显式 opt-in
   接受非 MoonBit 二进制。
-- [ ] **T12.7 — CI。** GitHub Actions 在 push 时运行 `moon test` 与
+- [x] **T12.7 — CI。** GitHub Actions 在 push 时运行 `moon test` 与
   `moon fmt --check`。
 - [ ] **T12.8 — 沙箱策略。** 探索 moonrun 的实验性沙箱策略
   （network connect/bind、DNS、文件访问规则）作为函数级权限控制
