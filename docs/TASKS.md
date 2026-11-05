@@ -294,7 +294,7 @@ Conventions:
   verbatim on a fresh machine/VM.
   *Done when:* every command works as written; fix the README where it
   doesn't.
-- [ ] **T11.3 — README sync.** Update the Roadmap checkboxes in both
+- [x] **T11.3 — README sync.** Update the Roadmap checkboxes in both
   READMEs to reflect reality; keep the Chinese version in lockstep.
   *Done when:* both files agree with the shipped state.
 - [ ] **T11.4 — Demo script.** A judge-friendly demo flow: start stack,

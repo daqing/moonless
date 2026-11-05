@@ -269,10 +269,10 @@ increments.
 
 ## Roadmap
 
-- [ ] **P0 — the minimum loop:** `deploy` / `list` / `logs` CLI, source
+- [x] **P0 — the minimum loop:** `deploy` / `list` / `logs` CLI, source
       upload, on-platform build, HTTP trigger with stdout responses
-- [ ] **P1 — schedules:** cron scheduler, log collection
-- [ ] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
+- [x] **P1 — schedules:** cron scheduler, log collection
+- [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
 - [ ] **P3 — hardening:** timeouts and concurrency limits, versioning and
       rollback, HTTP status-code and header control (Redis wasm support:

@@ -503,6 +503,11 @@ HEAD；其余命令按最终 README 执行。
 symlink 被安全解包器拒绝的问题：CLI 打包时仅排除该 symlink，不跟随任何
 symlink，并有回归测试。最终 deploy、curl 与 `moonless logs hello` 均成功。
 
+## T11.3 README Roadmap 同步
+
+中英文 README 的 P0（最小闭环）、P1（定时与日志）、P2（S3 事件与数据服务
+注入）均已勾选；P3 因版本回滚、HTTP 响应控制等仍未完成，保持未勾选。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

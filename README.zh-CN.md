@@ -252,10 +252,10 @@ REDIS_URL=redis://redis.internal:6379 docker compose up -d runner
 
 ## Roadmap
 
-- [ ] **P0 —— 最小闭环：** `deploy` / `list` / `logs` CLI、源码上传、
+- [x] **P0 —— 最小闭环：** `deploy` / `list` / `logs` CLI、源码上传、
       平台构建、HTTP 触发与 stdout 响应
-- [ ] **P1 —— 定时：** cron 调度器、日志收集
-- [ ] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
+- [x] **P1 —— 定时：** cron 调度器、日志收集
+- [x] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
 - [ ] **P3 —— 加固：** 超时与并发限制、版本与回滚、HTTP 状态码与
       headers 控制（Redis wasm 支持：补丁已验证，上游 PR 待合并）
