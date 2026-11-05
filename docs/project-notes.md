@@ -562,6 +562,17 @@ runner 设置 `MOONLESS_GATEWAY_URL` 与 `MOONLESS_RUNNER_PUBLIC_URL` 后每 30 
 测试覆盖注册、轮询、上传内容、buildId 传递和无注册表 runner 执行。实际启动
 不挂 moonless-data 的第二容器后，第二次 hello 调用由该节点执行成功。
 
+## T12.6 多语言函数
+
+`moonless.toml` 新增显式 `binary = "package/local/path"`。CLI 在该模式下不再
+要求 moon.mod 或解析 MoonBit 依赖；builder 跳过 moon build，存储并 chmod
+可执行文件。RunRequest.nativeBinary 让本地/远端 runner 直接执行，默认仍为
+moonrun。路径校验拒绝绝对路径、反斜杠与 `..` 等不安全片段。
+
+测试覆盖 manifest 与 JSON、无 moon.mod 的构建、权限保留，以及 C 编译 native
+程序的直接执行。实际 Linux C 函数部署后通过 HTTP 收到正确 MOONLESS_EVENT。
+双语 README 明确其 OS/架构要求及“不经 wasm 沙箱”的信任边界。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

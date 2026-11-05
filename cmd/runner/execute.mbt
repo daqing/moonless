@@ -165,6 +165,16 @@ async fn run_steps(
   let stdout_capture = StreamCapture(cap=cfg.output_cap)
   let stderr_capture = StreamCapture(cap=cfg.output_cap)
   let timed_out : Ref[Bool] = Ref(false)
+  let native_binary = request.native_binary ||
+    (
+      load_registry_record(cfg.data_root, request.name) is Some(record) &&
+      record.manifest.binary is Some(_)
+    )
+  let (program, args) = if native_binary {
+    (module_path, [])
+  } else {
+    ("moonrun", [module_path])
+  }
   let code = @async.with_task_group(group => {
     let (stdout_read, stdout_write) = @process.read_from_process()
     let (stderr_read, stderr_write) = @process.read_from_process()
@@ -172,8 +182,8 @@ async fn run_steps(
     group.spawn_bg(() => drain_capped(stderr_read, stderr_capture))
     let proc = @process.spawn(
       group,
-      "moonrun",
-      [module_path],
+      program,
+      args,
       extra_env=env,
       stdout=stdout_write,
       stderr=stderr_write,

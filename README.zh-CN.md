@@ -205,6 +205,22 @@ MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
 
+## 其他语言——显式启用
+
+事件环境变量与 stdout/stderr 契约天然与语言无关。如需部署已有的可执行文件，
+而不是 MoonBit 源码，在 `moonless.toml` 中显式设置包内相对路径：
+
+```toml
+name = "native-worker"
+binary = "func"
+
+[triggers]
+http = { enabled = true }
+```
+
+此模式不需要 `moon.mod`。可执行文件必须匹配 runner 的操作系统和架构。
+**原生二进制会直接执行，不经过 wasm 沙箱**；只应对受信任的函数启用。
+
 ## 触发器
 
 所有触发器都是可选的，在 `moonless.toml` 中声明：
@@ -321,8 +337,6 @@ moon run scripts/demo.mbtx
       数据服务地址注入
 - [ ] **P3 —— 加固：** 沙箱策略（Redis wasm 支持：补丁已验证，上游 PR
       待合并）
-
-后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化。
 
 ## 许可证
 

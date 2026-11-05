@@ -46,6 +46,7 @@ pub struct RunRequest {
   event : Event
   env : Map[String, String] // extra env injected into the function process
   build_id : String // empty means resolve on the runner
+  native_binary : Bool
 } derive(Debug)
 
 ///|
@@ -57,8 +58,9 @@ pub fn RunRequest::RunRequest(
   event~ : Event,
   env~ : Map[String, String] = Map([]),
   build_id~ : String = "",
+  native_binary~ : Bool = false,
 ) -> RunRequest {
-  { name, event, env, build_id, }
+  { name, event, env, build_id, native_binary, }
 }
 
 ///|
@@ -178,6 +180,7 @@ pub fn RunRequest::to_json(self : RunRequest) -> Json {
     "event": self.event.to_json(),
     "env": Json::object(env),
     "buildId": self.build_id,
+    "nativeBinary": self.native_binary,
   }
   json
 }
@@ -196,6 +199,7 @@ pub fn RunRequest::from_json(json : Json) -> RunRequest raise SharedError {
     event~,
     env=json_field_string_map(obj, "env"),
     build_id=json_field_string(obj, "buildId", default=""),
+    native_binary=json_field_bool(obj, "nativeBinary", default=false),
   )
 }
 
@@ -313,6 +317,10 @@ pub fn Manifest::to_json(self : Manifest) -> Json {
     limits["concurrency"] = Json::number(value.to_double())
   }
   root["limits"] = Json::object(limits)
+  root["binary"] = match self.binary {
+    Some(path) => Json::string(path)
+    None => Json::null()
+  }
   Json::object(root)
 }
 
@@ -363,7 +371,11 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
       )
     None => FunctionLimits()
   }
-  Manifest(name~, triggers~, toolchain?, limits~)
+  let binary = match obj.get("binary") {
+    Some(String(path)) => Some(path)
+    _ => None
+  }
+  Manifest(name~, triggers~, toolchain?, limits~, binary?)
 }
 
 ///|

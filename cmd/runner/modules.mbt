@@ -13,6 +13,7 @@ async fn handle_module_upload(
   let dir = cfg.data_root + "/functions/" + upload.name + "/" + upload.build_id
   @fs.mkdir(dir, recursive=true, allow_exist=true)
   @fs.write_file(dir + "/func.wasm", wasm[:])
+  @fs.chmod(dir + "/func.wasm", 0o755)
   let response : Json = { "ok": true }
   @shared.send_json(ctx.conn, 200, response)
 }

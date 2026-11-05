@@ -217,6 +217,24 @@ MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
 
+## Other languages — explicit opt-in
+
+The event environment variable and stdout/stderr contract is language-agnostic.
+To deploy an existing executable instead of MoonBit source, set its package-local
+path in `moonless.toml`:
+
+```toml
+name = "native-worker"
+binary = "func"
+
+[triggers]
+http = { enabled = true }
+```
+
+No `moon.mod` is required in this mode. The executable must match the runner's
+OS and architecture. **Native binaries run directly without the wasm sandbox**;
+only use this opt-in for trusted functions.
+
 ## Triggers
 
 All triggers are optional and declared in `moonless.toml`:
@@ -343,9 +361,6 @@ whole run stays within five minutes.
       data-service address injection
 - [ ] **P3 — hardening:** sandbox policies (Redis wasm support:
       patch verified, upstream PR pending)
-
-Ideas for later: multi-language functions (the function contract is
-language-agnostic by design), function versioning.
 
 ## License
 

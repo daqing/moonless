@@ -189,3 +189,23 @@ test "manifest rejects non-positive limits" {
     }
   }
 }
+
+///|
+test "manifest binary mode is explicit and path-safe" {
+  let manifest = @shared.parse_manifest(
+    "name = \"native\"\nbinary = \"bin/func\"",
+  )
+  assert_eq(manifest.binary, Some("bin/func"))
+  let back = @shared.Manifest::from_json(manifest.to_json())
+  assert_eq(back.binary, Some("bin/func"))
+  for path in ["", "/bin/func", "../func", "bin/../func"] {
+    try
+      @shared.parse_manifest("name = \"native\"\nbinary = \"\{path}\"")
+    catch {
+      @shared.InvalidManifest(_) => ()
+      _ => fail("expected InvalidManifest")
+    } noraise {
+      _ => fail("expected binary path \{path} to be rejected")
+    }
+  }
+}

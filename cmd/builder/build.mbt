@@ -37,10 +37,8 @@ async fn build_steps(
     _ => raise @shared.InvalidArchive("archive is not valid base64")
   }
   let files = extract_tar_gz(archive, src_dir)
-  for required in ["moon.mod", "moonless.toml"] {
-    if !has_entry(files, required) {
-      raise @shared.InvalidArchive("package is missing \{required}")
-    }
+  if !has_entry(files, "moonless.toml") {
+    raise @shared.InvalidArchive("package is missing moonless.toml")
   }
   let manifest_source = (@fs.read_file(src_dir + "/moonless.toml") catch {
     err =>
@@ -56,37 +54,68 @@ async fn build_steps(
       "manifest name \{manifest.name} does not match deploy name \{name}",
     )
   }
-  let (code, _, stderr) = @process.collect_output(
-    "moon",
-    ["build", "--target", "wasm"],
-    cwd=src_dir[:],
-  ) catch {
-    err =>
-      raise @shared.InvalidArchive(
-        "failed to run moon: \{@debug.to_string(err)}",
-      )
+  let source_path = match manifest.binary {
+    Some(path) => src_dir + "/" + path
+    None => {
+      if !has_entry(files, "moon.mod") {
+        raise @shared.InvalidArchive("package is missing moon.mod")
+      }
+      let (code, _, stderr) = @process.collect_output(
+        "moon",
+        ["build", "--target", "wasm"],
+        cwd=src_dir[:],
+      ) catch {
+        err =>
+          raise @shared.InvalidArchive(
+            "failed to run moon: \{@debug.to_string(err)}",
+          )
+      }
+      if code != 0 {
+        let output = stderr.text() catch { _ => "" }
+        return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
+      }
+      find_wasm_module(src_dir)
+    }
   }
-  if code != 0 {
-    let output = stderr.text() catch { _ => "" }
-    return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
-  }
-  let wasm_path = find_wasm_module(src_dir)
-  // Store the artifact under functions/<name>/<build-id>/ together with
-  // its metadata; the reported path points at the stored copy.
+  store_artifact(
+    data_root,
+    name,
+    build_id,
+    source_path,
+    executable=manifest.binary is Some(_),
+  )
+}
+
+///|
+async fn store_artifact(
+  data_root : String,
+  name : String,
+  build_id : String,
+  source_path : String,
+  executable~ : Bool,
+) -> @shared.BuildResult raise @shared.SharedError {
   let artifact_dir = data_root + "/functions/" + name + "/" + build_id
   mkdir_recursive(artifact_dir)
   let artifact = artifact_dir + "/func.wasm"
-  let module_bytes = (@fs.read_file(wasm_path) catch {
+  let bytes = (@fs.read_file(source_path) catch {
     err =>
       raise @shared.InvalidArchive(
-        "failed to read built module: \{@debug.to_string(err)}",
+        "failed to read function artifact: \{@debug.to_string(err)}",
       )
   }).binary()
-  @fs.write_file(artifact, module_bytes[:]) catch {
+  @fs.write_file(artifact, bytes[:]) catch {
     err =>
       raise @shared.InvalidArchive(
         "failed to store artifact: \{@debug.to_string(err)}",
       )
+  }
+  if executable {
+    @fs.chmod(artifact, 0o755) catch {
+      err =>
+        raise @shared.InvalidArchive(
+          "failed to mark binary executable: \{@debug.to_string(err)}",
+        )
+    }
   }
   let result = @shared.BuildResult(ok=true, build_id~, wasm_path=artifact)
   @fs.write_file(artifact_dir + "/build.json", result.to_json().stringify()) catch {

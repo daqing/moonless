@@ -280,7 +280,7 @@
 - [x] **T12.4 — `logs --follow`。** 日志流式输出到终端。
 - [x] **T12.5 — 多节点 runner。** runner 向 gateway 注册、跨节点部署
   函数。
-- [ ] **T12.6 — 多语言函数。** 说明契约天然语言无关；显式 opt-in
+- [x] **T12.6 — 多语言函数。** 说明契约天然语言无关；显式 opt-in
   接受非 MoonBit 二进制。
 - [ ] **T12.7 — CI。** GitHub Actions 在 push 时运行 `moon test` 与
   `moon fmt --check`。
