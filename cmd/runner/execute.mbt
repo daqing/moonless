@@ -257,13 +257,19 @@ async fn drain_capped(
 }
 
 ///|
-// Resolves <name> to the newest stored build: functions/<name>/ holds
-// b-<epoch-ms> directories; the numerically largest build id wins.
+// The registry's current build wins, including rollbacks. Older registries
+// without a usable record fall back to the newest stored build.
 async fn resolve_module(
   data_root : String,
   name : String,
 ) -> String raise @shared.SharedError {
   let functions_dir = data_root + "/functions/" + name
+  if load_registry_record(data_root, name) is Some(record) {
+    let active = functions_dir + "/" + record.build_id + "/func.wasm"
+    if (@fs.exists(active) catch { _ => false }) {
+      return active
+    }
+  }
   let entries = @fs.readdir(functions_dir) catch {
     _ => raise @shared.RunError("unknown function: \{name}")
   }

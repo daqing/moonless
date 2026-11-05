@@ -238,6 +238,17 @@ Both must be positive integers. Excess calls queue, and the runner's global
 `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
 function has no override.
 
+## Versioning and rollback
+
+Every successful deploy keeps its wasm artifact and adds the build to the
+function's history. Roll back to the previous build with:
+
+```bash
+moonless rollback <name>
+```
+
+The next invocation uses the selected artifact immediately.
+
 ## Using data services
 
 Give moonless the addresses of your Redis / MySQL / Postgres instances
@@ -300,8 +311,8 @@ whole run stays within five minutes.
 - [x] **P1 — schedules:** cron scheduler, log collection
 - [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
-- [ ] **P3 — hardening:** versioning and rollback, HTTP status-code and
-      header control, multi-node runners (Redis wasm support:
+- [ ] **P3 — hardening:** HTTP status-code and header control,
+      multi-node runners (Redis wasm support:
       patch verified, upstream PR pending)
 
 Ideas for later: multi-language functions (the function contract is

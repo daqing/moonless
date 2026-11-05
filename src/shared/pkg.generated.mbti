@@ -191,8 +191,9 @@ pub struct RegistryRecord {
   manifest : Manifest
   build_id : String
   updated_at : String
+  history : Array[String]
 } derive(@debug.Debug)
-pub fn RegistryRecord::RegistryRecord(name~ : String, manifest~ : Manifest, build_id~ : String, updated_at~ : String) -> Self
+pub fn RegistryRecord::RegistryRecord(name~ : String, manifest~ : Manifest, build_id~ : String, updated_at~ : String, history? : Array[String]) -> Self
 pub fn RegistryRecord::from_json(Json) -> Self raise SharedError
 pub fn RegistryRecord::to_json(Self) -> Json
 pub fn RegistryRecord::to_repr(Self) -> @debug.Repr

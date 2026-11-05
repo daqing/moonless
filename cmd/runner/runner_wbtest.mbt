@@ -472,6 +472,10 @@ async test "runs resolve to the newest stored build" {
   install_function(data_root, "mark-fn", "b-1002", new_module)
   let result = run_function(test_config(data_root), request)
   assert_eq(result.stdout, "MARK:new\n")
+  // A registry rollback selects the older artifact despite the newer build.
+  write_function_limits(data_root, "mark-fn")
+  let result = run_function(test_config(data_root), request)
+  assert_eq(result.stdout, "MARK:old\n")
 }
 
 ///|

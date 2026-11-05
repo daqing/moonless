@@ -224,6 +224,16 @@ concurrency = 2
 两者都必须是正整数。超出的调用会排队；函数未覆盖时，沿用 runner 全局的
 `MOONLESS_RUN_TIMEOUT_MS` 和 `MOONLESS_MAX_CONCURRENCY` 默认值。
 
+## 版本与回滚
+
+每次成功部署都会保留 wasm 产物，并把构建加入函数历史。回滚到前一个构建：
+
+```bash
+moonless rollback <name>
+```
+
+下一次调用会立即使用选中的产物。
+
 ## 使用数据服务
 
 把你的 Redis / MySQL / Postgres 地址告诉 moonless（配置项在
@@ -281,8 +291,8 @@ moon run scripts/demo.mbtx
 - [x] **P1 —— 定时：** cron 调度器、日志收集
 - [x] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
-- [ ] **P3 —— 加固：** 版本与回滚、HTTP 状态码与 headers 控制、多节点
-      runner（Redis wasm 支持：补丁已验证，上游 PR 待合并）
+- [ ] **P3 —— 加固：** HTTP 状态码与 headers 控制、多节点 runner
+      （Redis wasm 支持：补丁已验证，上游 PR 待合并）
 
 后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化、
 多节点 runner。

@@ -525,6 +525,16 @@ JSON 自动携带且兼容旧记录。runner 每次调用读取当前配置：�
 测试覆盖 manifest 校验、JSON 往返、100ms 覆盖使慢函数返回 124，以及
 concurrency=1 时两次 300ms 调用串行完成。双语 README 已加入配置示例。
 
+## T12.2 版本与回滚
+
+注册表记录累计、去重的 build-id 历史；builder 原有按版本产物目录继续保留。
+新增 `POST /api/functions/<name>/rollback` 与 `moonless rollback <name>`，默认
+选择当前版本的前一个构建并校验产物存在。runner 优先使用注册表当前版本，
+旧注册表才回退到 newest 规则。
+
+测试覆盖历史去重、默认/指定版本回滚及 runner 旧产物解析。实际部署
+rollback-demo 后，HTTP 输出依次为一版、二版、回滚到一版。双语 README 已同步。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

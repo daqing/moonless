@@ -58,6 +58,7 @@ async fn handle_deploy(
   }
   let result = @shared.BuildResult::from_json(build)
   if result.ok {
+    let history = build_history(cfg, request.name, result.build_id)
     registry_set(
       cfg,
       @shared.RegistryRecord(
@@ -65,6 +66,7 @@ async fn handle_deploy(
         manifest~,
         build_id=result.build_id,
         updated_at=@shared.format_timestamp(@async.now()),
+        history~,
       ),
     )
     @shared.log_info(

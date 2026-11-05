@@ -36,6 +36,7 @@ async fn cli_main(args : Array[String]) -> Unit raise CliError {
     "list" => cli_list(server)
     "logs" => cli_logs(flags, server)
     "runs" => cli_runs(flags, server)
+    "rollback" => cli_rollback(flags, server)
     "help" | "--help" | "-h" => print_usage()
     other => raise CliError("unknown command '\{other}'")
   }
@@ -79,6 +80,8 @@ fn print_usage() -> Unit {
   println(
     "                                     show recent invocations (source, exit, duration)",
   )
+  println("  moonless rollback <name> [--server URL]")
+  println("                                     switch to the previous build")
   println("")
   println("Environment:")
   println("  MOONLESS_SERVER  gateway base URL (default http://127.0.0.1:8080)")

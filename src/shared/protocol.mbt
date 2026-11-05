@@ -88,6 +88,7 @@ pub struct RegistryRecord {
   manifest : Manifest
   build_id : String
   updated_at : String // ISO-8601 UTC
+  history : Array[String]
 } derive(Debug)
 
 ///|
@@ -99,8 +100,9 @@ pub fn RegistryRecord::RegistryRecord(
   manifest~ : Manifest,
   build_id~ : String,
   updated_at~ : String,
+  history~ : Array[String] = [],
 ) -> RegistryRecord {
-  { name, manifest, build_id, updated_at, }
+  { name, manifest, build_id, updated_at, history, }
 }
 
 ///|
@@ -207,6 +209,7 @@ pub fn RegistryRecord::to_json(self : RegistryRecord) -> Json {
     "manifest": self.manifest.to_json(),
     "buildId": self.build_id,
     "updatedAt": self.updated_at,
+    "history": Json::array(self.history.map(value => Json::string(value))),
   }
   json
 }
@@ -227,6 +230,7 @@ pub fn RegistryRecord::from_json(
     manifest~,
     build_id=json_field_string(obj, "buildId"),
     updated_at=json_field_string(obj, "updatedAt"),
+    history=json_field_string_array(obj, "history"),
   )
 }
 

@@ -305,7 +305,7 @@ Conventions:
 
 - [x] **T12.1 — Per-function limits.** Timeout and concurrency settings
   in `moonless.toml`, honored by the runner.
-- [ ] **T12.2 — Versioning & rollback.** Keep a build history per
+- [x] **T12.2 — Versioning & rollback.** Keep a build history per
   function; `moonless rollback <name>` switches the active build.
 - [ ] **T12.3 — HTTP response control.** A protocol for functions to
   set status code and headers (e.g. a leading JSON header line on
