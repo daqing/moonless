@@ -98,12 +98,22 @@ docker compose up -d
 ### 2. Install the CLI
 
 ```bash
-cd moonless
+moon update
 moon build cmd/moonless --target native
+mkdir -p "$HOME/.local/bin"
+cp "$PWD/_build/native/debug/build/cmd/moonless/moonless.exe" "$HOME/.local/bin/moonless"
+export PATH="$HOME/.local/bin:$PATH"
 export MOONLESS_SERVER=http://localhost:8080
 ```
 
 ### 3. Write a function
+
+Create a separate MoonBit project from the repository root:
+
+```bash
+moon new hello
+cd hello
+```
 
 A function is a standard MoonBit project with an executable package. Say
 `cmd/main/main.mbt` looks like this:

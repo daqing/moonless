@@ -492,6 +492,17 @@ moon run scripts/e2e_redis_counter.mbtx
 2026-11-05 分别使用 `moonless deploy` 成功部署。`moonless list` 显示三者
 均注册了预期触发器。
 
+## T11.2 Quick Start 干净环境走查
+
+2026-11-05 在隔离的 Ubuntu 24.04 DinD VM 中完成 Quick Start。为验证尚未 push
+的提交，仅 VM 内的 git `insteadOf` 将文档中的 GitHub URL 映射到当前本地
+HEAD；其余命令按最终 README 执行。
+
+走查并修复了四个问题：重复 `cd moonless`、CLI 未安装进 PATH、首次构建缺少
+`moon update`、未创建独立函数项目。另修复 `moon new` 模板的 README.md
+symlink 被安全解包器拒绝的问题：CLI 打包时仅排除该 symlink，不跟随任何
+symlink，并有回归测试。最终 deploy、curl 与 `moonless logs hello` 均成功。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

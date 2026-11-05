@@ -79,7 +79,9 @@ async test "pack_project keeps .mooncakes, drops _build and dotfiles" {
     (".git/config", "[core]"),
     (".DS_Store", "junk"),
     (".mooncakes/somelib/lib.mbt", "pub fn x() -> Int { 1 }"),
+    ("README.mbt.md", "# fixture"),
   ])
+  @fs.symlink(target="README.mbt.md", dir + "/README.md")
   let archive = pack_project(dir)
   let names : Array[String] = []
   for entry in @shared.tar_entries(@shared.gunzip(archive)) {
@@ -93,6 +95,8 @@ async test "pack_project keeps .mooncakes, drops _build and dotfiles" {
   assert_false(has_path(names, "_build/junk/wasm.wasm"))
   assert_false(has_path(names, ".git/config"))
   assert_false(has_path(names, ".DS_Store"))
+  assert_false(has_path(names, "README.md"))
+  assert_true(has_path(names, "README.mbt.md"))
 }
 
 ///|

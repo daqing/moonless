@@ -290,7 +290,7 @@ Conventions:
   `examples/nightly-cleanup` (cron), and `examples/on-upload` (s3)
   projects in the repo.
   *Done when:* each deploys cleanly via `moonless deploy`.
-- [ ] **T11.2 — Quick-start walk.** Execute the README quick start
+- [x] **T11.2 — Quick-start walk.** Execute the README quick start
   verbatim on a fresh machine/VM.
   *Done when:* every command works as written; fix the README where it
   doesn't.

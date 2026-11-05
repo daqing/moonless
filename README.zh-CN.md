@@ -88,12 +88,22 @@ docker compose up -d
 ### 2. 安装 CLI
 
 ```bash
-cd moonless
+moon update
 moon build cmd/moonless --target native
+mkdir -p "$HOME/.local/bin"
+cp "$PWD/_build/native/debug/build/cmd/moonless/moonless.exe" "$HOME/.local/bin/moonless"
+export PATH="$HOME/.local/bin:$PATH"
 export MOONLESS_SERVER=http://localhost:8080
 ```
 
 ### 3. 写一个函数
+
+在仓库根目录创建一个独立的 MoonBit 项目：
+
+```bash
+moon new hello
+cd hello
+```
 
 函数就是一个带可执行包的标准 MoonBit 项目。假设
 `cmd/main/main.mbt` 长这样：

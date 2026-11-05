@@ -259,7 +259,7 @@
 - [x] **T11.1 — 示例项目。** 仓库内置 `examples/hello`、
   `examples/nightly-cleanup`（cron）、`examples/on-upload`（s3）。
   *完成标准：* 每个示例都能经 `moonless deploy` 干净部署。
-- [ ] **T11.2 — Quick-start 走查。** 在全新机器/VM 上逐字执行 README
+- [x] **T11.2 — Quick-start 走查。** 在全新机器/VM 上逐字执行 README
   快速开始。
   *完成标准：* 每条命令照文运行成功；不顺利的地方回头修 README。
 - [ ] **T11.3 — README 同步。** 更新两份 README 的 Roadmap 勾选以

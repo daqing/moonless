@@ -86,7 +86,9 @@ async fn ensure_vendored_deps(dir : String) -> Unit raise CliError {
 
 ///|
 // Packs the project with the system tar: everything except _build/ and
-// dotfiles — .mooncakes stays, it is the vendored dependency cache.
+// dotfiles — .mooncakes stays, it is the vendored dependency cache. The
+// generated README.md symlink is omitted; the builder accepts only regular
+// files and directories, and never follows symlinks.
 async fn pack_project(dir : String) -> Bytes raise CliError {
   let out_dir = @fs.tmpdir(prefix="moonless-deploy-") catch {
     _ => raise CliError("cannot create a temp directory")
@@ -102,6 +104,12 @@ async fn pack_project(dir : String) -> Bytes raise CliError {
     }
   }
   args.push("--exclude=./_build")
+  let readme_kind = @fs.kind(dir + "/README.md", follow_symlink=false) catch {
+    _ => @fs.FileKind::Unknown
+  }
+  if readme_kind == @fs.FileKind::SymLink {
+    args.push("--exclude=./README.md")
+  }
   args.push("-C")
   args.push(dir)
   args.push(".")
