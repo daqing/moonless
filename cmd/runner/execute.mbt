@@ -11,6 +11,8 @@ priv struct RunnerConfig {
   log_max_bytes : Int32
   log_keep : Int32
   function_env : Map[String, String]
+  max_concurrency : Int32
+  function_sems : Map[String, FunctionSemaphore]
   sem : @semaphore.Semaphore
 }
 
@@ -39,6 +41,8 @@ fn make_runner_config(
     log_max_bytes,
     log_keep,
     function_env,
+    max_concurrency,
+    function_sems: Map([]),
     sem: @semaphore.Semaphore(max_concurrency),
   }
 }
@@ -132,8 +136,13 @@ async fn run_steps(
   request : @shared.RunRequest,
 ) -> @shared.RunResult raise @shared.SharedError {
   let module_path = resolve_module(cfg.data_root, request.name)
-  // Concurrency cap: at most max_concurrency forks at once; excess runs
-  // queue here instead of overloading the host.
+  let limits = load_function_limits(cfg.data_root, request.name)
+  let timeout_ms = limits.timeout_ms.unwrap_or(cfg.timeout_ms)
+  let concurrency = limits.concurrency.unwrap_or(cfg.max_concurrency)
+  let function_sem = function_semaphore(cfg, request.name, concurrency)
+  // Per-function slots queue before consuming a slot in the global cap.
+  function_sem.acquire()
+  defer function_sem.release()
   cfg.sem.acquire()
   defer cfg.sem.release()
   let started = @async.now()
@@ -169,7 +178,7 @@ async fn run_steps(
     // no_wait: the watchdog must not hold the group open after the child
     // exits; a stray fire on a dead process is a no-op.
     group.spawn_bg(no_wait=true, () => {
-      @async.sleep(cfg.timeout_ms)
+      @async.sleep(timeout_ms)
       timed_out.val = true
       proc.cancel()
     })
@@ -184,7 +193,7 @@ async fn run_steps(
   if timed_out.val && code != 0 {
     return @shared.RunResult(
       stdout=stdout_capture.text(),
-      stderr="moonless: function timed out after \{cfg.timeout_ms}ms\n",
+      stderr="moonless: function timed out after \{timeout_ms}ms\n",
       exit_code=124,
       duration_ms=(@async.now() - started).to_int(),
       truncated~,

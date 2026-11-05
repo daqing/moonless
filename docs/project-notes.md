@@ -516,6 +516,15 @@ HTTP 调用、唯一 key 的 S3 上传并等待 cron 调度，最后展示对应
 2026-11-05 最终彩排耗时 6594ms，输出 `moonless demo OK: HTTP + cron + S3`。
 中英文 README 已加入运行入口。
 
+## T12.1 函数级限制
+
+`moonless.toml` 新增 `[limits] timeout_ms` 与 `concurrency` 正整数配置，注册表
+JSON 自动携带且兼容旧记录。runner 每次调用读取当前配置：超时覆盖全局默认，
+函数信号量在全局信号量之前排队，并支持重新部署后调整并发值。
+
+测试覆盖 manifest 校验、JSON 往返、100ms 覆盖使慢函数返回 124，以及
+concurrency=1 时两次 300ms 调用串行完成。双语 README 已加入配置示例。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

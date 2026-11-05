@@ -156,3 +156,36 @@ test "toolchain version comparison ignores build suffixes" {
   assert_eq(@shared.compare_toolchain_versions("1.0", "0.10.14"), 1)
   assert_eq(@shared.compare_toolchain_versions("0.10.14.1", "0.10.14"), 1)
 }
+
+///|
+test "manifest parses and round-trips per-function limits" {
+  let manifest = @shared.parse_manifest(
+    (
+      #|name = "limited"
+      #|
+      #|[limits]
+      #|timeout_ms = 2500
+      #|concurrency = 2
+    ),
+  )
+  assert_eq(manifest.limits.timeout_ms, Some(2500))
+  assert_eq(manifest.limits.concurrency, Some(2))
+  let back = @shared.Manifest::from_json(manifest.to_json())
+  assert_eq(back.limits.timeout_ms, Some(2500))
+  assert_eq(back.limits.concurrency, Some(2))
+}
+
+///|
+test "manifest rejects non-positive limits" {
+  for
+    source in [
+      "name = \"limited\"\n[limits]\ntimeout_ms = 0", "name = \"limited\"\n[limits]\nconcurrency = -1",
+    ] {
+    try @shared.parse_manifest(source) catch {
+      @shared.InvalidManifest(_) => ()
+      _ => fail("expected InvalidManifest")
+    } noraise {
+      _ => fail("expected invalid limits to be rejected")
+    }
+  }
+}

@@ -9,9 +9,9 @@ import {
 }
 
 // Values
-pub fn compare_toolchain_versions(String, String) -> Int raise SharedError
+pub fn compare_toolchain_versions(String, String) -> Int32 raise SharedError
 
-pub fn days_from_civil(Int, Int, Int) -> Int
+pub fn days_from_civil(Int32, Int32, Int32) -> Int32
 
 pub fn epoch_ms_to_time(Int64) -> @moonbit_cron.Time
 
@@ -19,15 +19,15 @@ pub fn format_timestamp(Int64) -> String
 
 pub async fn gunzip(Bytes) -> Bytes raise SharedError
 
-pub async fn http_get(String, timeout_ms? : Int) -> ClientResponse raise SharedError
+pub async fn http_get(String, timeout_ms? : Int32) -> ClientResponse raise SharedError
 
-pub async fn http_get_json(String, timeout_ms? : Int) -> Json raise SharedError
+pub async fn http_get_json(String, timeout_ms? : Int32) -> Json raise SharedError
 
-pub async fn http_post_json(String, Json, timeout_ms? : Int) -> Json raise SharedError
+pub async fn http_post_json(String, Json, timeout_ms? : Int32) -> Json raise SharedError
 
 pub fn json_field_bool(Map[String, Json], String, default? : Bool) -> Bool raise SharedError
 
-pub fn json_field_int(Map[String, Json], String, default? : Int) -> Int raise SharedError
+pub fn json_field_int(Map[String, Json], String, default? : Int32) -> Int32 raise SharedError
 
 pub fn json_field_object(Map[String, Json], String) -> Map[String, Json]? raise SharedError
 
@@ -59,9 +59,9 @@ pub fn route(http_method~ : @http.RequestMethod, pattern~ : String, handler~ : a
 
 pub fn route_any(pattern~ : String, handler~ : async (RequestContext) -> Unit) -> Route
 
-pub async fn send_json(@http.ServerConnection, Int, Json) -> Unit
+pub async fn send_json(@http.ServerConnection, Int32, Json) -> Unit
 
-pub async fn send_text(@http.ServerConnection, Int, String) -> Unit
+pub async fn send_text(@http.ServerConnection, Int32, String) -> Unit
 
 pub async fn serve(String, Router) -> Unit
 
@@ -97,10 +97,10 @@ pub fn BuildResult::to_json(Self) -> Json
 pub fn BuildResult::to_repr(Self) -> @debug.Repr
 
 pub struct ClientResponse {
-  status : Int
+  status : Int32
   body : String
 }
-pub fn ClientResponse::ClientResponse(status~ : Int, body~ : String) -> Self
+pub fn ClientResponse::ClientResponse(status~ : Int32, body~ : String) -> Self
 
 pub struct CronEventData {
   schedule : String
@@ -136,6 +136,13 @@ pub fn Event::source_name(Self) -> String
 pub fn Event::to_json(Self) -> Json
 pub fn Event::to_repr(Self) -> @debug.Repr
 
+pub struct FunctionLimits {
+  timeout_ms : Int32?
+  concurrency : Int32?
+} derive(@debug.Debug)
+pub fn FunctionLimits::FunctionLimits(timeout_ms? : Int32?, concurrency? : Int32?) -> Self
+pub fn FunctionLimits::to_repr(Self) -> @debug.Repr
+
 pub struct HttpEventData {
   http_method : String
   path : String
@@ -154,18 +161,19 @@ pub fn LogLevel::to_repr(Self) -> @debug.Repr
 
 pub struct LogStore {
   dir : String
-  max_bytes : Int
-  keep : Int
+  max_bytes : Int32
+  keep : Int32
 }
 pub async fn LogStore::append(Self, String) -> Unit
-pub fn LogStore::new(dir~ : String, max_bytes? : Int, keep? : Int) -> Self
+pub fn LogStore::new(dir~ : String, max_bytes? : Int32, keep? : Int32) -> Self
 
 pub struct Manifest {
   name : String
   triggers : ManifestTriggers
   toolchain : String?
+  limits : FunctionLimits
 } derive(@debug.Debug)
-pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String) -> Self
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits) -> Self
 pub fn Manifest::from_json(Json) -> Self raise SharedError
 pub fn Manifest::to_json(Self) -> Json
 pub fn Manifest::to_repr(Self) -> @debug.Repr
@@ -213,12 +221,12 @@ pub struct RunLogRecord {
   name : String
   source : String
   event : Event
-  exit_code : Int
-  duration_ms : Int
+  exit_code : Int32
+  duration_ms : Int32
   truncated : Bool
   stderr : String
 } derive(@debug.Debug)
-pub fn RunLogRecord::RunLogRecord(ts~ : String, name~ : String, event~ : Event, exit_code~ : Int, duration_ms~ : Int, truncated~ : Bool, stderr~ : String) -> Self
+pub fn RunLogRecord::RunLogRecord(ts~ : String, name~ : String, event~ : Event, exit_code~ : Int32, duration_ms~ : Int32, truncated~ : Bool, stderr~ : String) -> Self
 pub fn RunLogRecord::from_json(Json) -> Self raise SharedError
 pub fn RunLogRecord::render(Self) -> String
 pub fn RunLogRecord::summary_json(Self) -> Json
@@ -239,11 +247,11 @@ pub fn RunRequest::to_repr(Self) -> @debug.Repr
 pub struct RunResult {
   stdout : String
   stderr : String
-  exit_code : Int
-  duration_ms : Int
+  exit_code : Int32
+  duration_ms : Int32
   truncated : Bool
 } derive(@debug.Debug)
-pub fn RunResult::RunResult(stdout? : String, stderr? : String, exit_code? : Int, duration_ms? : Int, truncated? : Bool) -> Self
+pub fn RunResult::RunResult(stdout? : String, stderr? : String, exit_code? : Int32, duration_ms? : Int32, truncated? : Bool) -> Self
 pub fn RunResult::from_json(Json) -> Self raise SharedError
 pub fn RunResult::to_json(Self) -> Json
 pub fn RunResult::to_repr(Self) -> @debug.Repr

@@ -45,10 +45,28 @@ pub fn ManifestTriggers::ManifestTriggers(
 }
 
 ///|
+pub struct FunctionLimits {
+  timeout_ms : Int32?
+  concurrency : Int32?
+} derive(Debug)
+
+///|
+pub extend FunctionLimits with Debug::{to_repr}
+
+///|
+pub fn FunctionLimits::FunctionLimits(
+  timeout_ms~ : Int32? = None,
+  concurrency~ : Int32? = None,
+) -> FunctionLimits {
+  { timeout_ms, concurrency, }
+}
+
+///|
 pub struct Manifest {
   name : String
   triggers : ManifestTriggers
   toolchain : String?
+  limits : FunctionLimits
 } derive(Debug)
 
 ///|
@@ -59,8 +77,9 @@ pub fn Manifest::Manifest(
   name~ : String,
   triggers~ : ManifestTriggers = ManifestTriggers(),
   toolchain? : String,
+  limits~ : FunctionLimits = FunctionLimits(),
 ) -> Manifest {
-  { name, triggers, toolchain, }
+  { name, triggers, toolchain, limits, }
 }
 
 ///|
@@ -134,7 +153,38 @@ pub fn parse_manifest(source : String) -> Manifest raise SharedError {
     Some(t) => parse_triggers(t)
     None => ManifestTriggers()
   }
-  Manifest(name~, triggers~, toolchain?)
+  let limits = match toml_table(root, "limits") {
+    Some(t) => parse_limits(t)
+    None => FunctionLimits()
+  }
+  Manifest(name~, triggers~, toolchain?, limits~)
+}
+
+///|
+fn parse_limits(
+  tbl : Map[String, @toml.TomlValue],
+) -> FunctionLimits raise SharedError {
+  FunctionLimits(
+    timeout_ms=toml_positive_int(tbl, "timeout_ms"),
+    concurrency=toml_positive_int(tbl, "concurrency"),
+  )
+}
+
+///|
+fn toml_positive_int(
+  tbl : Map[String, @toml.TomlValue],
+  key : String,
+) -> Int32? raise SharedError {
+  match tbl.get(key) {
+    Some(@toml.TomlInteger(value)) => {
+      if value <= 0L || value > 2_147_483_647L {
+        raise InvalidManifest("limits.\{key} must be a positive Int32")
+      }
+      Some(value.to_int())
+    }
+    None => None
+    Some(_) => raise InvalidManifest("limits.\{key} expected an integer")
+  }
 }
 
 ///|

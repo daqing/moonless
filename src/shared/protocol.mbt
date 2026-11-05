@@ -261,6 +261,14 @@ pub fn Manifest::to_json(self : Manifest) -> Json {
     None => Json::null()
   }
   root["triggers"] = Json::object(triggers)
+  let limits : Map[String, Json] = Map([])
+  if self.limits.timeout_ms is Some(value) {
+    limits["timeoutMs"] = Json::number(value.to_double())
+  }
+  if self.limits.concurrency is Some(value) {
+    limits["concurrency"] = Json::number(value.to_double())
+  }
+  root["limits"] = Json::object(limits)
   Json::object(root)
 }
 
@@ -303,7 +311,27 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
     }
     None => ManifestTriggers()
   }
-  Manifest(name~, triggers~, toolchain?)
+  let limits = match json_field_object(obj, "limits") {
+    Some(value) =>
+      FunctionLimits(
+        timeout_ms=json_optional_limit(value, "timeoutMs"),
+        concurrency=json_optional_limit(value, "concurrency"),
+      )
+    None => FunctionLimits()
+  }
+  Manifest(name~, triggers~, toolchain?, limits~)
+}
+
+///|
+fn json_optional_limit(
+  obj : Map[String, Json],
+  key : String,
+) -> Int32? raise SharedError {
+  match obj.get(key) {
+    Some(Number(value, ..)) => Some(value.to_int())
+    Some(Null) | None => None
+    Some(_) => raise InvalidJson("manifest limits.\{key} expected a number")
+  }
 }
 
 ///|

@@ -224,6 +224,20 @@ s3 = { bucket = "uploads", events = ["put"] }
   SeaweedFS notifies moonless and the function fires with the bucket and
   key in its event. Event delivery is best-effort.
 
+## Per-function limits
+
+Set optional timeout and concurrency overrides in `moonless.toml`:
+
+```toml
+[limits]
+timeout_ms = 5000
+concurrency = 2
+```
+
+Both must be positive integers. Excess calls queue, and the runner's global
+`MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
+function has no override.
+
 ## Using data services
 
 Give moonless the addresses of your Redis / MySQL / Postgres instances
@@ -286,8 +300,8 @@ whole run stays within five minutes.
 - [x] **P1 — schedules:** cron scheduler, log collection
 - [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
-- [ ] **P3 — hardening:** timeouts and concurrency limits, versioning and
-      rollback, HTTP status-code and header control (Redis wasm support:
+- [ ] **P3 — hardening:** versioning and rollback, HTTP status-code and
+      header control, multi-node runners (Redis wasm support:
       patch verified, upstream PR pending)
 
 Ideas for later: multi-language functions (the function contract is

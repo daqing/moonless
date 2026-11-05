@@ -271,7 +271,7 @@
 
 ## Step 12. 扩展项（P3）
 
-- [ ] **T12.1 — 函数级限制。** `moonless.toml` 中的超时与并发配置，
+- [x] **T12.1 — 函数级限制。** `moonless.toml` 中的超时与并发配置，
   由 runner 执行。
 - [ ] **T12.2 — 版本与回滚。** 每个函数保留构建历史；
   `moonless rollback <name>` 切换生效构建。

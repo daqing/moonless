@@ -303,7 +303,7 @@ Conventions:
 
 ## Step 12. Stretch (P3)
 
-- [ ] **T12.1 — Per-function limits.** Timeout and concurrency settings
+- [x] **T12.1 — Per-function limits.** Timeout and concurrency settings
   in `moonless.toml`, honored by the runner.
 - [ ] **T12.2 — Versioning & rollback.** Keep a build history per
   function; `moonless rollback <name>` switches the active build.
