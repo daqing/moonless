@@ -216,6 +216,9 @@ test "parse_logs_args handles name, tail, and server flags" {
   assert_eq(parsed.since, "2026-10-16T08:00:00Z")
   let parsed = parse_logs_args(["--source=s3", "hello"])
   assert_eq(parsed.source, "s3")
+  assert_false(parsed.follow)
+  let parsed = parse_logs_args(["hello", "--follow"])
+  assert_true(parsed.follow)
   try parse_logs_args(["hello", "--source", "ftp"]) catch {
     CliError(message) => assert_true(message.contains("--source must be"))
   } noraise {
@@ -231,6 +234,15 @@ test "parse_logs_args handles name, tail, and server flags" {
   } noraise {
     _ => fail("expected error for extra positional")
   }
+}
+
+///|
+test "follow_delta emits only newly appended log records" {
+  assert_eq(follow_delta("", "first\n"), "first\n")
+  assert_eq(follow_delta("first\n", "first\n"), "")
+  assert_eq(follow_delta("first\n", "first\nsecond\n"), "second\n")
+  assert_eq(follow_delta("old\nshared\n", "shared\nnew\n"), "new\n")
+  assert_eq(follow_delta("same\ntext\n", ""), "")
 }
 
 ///|

@@ -310,7 +310,7 @@ Conventions:
 - [x] **T12.3 — HTTP response control.** A protocol for functions to
   set status code and headers (e.g. a leading JSON header line on
   stdout), replacing the fixed 200.
-- [ ] **T12.4 — `logs --follow`.** Stream logs to the terminal.
+- [x] **T12.4 — `logs --follow`.** Stream logs to the terminal.
 - [ ] **T12.5 — Multi-node runners.** Runner registration with the
   gateway and function placement across nodes.
 - [ ] **T12.6 — Multi-language functions.** Document that the contract

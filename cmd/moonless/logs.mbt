@@ -1,6 +1,6 @@
 ///|
-// `moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS]`:
-// the last runs of a function. --follow streaming is deferred (T12.4).
+// `moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS]
+// [--follow]`: print recent logs, then poll once per second when following.
 
 ///|
 async fn cli_logs(
@@ -8,14 +8,7 @@ async fn cli_logs(
   server : String,
 ) -> Unit raise CliError {
   let parsed = parse_logs_args(flags)
-  let mut url = server +
-    "/api/functions/\{parsed.name}/logs?tail=\{parsed.tail}"
-  if parsed.source != "" {
-    url += "&source=\{parsed.source}"
-  }
-  if parsed.since != "" {
-    url += "&since=\{parsed.since}"
-  }
+  let url = logs_url(parsed, server)
   let response = @shared.http_get(url, timeout_ms=30_000) catch {
     _ =>
       raise CliError(
@@ -30,6 +23,70 @@ async fn cli_logs(
   @stdio.stdout.write(response.body + "\n") catch {
     _ => ()
   }
+  if parsed.follow {
+    let mut previous = response.body
+    for ;; {
+      @async.sleep(1000)
+      let next = @shared.http_get(url, timeout_ms=30_000) catch {
+        _ => continue
+      }
+      if next.status != 200 {
+        continue
+      }
+      let delta = follow_delta(previous, next.body)
+      if delta != "" {
+        @stdio.stdout.write(delta) catch {
+          _ => ()
+        }
+      }
+      previous = next.body
+    }
+  }
+}
+
+///|
+fn logs_url(parsed : LogsArgs, server : String) -> String {
+  let mut url = server +
+    "/api/functions/\{parsed.name}/logs?tail=\{parsed.tail}"
+  if parsed.source != "" {
+    url += "&source=\{parsed.source}"
+  }
+  if parsed.since != "" {
+    url += "&since=\{parsed.since}"
+  }
+  url
+}
+
+///|
+// Returns only the new suffix between two tail responses. The largest overlap
+// handles both an unchanged tail and records leaving the sliding window.
+fn follow_delta(previous : String, current : String) -> String {
+  if previous == "" {
+    return current
+  }
+  if current == "" || previous == current {
+    return ""
+  }
+  let mut overlap = if previous.length() < current.length() {
+    previous.length()
+  } else {
+    current.length()
+  }
+  while overlap > 0 {
+    let start = previous.length() - overlap
+    let mut matches = true
+    for i in 0..<overlap {
+      if previous[start + i] != current[i] {
+        matches = false
+        break
+      }
+    }
+    if matches {
+      return current[overlap:].to_owned()
+    }
+    overlap -= 1
+  }
+  current
 }
 
 ///|
@@ -38,16 +95,17 @@ priv struct LogsArgs {
   tail : Int32
   source : String
   since : String
+  follow : Bool
 }
 
 ///|
-// Positional name plus --tail N, --source, --since; --server flags were
-// consumed by the dispatcher and are skipped here.
+// Positional name plus filtering and --follow; --server flags are skipped here.
 fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
   let mut name = ""
   let mut tail = 50
   let mut source = ""
   let mut since = ""
+  let mut follow = false
   let mut i = 0
   while i < flags.length() {
     let flag = flags[i]
@@ -56,6 +114,11 @@ fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
       continue
     }
     if flag.has_prefix("--server=") {
+      i += 1
+      continue
+    }
+    if flag == "--follow" {
+      follow = true
       i += 1
       continue
     }
@@ -111,10 +174,10 @@ fn parse_logs_args(flags : Array[String]) -> LogsArgs raise CliError {
   }
   if name == "" {
     raise CliError(
-      "usage: moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS]",
+      "usage: moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow]",
     )
   }
-  { name, tail, source, since, }
+  { name, tail, source, since, follow, }
 }
 
 ///|

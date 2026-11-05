@@ -153,6 +153,8 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
+加上 `--follow` 可持续轮询，并在新日志到达时只输出新增记录。
+
 ## 函数运行契约
 
 函数遵循朴素的 Unix 惯例：

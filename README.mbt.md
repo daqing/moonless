@@ -164,6 +164,8 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
+Add `--follow` to keep polling and print new log records as they arrive.
+
 ## The function contract
 
 Functions follow plain Unix conventions:

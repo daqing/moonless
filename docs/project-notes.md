@@ -545,6 +545,13 @@ shared 新增自定义响应发送 helper；gateway 测试覆盖普通输出、�
 header 过滤，以及经真实 HTTP 服务返回 202 + X-Moonless + body。双语 README
 已替换“固定 200”的旧说明。
 
+## T12.4 日志跟随
+
+`moonless logs <name> --follow` 每秒轮询当前过滤条件下的日志，通过前后响应的
+最大 suffix/prefix 重叠只写新增内容，适配日志滚动且避免重复；网络抖动时保留
+状态继续轮询，Ctrl-C 退出。测试覆盖参数与多种重叠情况，真实 HTTP 触发后
+follow 进程自动输出新记录且旧记录不重复。双语 README 已同步。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

@@ -71,7 +71,7 @@ fn print_usage() -> Unit {
   )
   println("  moonless list   [--server URL]     list deployed functions")
   println(
-    "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--server URL]",
+    "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow] [--server URL]",
   )
   println(
     "                                     show the last runs of a function",
