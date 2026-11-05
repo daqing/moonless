@@ -253,6 +253,32 @@ concurrency = 2
 两者都必须是正整数。超出的调用会排队；函数未覆盖时，沿用 runner 全局的
 `MOONLESS_RUN_TIMEOUT_MS` 和 `MOONLESS_MAX_CONCURRENCY` 默认值。
 
+## 沙箱策略
+
+wasm 函数可在 `moonless.toml` 中指定包内的 moonrun 策略文件：
+
+```toml
+sandbox = "policy.json"
+```
+
+例如，以下策略只允许读取事件变量，其他宿主能力默认拒绝：
+
+```json
+{
+  "env": { "from_host": ["MOONLESS_EVENT"] },
+  "fs": { "read": [], "write": [] },
+  "net": { "dns": [], "connect": [], "bind": [] },
+  "process": { "spawn": false }
+}
+```
+
+`net.connect` 控制出站连接，并允许所需的 hostname DNS 查询；`net.bind` 接受
+IP 地址或 `*`。文件系统根路径使用宿主路径，相对路径从策略文件位置解析。
+策略随每个构建保存并上传到远端 runner。原生 binary 函数不使用此机制。
+
+moonrun 策略目前仍是实验功能，且不覆盖 WASI。特别注意，
+`process.spawn: true` 会给子进程宿主的原有权限，而不是用其他策略段限制它。
+
 ## 版本与回滚
 
 每次成功部署都会保留 wasm 产物，并把构建加入函数历史。回滚到前一个构建：
@@ -335,7 +361,7 @@ moon run scripts/demo.mbtx
 - [x] **P1 —— 定时：** cron 调度器、日志收集
 - [x] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
-- [ ] **P3 —— 加固：** 沙箱策略（Redis wasm 支持：补丁已验证，上游 PR
+- [x] **P3 —— 加固：** 沙箱策略（Redis wasm 支持：补丁已验证，上游 PR
       待合并）
 
 ## 许可证

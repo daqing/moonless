@@ -580,6 +580,17 @@ ubuntu-24.04，安装与 Dockerfile 相同的 `0.10.15+943464bfa` 工具链，�
 `moon update`、`moon test`、`moon fmt --check`，并设置最小 contents:read
 权限。YAML 已解析验证，固定工具链容器中的测试与格式检查均通过。
 
+## T12.8 沙箱策略
+
+通过 moonrun 帮助与真实 wasm probe 确认 `--policy <PATH>` 及 deny-by-default
+语义。manifest 新增 `sandbox = "policy.json"`；builder 校验 JSON 对象并把策略
+存到 build 目录，runner 检测后自动添加参数，远端 `/modules` 上传同步携带。
+
+runner 测试证明空 env 策略隐藏 MOONLESS_EVENT，而 env.from_host 显式允许后恢复。
+实际部署也得到 `event hidden` → 修改策略重新部署 → `event visible` 的对照。
+双语 README 记录 env/fs/net/process 规则、相对路径、WASI 不覆盖以及
+process.spawn 的宿主权限风险。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

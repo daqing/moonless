@@ -68,6 +68,7 @@ pub struct Manifest {
   toolchain : String?
   limits : FunctionLimits
   binary : String?
+  sandbox : String?
 } derive(Debug)
 
 ///|
@@ -80,8 +81,9 @@ pub fn Manifest::Manifest(
   toolchain? : String,
   limits~ : FunctionLimits = FunctionLimits(),
   binary? : String,
+  sandbox? : String,
 ) -> Manifest {
-  { name, triggers, toolchain, limits, binary, }
+  { name, triggers, toolchain, limits, binary, sandbox, }
 }
 
 ///|
@@ -160,20 +162,24 @@ pub fn parse_manifest(source : String) -> Manifest raise SharedError {
     None => FunctionLimits()
   }
   let binary = match toml_string(root, "binary") {
-    Some(path) => Some(validate_binary_path(path))
+    Some(path) => Some(validate_package_path(path))
     None => None
   }
-  Manifest(name~, triggers~, toolchain?, limits~, binary?)
+  let sandbox = match toml_string(root, "sandbox") {
+    Some(path) => Some(validate_package_path(path))
+    None => None
+  }
+  Manifest(name~, triggers~, toolchain?, limits~, binary?, sandbox?)
 }
 
 ///|
-fn validate_binary_path(path : String) -> String raise SharedError {
+fn validate_package_path(path : String) -> String raise SharedError {
   if path == "" || path.has_prefix("/") || path.contains("\\") {
-    raise InvalidManifest("binary must be a relative path inside the package")
+    raise InvalidManifest("expected a relative path inside the package")
   }
   for segment in path.split("/") {
     if segment == "" || segment == "." || segment == ".." {
-      raise InvalidManifest("binary contains an unsafe path segment")
+      raise InvalidManifest("path contains an unsafe segment")
     }
   }
   path

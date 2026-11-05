@@ -89,10 +89,18 @@ async fn ensure_runner_module(
     build_id +
     "/func.wasm"
   let wasm = @fs.read_file(path).binary() catch { _ => return false }
+  let policy = match path.rev_split_once("/") {
+    Some((dir, _)) =>
+      @fs.read_file(dir + "/policy.json").text() catch {
+        _ => ""
+      }
+    None => ""
+  }
   let upload = @shared.ModuleUpload(
     name~,
     build_id~,
     wasm=@base64.encode(wasm[:]),
+    policy~,
   )
   ignore(
     @shared.http_post_json(

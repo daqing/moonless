@@ -14,6 +14,9 @@ async fn handle_module_upload(
   @fs.mkdir(dir, recursive=true, allow_exist=true)
   @fs.write_file(dir + "/func.wasm", wasm[:])
   @fs.chmod(dir + "/func.wasm", 0o755)
+  if upload.policy != "" {
+    @fs.write_file(dir + "/policy.json", upload.policy)
+  }
   let response : Json = { "ok": true }
   @shared.send_json(ctx.conn, 200, response)
 }

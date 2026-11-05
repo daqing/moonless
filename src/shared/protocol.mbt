@@ -67,7 +67,8 @@ pub fn RunRequest::RunRequest(
 pub struct ModuleUpload {
   name : String
   build_id : String
-  wasm : String // base64-encoded wasm
+  wasm : String // base64-encoded wasm or trusted native binary
+  policy : String // empty means no sandbox policy file
 } derive(Debug)
 
 ///|
@@ -78,8 +79,9 @@ pub fn ModuleUpload::ModuleUpload(
   name~ : String,
   build_id~ : String,
   wasm~ : String,
+  policy~ : String = "",
 ) -> ModuleUpload {
-  { name, build_id, wasm, }
+  { name, build_id, wasm, policy, }
 }
 
 ///|
@@ -205,7 +207,12 @@ pub fn RunRequest::from_json(json : Json) -> RunRequest raise SharedError {
 
 ///|
 pub fn ModuleUpload::to_json(self : ModuleUpload) -> Json {
-  { "name": self.name, "buildId": self.build_id, "wasm": self.wasm }
+  {
+    "name": self.name,
+    "buildId": self.build_id,
+    "wasm": self.wasm,
+    "policy": self.policy,
+  }
 }
 
 ///|
@@ -217,6 +224,7 @@ pub fn ModuleUpload::from_json(json : Json) -> ModuleUpload raise SharedError {
     name=json_field_string(obj, "name"),
     build_id=json_field_string(obj, "buildId"),
     wasm=json_field_string(obj, "wasm"),
+    policy=json_field_string(obj, "policy", default=""),
   )
 }
 
@@ -321,6 +329,10 @@ pub fn Manifest::to_json(self : Manifest) -> Json {
     Some(path) => Json::string(path)
     None => Json::null()
   }
+  root["sandbox"] = match self.sandbox {
+    Some(path) => Json::string(path)
+    None => Json::null()
+  }
   Json::object(root)
 }
 
@@ -375,7 +387,11 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
     Some(String(path)) => Some(path)
     _ => None
   }
-  Manifest(name~, triggers~, toolchain?, limits~, binary?)
+  let sandbox = match obj.get("sandbox") {
+    Some(String(path)) => Some(path)
+    _ => None
+  }
+  Manifest(name~, triggers~, toolchain?, limits~, binary?, sandbox?)
 }
 
 ///|

@@ -318,6 +318,6 @@ Conventions:
   opt-in.
 - [x] **T12.7 — CI.** GitHub Actions running `moon test` and
   `moon fmt --check` on push.
-- [ ] **T12.8 — Sandbox policies.** Explore moonrun's experimental
+- [x] **T12.8 — Sandbox policies.** Explore moonrun's experimental
   sandbox policy (network connect/bind, DNS, file-access rules) as the
   mechanism for per-function permissions.

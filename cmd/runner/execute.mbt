@@ -170,8 +170,17 @@ async fn run_steps(
       load_registry_record(cfg.data_root, request.name) is Some(record) &&
       record.manifest.binary is Some(_)
     )
+  let policy_path = match module_path.rev_split_once("/") {
+    Some((dir, _)) => dir.to_owned() + "/policy.json"
+    None => ""
+  }
+  let has_policy = !native_binary &&
+    policy_path != "" &&
+    (@fs.exists(policy_path) catch { _ => false })
   let (program, args) = if native_binary {
     (module_path, [])
+  } else if has_policy {
+    ("moonrun", ["--policy", policy_path, module_path])
   } else {
     ("moonrun", [module_path])
   }

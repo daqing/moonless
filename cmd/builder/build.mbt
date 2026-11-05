@@ -83,6 +83,10 @@ async fn build_steps(
     build_id,
     source_path,
     executable=manifest.binary is Some(_),
+    policy_path=match manifest.sandbox {
+      Some(path) => src_dir + "/" + path
+      None => ""
+    },
   )
 }
 
@@ -93,6 +97,7 @@ async fn store_artifact(
   build_id : String,
   source_path : String,
   executable~ : Bool,
+  policy_path~ : String,
 ) -> @shared.BuildResult raise @shared.SharedError {
   let artifact_dir = data_root + "/functions/" + name + "/" + build_id
   mkdir_recursive(artifact_dir)
@@ -114,6 +119,28 @@ async fn store_artifact(
       err =>
         raise @shared.InvalidArchive(
           "failed to mark binary executable: \{@debug.to_string(err)}",
+        )
+    }
+  }
+  if policy_path != "" {
+    let policy = (@fs.read_file(policy_path) catch {
+      err =>
+        raise @shared.InvalidArchive(
+          "failed to read sandbox policy: \{@debug.to_string(err)}",
+        )
+    }).text() catch {
+      _ => raise @shared.InvalidArchive("sandbox policy is not UTF-8 text")
+    }
+    let parsed = @json.parse(policy) catch {
+      _ => raise @shared.InvalidArchive("sandbox policy is not valid JSON")
+    }
+    if !(parsed is Object(_)) {
+      raise @shared.InvalidArchive("sandbox policy must be a JSON object")
+    }
+    @fs.write_file(artifact_dir + "/policy.json", policy) catch {
+      err =>
+        raise @shared.InvalidArchive(
+          "failed to store sandbox policy: \{@debug.to_string(err)}",
         )
     }
   }

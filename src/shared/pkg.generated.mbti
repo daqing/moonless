@@ -175,8 +175,9 @@ pub struct Manifest {
   toolchain : String?
   limits : FunctionLimits
   binary : String?
+  sandbox : String?
 } derive(@debug.Debug)
-pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, binary? : String) -> Self
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, binary? : String, sandbox? : String) -> Self
 pub fn Manifest::from_json(Json) -> Self raise SharedError
 pub fn Manifest::to_json(Self) -> Json
 pub fn Manifest::to_repr(Self) -> @debug.Repr
@@ -193,8 +194,9 @@ pub struct ModuleUpload {
   name : String
   build_id : String
   wasm : String
+  policy : String
 } derive(@debug.Debug)
-pub fn ModuleUpload::ModuleUpload(name~ : String, build_id~ : String, wasm~ : String) -> Self
+pub fn ModuleUpload::ModuleUpload(name~ : String, build_id~ : String, wasm~ : String, policy? : String) -> Self
 pub fn ModuleUpload::from_json(Json) -> Self raise SharedError
 pub fn ModuleUpload::to_json(Self) -> Json
 pub fn ModuleUpload::to_repr(Self) -> @debug.Repr

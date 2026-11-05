@@ -269,6 +269,35 @@ Both must be positive integers. Excess calls queue, and the runner's global
 `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
 function has no override.
 
+## Sandbox policies
+
+A wasm function can name a package-local moonrun policy in `moonless.toml`:
+
+```toml
+sandbox = "policy.json"
+```
+
+For example, this policy permits only the event variable and denies other host
+surfaces by default:
+
+```json
+{
+  "env": { "from_host": ["MOONLESS_EVENT"] },
+  "fs": { "read": [], "write": [] },
+  "net": { "dns": [], "connect": [], "bind": [] },
+  "process": { "spawn": false }
+}
+```
+
+`net.connect` controls outbound sockets and also permits the required hostname
+lookups; `net.bind` accepts IP addresses or `*`. Filesystem roots are host paths,
+with relative roots resolved from the policy file. The policy is stored and
+uploaded with each build. Native binary functions do not use this mechanism.
+
+This moonrun policy mode is experimental and does not cover WASI. In particular,
+`process.spawn: true` gives child processes ambient host access rather than
+sandboxing them under the other policy sections.
+
 ## Versioning and rollback
 
 Every successful deploy keeps its wasm artifact and adds the build to the
@@ -359,7 +388,7 @@ whole run stays within five minutes.
 - [x] **P1 — schedules:** cron scheduler, log collection
 - [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
-- [ ] **P3 — hardening:** sandbox policies (Redis wasm support:
+- [x] **P3 — hardening:** sandbox policies (Redis wasm support:
       patch verified, upstream PR pending)
 
 ## License
