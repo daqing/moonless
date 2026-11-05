@@ -552,6 +552,16 @@ header 过滤，以及经真实 HTTP 服务返回 202 + X-Moonless + body。双�
 状态继续轮询，Ctrl-C 退出。测试覆盖参数与多种重叠情况，真实 HTTP 触发后
 follow 进程自动输出新记录且旧记录不重复。双语 README 已同步。
 
+## T12.5 多节点 runner
+
+runner 设置 `MOONLESS_GATEWAY_URL` 与 `MOONLESS_RUNNER_PUBLIC_URL` 后每 30 秒向
+`POST /api/runners/register` 续注册。gateway 以默认节点 + 注册节点轮询选择；
+远端调用前通过 `POST /modules` 上传 base64 wasm，并以 RunRequest.buildId 精确
+指定版本，因此 rollback 在远端同样有效。默认节点仍直接使用共享卷。
+
+测试覆盖注册、轮询、上传内容、buildId 传递和无注册表 runner 执行。实际启动
+不挂 moonless-data 的第二容器后，第二次 hello 调用由该节点执行成功。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

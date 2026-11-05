@@ -51,6 +51,7 @@ async test "HTTP trigger sends the function's status and headers" {
       builder_url: "http://127.0.0.1:65534",
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(runner_server, fake_runner_router(fake))

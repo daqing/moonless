@@ -188,6 +188,16 @@ pub struct ManifestTriggers {
 pub fn ManifestTriggers::ManifestTriggers(http_enabled? : Bool, cron? : String, s3? : S3Trigger) -> Self
 pub fn ManifestTriggers::to_repr(Self) -> @debug.Repr
 
+pub struct ModuleUpload {
+  name : String
+  build_id : String
+  wasm : String
+} derive(@debug.Debug)
+pub fn ModuleUpload::ModuleUpload(name~ : String, build_id~ : String, wasm~ : String) -> Self
+pub fn ModuleUpload::from_json(Json) -> Self raise SharedError
+pub fn ModuleUpload::to_json(Self) -> Json
+pub fn ModuleUpload::to_repr(Self) -> @debug.Repr
+
 pub struct RegistryRecord {
   name : String
   manifest : Manifest
@@ -241,8 +251,9 @@ pub struct RunRequest {
   name : String
   event : Event
   env : Map[String, String]
+  build_id : String
 } derive(@debug.Debug)
-pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String]) -> Self
+pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String], build_id? : String) -> Self
 pub fn RunRequest::from_json(Json) -> Self raise SharedError
 pub fn RunRequest::to_json(Self) -> Json
 pub fn RunRequest::to_repr(Self) -> @debug.Repr

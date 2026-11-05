@@ -25,15 +25,13 @@ async fn handle_trigger(
       body~,
     ),
   )
-  let response = @shared.http_post_json(
-    cfg.runner_url + "/run",
-    @shared.RunRequest(name~, event~).to_json(),
-    timeout_ms=70_000,
-  ) catch {
-    _ => return @shared.send_text(ctx.conn, 502, "runner unreachable\n")
-  }
-  let result = @shared.RunResult::from_json(response) catch {
-    _ => return @shared.send_text(ctx.conn, 502, "runner protocol error\n")
+  let result = dispatch_run(cfg, name, event)
+  if result.exit_code == 127 &&
+    (
+      result.stderr.contains("runner unreachable") ||
+      result.stderr.contains("failed to upload module")
+    ) {
+    return @shared.send_text(ctx.conn, 502, result.stderr)
   }
   if result.exit_code == 127 && result.stderr.contains("unknown function") {
     return @shared.send_text(ctx.conn, 404, "unknown function \{name}\n")

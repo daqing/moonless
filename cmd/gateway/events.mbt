@@ -46,9 +46,23 @@ async fn dispatch_run(
   name : String,
   event : @shared.Event,
 ) -> @shared.RunResult {
+  let build_id = match registry_all(cfg).get(name) {
+    Some(record) => record.build_id
+    None => ""
+  }
+  let (runner_url, upload_required) = select_runner(cfg)
+  if upload_required &&
+    build_id != "" &&
+    !ensure_runner_module(cfg, runner_url, name, build_id) {
+    return @shared.RunResult(
+      stdout="",
+      stderr="moonless: failed to upload module to runner",
+      exit_code=127,
+    )
+  }
   let response = @shared.http_post_json(
-    cfg.runner_url + "/run",
-    @shared.RunRequest(name~, event~).to_json(),
+    runner_url + "/run",
+    @shared.RunRequest(name~, event~, build_id~).to_json(),
     timeout_ms=70_000,
   ) catch {
     _ =>

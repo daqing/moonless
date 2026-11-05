@@ -247,6 +247,21 @@ moonless rollback <name>
 
 下一次调用会立即使用选中的产物。
 
+## 多节点 runner
+
+启动另一个具有可访问地址的 runner，并配置 gateway 地址；无需共享 volume：
+
+```bash
+docker run -d --network moonless_default \
+  -e MOONLESS_GATEWAY_URL=http://gateway:8080 \
+  -e MOONLESS_RUNNER_PUBLIC_URL=http://node-2:8082 \
+  moonless /app/bin/runner
+```
+
+注册节点与默认 runner 一起参与轮询调度。gateway 会在每次远程调用前上传当前
+wasm 构建；runner 每 30 秒续注册。注册表保存在 gateway 内存中，gateway 重启后
+节点会在下一轮续注册时恢复。
+
 ## 使用数据服务
 
 把你的 Redis / MySQL / Postgres 地址告诉 moonless（配置项在
@@ -304,11 +319,10 @@ moon run scripts/demo.mbtx
 - [x] **P1 —— 定时：** cron 调度器、日志收集
 - [x] **P2 —— 事件：** SeaweedFS 集成（S3 API + 上传事件触发）、
       数据服务地址注入
-- [ ] **P3 —— 加固：** 多节点 runner 与沙箱策略（Redis wasm 支持：
-      补丁已验证，上游 PR 待合并）
+- [ ] **P3 —— 加固：** 沙箱策略（Redis wasm 支持：补丁已验证，上游 PR
+      待合并）
 
-后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化、
-多节点 runner。
+后续想法：多语言函数（函数契约在设计上就是语言无关的）、函数版本化。
 
 ## 许可证
 

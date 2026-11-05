@@ -9,6 +9,7 @@ priv struct GatewayConfig {
   builder_url : String
   runner_url : String
   registry_lock : @async.Mutex
+  runner_registry : RunnerRegistry
 }
 
 ///|
@@ -22,7 +23,13 @@ fn load_gateway_config() -> GatewayConfig {
   let runner_url = @env.get_env_var("MOONLESS_RUNNER_URL").unwrap_or(
     "http://runner:8082",
   )
-  { data_root, builder_url, runner_url, registry_lock: @async.Mutex::Mutex(), }
+  {
+    data_root,
+    builder_url,
+    runner_url,
+    registry_lock: @async.Mutex::Mutex(),
+    runner_registry: RunnerRegistry::RunnerRegistry(),
+  }
 }
 
 ///|

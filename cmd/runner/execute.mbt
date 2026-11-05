@@ -135,7 +135,11 @@ async fn run_steps(
   cfg : RunnerConfig,
   request : @shared.RunRequest,
 ) -> @shared.RunResult raise @shared.SharedError {
-  let module_path = resolve_module(cfg.data_root, request.name)
+  let module_path = resolve_module(
+    cfg.data_root,
+    request.name,
+    requested_build=request.build_id,
+  )
   let limits = load_function_limits(cfg.data_root, request.name)
   let timeout_ms = limits.timeout_ms.unwrap_or(cfg.timeout_ms)
   let concurrency = limits.concurrency.unwrap_or(cfg.max_concurrency)
@@ -257,13 +261,21 @@ async fn drain_capped(
 }
 
 ///|
-// The registry's current build wins, including rollbacks. Older registries
-// without a usable record fall back to the newest stored build.
+// An explicitly requested build wins for remote nodes. Otherwise the
+// registry's current build wins, with newest-build fallback for old registries.
 async fn resolve_module(
   data_root : String,
   name : String,
+  requested_build~ : String = "",
 ) -> String raise @shared.SharedError {
   let functions_dir = data_root + "/functions/" + name
+  if requested_build != "" {
+    let requested = functions_dir + "/" + requested_build + "/func.wasm"
+    if (@fs.exists(requested) catch { _ => false }) {
+      return requested
+    }
+    raise @shared.RunError("build unavailable on runner: \{requested_build}")
+  }
   if load_registry_record(data_root, name) is Some(record) {
     let active = functions_dir + "/" + record.build_id + "/func.wasm"
     if (@fs.exists(active) catch { _ => false }) {

@@ -45,6 +45,7 @@ pub struct RunRequest {
   name : String
   event : Event
   env : Map[String, String] // extra env injected into the function process
+  build_id : String // empty means resolve on the runner
 } derive(Debug)
 
 ///|
@@ -55,8 +56,28 @@ pub fn RunRequest::RunRequest(
   name~ : String,
   event~ : Event,
   env~ : Map[String, String] = Map([]),
+  build_id~ : String = "",
 ) -> RunRequest {
-  { name, event, env, }
+  { name, event, env, build_id, }
+}
+
+///|
+pub struct ModuleUpload {
+  name : String
+  build_id : String
+  wasm : String // base64-encoded wasm
+} derive(Debug)
+
+///|
+pub extend ModuleUpload with Debug::{to_repr}
+
+///|
+pub fn ModuleUpload::ModuleUpload(
+  name~ : String,
+  build_id~ : String,
+  wasm~ : String,
+) -> ModuleUpload {
+  { name, build_id, wasm, }
 }
 
 ///|
@@ -156,6 +177,7 @@ pub fn RunRequest::to_json(self : RunRequest) -> Json {
     "name": self.name,
     "event": self.event.to_json(),
     "env": Json::object(env),
+    "buildId": self.build_id,
   }
   json
 }
@@ -173,6 +195,24 @@ pub fn RunRequest::from_json(json : Json) -> RunRequest raise SharedError {
     name=json_field_string(obj, "name"),
     event~,
     env=json_field_string_map(obj, "env"),
+    build_id=json_field_string(obj, "buildId", default=""),
+  )
+}
+
+///|
+pub fn ModuleUpload::to_json(self : ModuleUpload) -> Json {
+  { "name": self.name, "buildId": self.build_id, "wasm": self.wasm }
+}
+
+///|
+pub fn ModuleUpload::from_json(json : Json) -> ModuleUpload raise SharedError {
+  guard json is Object(obj) else {
+    raise InvalidJson("wasm upload expected an object")
+  }
+  ModuleUpload(
+    name=json_field_string(obj, "name"),
+    build_id=json_field_string(obj, "buildId"),
+    wasm=json_field_string(obj, "wasm"),
   )
 }
 

@@ -6,7 +6,17 @@
 ///|
 async fn main {
   @shared.log_info(service="runner", message="listening on 0.0.0.0:8082")
-  @shared.serve("0.0.0.0:8082", runner_router(load_runner_config()))
+  let cfg = load_runner_config()
+  @async.with_task_group(group => {
+    let gateway_url = @env.get_env_var("MOONLESS_GATEWAY_URL").unwrap_or("")
+    let public_url = @env.get_env_var("MOONLESS_RUNNER_PUBLIC_URL").unwrap_or(
+      "",
+    )
+    if gateway_url != "" && public_url != "" {
+      group.spawn_bg(() => register_runner_loop(gateway_url, public_url))
+    }
+    @shared.serve("0.0.0.0:8082", runner_router(cfg))
+  })
 }
 
 ///|
@@ -15,6 +25,11 @@ fn runner_router(cfg : RunnerConfig) -> @shared.Router {
   router.add(
     @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
       handle_run(ctx, cfg)
+    }),
+  )
+  router.add(
+    @shared.route(http_method=@http.Post, pattern="/modules", handler=ctx => {
+      handle_module_upload(ctx, cfg)
     }),
   )
   router

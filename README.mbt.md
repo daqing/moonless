@@ -262,6 +262,23 @@ moonless rollback <name>
 
 The next invocation uses the selected artifact immediately.
 
+## Multi-node runners
+
+Start another runner with a reachable public URL and gateway address; no shared
+volume is required:
+
+```bash
+docker run -d --network moonless_default \
+  -e MOONLESS_GATEWAY_URL=http://gateway:8080 \
+  -e MOONLESS_RUNNER_PUBLIC_URL=http://node-2:8082 \
+  moonless /app/bin/runner
+```
+
+Registered nodes join round-robin placement with the default runner. The gateway
+uploads the active wasm build before each remote invocation, and runners renew
+registration every 30 seconds. Registration is in memory, so a gateway restart
+clears the node list until runners renew.
+
 ## Using data services
 
 Give moonless the addresses of your Redis / MySQL / Postgres instances
@@ -324,12 +341,11 @@ whole run stays within five minutes.
 - [x] **P1 — schedules:** cron scheduler, log collection
 - [x] **P2 — events:** SeaweedFS integration (S3 API + put-event triggers),
       data-service address injection
-- [ ] **P3 — hardening:** multi-node runners and sandbox policies
-      (Redis wasm support:
+- [ ] **P3 — hardening:** sandbox policies (Redis wasm support:
       patch verified, upstream PR pending)
 
 Ideas for later: multi-language functions (the function contract is
-language-agnostic by design), function versioning, multi-node runners.
+language-agnostic by design), function versioning.
 
 ## License
 

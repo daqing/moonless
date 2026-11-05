@@ -278,7 +278,7 @@
 - [x] **T12.3 — HTTP 响应控制。** 函数设置状态码与 headers 的协议
   （如 stdout 首行输出 JSON header），替代固定 200。
 - [x] **T12.4 — `logs --follow`。** 日志流式输出到终端。
-- [ ] **T12.5 — 多节点 runner。** runner 向 gateway 注册、跨节点部署
+- [x] **T12.5 — 多节点 runner。** runner 向 gateway 注册、跨节点部署
   函数。
 - [ ] **T12.6 — 多语言函数。** 说明契约天然语言无关；显式 opt-in
   接受非 MoonBit 二进制。

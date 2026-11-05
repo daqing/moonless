@@ -311,7 +311,7 @@ Conventions:
   set status code and headers (e.g. a leading JSON header line on
   stdout), replacing the fixed 200.
 - [x] **T12.4 — `logs --follow`.** Stream logs to the terminal.
-- [ ] **T12.5 — Multi-node runners.** Runner registration with the
+- [x] **T12.5 — Multi-node runners.** Runner registration with the
   gateway and function placement across nodes.
 - [ ] **T12.6 — Multi-language functions.** Document that the contract
   is language-agnostic; accept non-MoonBit binaries with explicit

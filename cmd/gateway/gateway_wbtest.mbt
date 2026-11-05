@@ -92,6 +92,7 @@ fn test_config(data_root : String, builder_port : Int32) -> GatewayConfig {
     builder_url: "http://127.0.0.1:\{builder_port}",
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
+    runner_registry: RunnerRegistry::RunnerRegistry(),
   }
 }
 
@@ -414,6 +415,7 @@ async test "concurrent deploys never corrupt the registry file" {
     builder_url: "http://127.0.0.1:65534",
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
+    runner_registry: RunnerRegistry::RunnerRegistry(),
   }
   let path = data_root + "/registry/registry.json"
   let torn_reads : Ref[Int32] = Ref(0)
@@ -548,6 +550,7 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
       builder_url: "http://127.0.0.1:65534",
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(runner_server, fake_runner_router(fake))
@@ -592,6 +595,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     builder_url: "http://127.0.0.1:65534",
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
+    runner_registry: RunnerRegistry::RunnerRegistry(),
   }
   // Three functions: bound to uploads/put, bound to another bucket, cron.
   registry_set(
@@ -666,6 +670,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       builder_url: "http://127.0.0.1:65534",
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(gateway_server, gateway_router(gateway_cfg))
@@ -768,6 +773,7 @@ async test "broken deploy surfaces the reason; a good deploy is callable" {
       builder_url: "http://127.0.0.1:\{builder_port}",
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(builder_server, fake_builder_router(fake_builder))
