@@ -1,0 +1,55 @@
+---
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/http",
+  "moonbitlang/async@0.22.4/shell",
+  "moonbitlang/core/env",
+}
+---
+
+///|
+async fn main {
+  let server = @env.get_env_var("MOONLESS_SERVER").unwrap_or(
+    "http://127.0.0.1:8080",
+  )
+  let mc = @env.get_env_var("MC").unwrap_or("mc")
+  let work = @fs.tmpdir(prefix="moonless-s3-e2e-")
+  let config_dir = work + "/mc-config"
+  let input = work + "/input.txt"
+  let key = "e2e/\{@async.now()}.txt"
+  @fs.mkdir(config_dir, recursive=true, allow_exist=true)
+  @fs.write_file(input, "moonless s3 e2e\n")
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "alias", "set", "moonless-e2e", "http://127.0.0.1:8333",
+    "moonless", "moonless-secret",
+  ]).run()
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "mb", "--ignore-existing", "moonless-e2e/uploads",
+  ]).run()
+  println("uploading uploads/\{key} with mc cp")
+  @shell.Cmd(mc, [
+    "--config-dir",
+    config_dir,
+    "cp",
+    input,
+    "moonless-e2e/uploads/\{key}",
+  ]).run()
+  for _ in 0..<40 {
+    let (response, data) = @http.get(
+      server + "/api/functions/on-upload/logs?tail=50&source=s3",
+    )
+    let logs = data.text()
+    if response.code == 200 &&
+      logs.contains("\"bucket\":\"uploads\"") &&
+      logs.contains("\"key\":\"\{key}\"") &&
+      logs.contains("on-upload received:") &&
+      logs.contains("listed uploads:") {
+      println(logs)
+      println("S3 e2e OK: mc cp -> webhook -> function log")
+      return
+    }
+    @async.sleep(250)
+  }
+  fail("timed out waiting for on-upload log with bucket=uploads key=\{key}")
+}

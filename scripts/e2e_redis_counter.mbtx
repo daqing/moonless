@@ -1,0 +1,57 @@
+---
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
+---
+
+///|
+async fn copy_file(source : String, destination : String) -> Unit {
+  let data = @fs.read_file(source)
+  @fs.write_file(destination, data)
+}
+
+///|
+async fn stage_counter_project(root : String, work : String) -> Unit {
+  @fs.mkdir(work + "/vendor/redis", recursive=true, allow_exist=true)
+  @fs.write_file(
+    work + "/moon.mod",
+    "name = \"daqing/moonless\"\nversion = \"0.1.0\"\n\nimport {\n  \"moonbitlang/async@0.22.4\",\n}\n",
+  )
+  for entry in @fs.readdir(root + "/vendor/redis") {
+    if entry != "probe_wasm" {
+      copy_file(
+        root + "/vendor/redis/" + entry,
+        work + "/vendor/redis/" + entry,
+      )
+    }
+  }
+  for name in ["main.mbt", "moon.pkg", "moonless.toml"] {
+    copy_file(
+      root + "/examples/redis-counter/" + name,
+      work + "/" + name,
+    )
+  }
+}
+
+///|
+async fn main {
+  let root = @shell.Cmd("pwd", []).output().stdout().trim().to_owned()
+  let server = @env.get_env_var("MOONLESS_SERVER").unwrap_or(
+    "http://127.0.0.1:8080",
+  )
+  @shell.Cmd("moon", ["build", "--target", "native", "cmd/moonless"], cwd=root).run()
+  let work = @fs.tmpdir(prefix="moonless-redis-counter-")
+  stage_counter_project(root, work)
+  let cli = root + "/_build/native/debug/build/cmd/moonless/moonless.exe"
+  @shell.Cmd(cli, ["deploy", "--server", server], cwd=work).run()
+  let first = @shell.Cmd("curl", ["-fsS", server + "/fn/redis-counter"]).output()
+  let second = @shell.Cmd("curl", ["-fsS", server + "/fn/redis-counter"]).output()
+  let first_count = @string.parse_int(first.stdout().trim())
+  let second_count = @string.parse_int(second.stdout().trim())
+  assert_eq(second_count, first_count + 1)
+  println("Redis counter e2e OK: \{first_count} -> \{second_count}")
+}

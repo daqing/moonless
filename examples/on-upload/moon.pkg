@@ -1,0 +1,9 @@
+import {
+  "kaashyapan/s3",
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "+wasm"
+
+pkgtype(kind: "executable")

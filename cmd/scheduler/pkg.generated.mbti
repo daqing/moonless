@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "daqing/moonless/cmd/main"
+package "daqing/moonless/cmd/scheduler"
 
 // Values
 

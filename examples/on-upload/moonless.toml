@@ -1,0 +1,4 @@
+name = "on-upload"
+
+[triggers]
+s3 = { bucket = "uploads", events = ["put"] }

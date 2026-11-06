@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  moon-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install the pinned MoonBit toolchain
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "0.10.15+943464bfa"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve dependencies
+        run: moon update
+
+      - name: Run tests
+        run: moon test
+
+      - name: Check formatting
+        run: moon fmt --check

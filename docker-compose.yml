@@ -1,0 +1,67 @@
+# moonless platform stack. One shared image (see Dockerfile); services differ
+# only in the binary they run. Internal ports: gateway 8080, builder 8081,
+# runner 8082, scheduler 8083. Gateway 8080 and SeaweedFS S3 8333 are published.
+# Builder, runner, and gateway share the named volume /var/lib/moonless.
+
+services:
+  gateway:
+    build: .
+    image: moonless
+    command: ["/app/bin/gateway"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  builder:
+    build: .
+    image: moonless
+    command: ["/app/bin/builder"]
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  runner:
+    build: .
+    image: moonless
+    command: ["/app/bin/runner"]
+    # Optional user-provided data services:
+    # REDIS_URL=redis://redis.internal:6379
+    # MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
+    # POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
+    environment:
+      MOONLESS_REDIS_URL: ${REDIS_URL:-}
+      MOONLESS_MYSQL_URL: ${MYSQL_URL:-}
+      MOONLESS_POSTGRES_URL: ${POSTGRES_URL:-}
+      MOONLESS_S3_ENDPOINT: http://seaweedfs:8333
+      AWS_ACCESS_KEY_ID: moonless
+      AWS_SECRET_ACCESS_KEY: moonless-secret
+      AWS_REGION: us-east-1
+    volumes:
+      - moonless-data:/var/lib/moonless
+
+  scheduler:
+    build: .
+    image: moonless
+    command: ["/app/bin/scheduler"]
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.52
+    command:
+      - server
+      - -ip=seaweedfs
+      - -ip.bind=0.0.0.0
+      - -filer=true
+      - -s3=true
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+      - -master.telemetry=false
+    ports:
+      - "8333:8333"
+    volumes:
+      - seaweedfs-data:/data
+      - ./deploy/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - ./deploy/seaweedfs/notification.toml:/etc/seaweedfs/notification.toml:ro
+
+volumes:
+  moonless-data:
+  seaweedfs-data:

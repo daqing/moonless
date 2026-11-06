@@ -1,0 +1,4 @@
+name = "nightly-cleanup"
+
+[triggers]
+cron = "* * * * *"
