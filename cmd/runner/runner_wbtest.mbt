@@ -4,9 +4,10 @@
 // would store them.
 
 ///|
+#derive(Debug)
 priv suberror FixtureError {
   FixtureError(String)
-} derive(Debug)
+}
 
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen

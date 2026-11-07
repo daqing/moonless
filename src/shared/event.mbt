@@ -3,12 +3,13 @@
 // shapes are the ones documented in the README's function-contract section.
 
 ///|
+#derive(Debug)
 pub struct HttpEventData {
   http_method : String
   path : String
   query : String
   body : String
-} derive(Debug)
+}
 
 ///|
 pub extend HttpEventData with Debug::{to_repr}
@@ -24,10 +25,11 @@ pub fn HttpEventData::HttpEventData(
 }
 
 ///|
+#derive(Debug)
 pub struct CronEventData {
   schedule : String
   time : String
-} derive(Debug)
+}
 
 ///|
 pub extend CronEventData with Debug::{to_repr}
@@ -41,11 +43,12 @@ pub fn CronEventData::CronEventData(
 }
 
 ///|
+#derive(Debug)
 pub struct S3EventData {
   event_name : String
   bucket : String
   key : String
-} derive(Debug)
+}
 
 ///|
 pub extend S3EventData with Debug::{to_repr}
@@ -60,11 +63,12 @@ pub fn S3EventData::S3EventData(
 }
 
 ///|
+#derive(Debug)
 pub(all) enum Event {
   Http(HttpEventData)
   Cron(CronEventData)
   S3(S3EventData)
-} derive(Debug)
+}
 
 ///|
 pub extend Event with Debug::{to_repr}

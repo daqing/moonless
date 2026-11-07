@@ -4,6 +4,7 @@
 // fields raise instead of being silently dropped.
 
 ///|
+#derive(Debug)
 pub(all) suberror SharedError {
   InvalidJson(String)
   InvalidEvent(String)
@@ -11,7 +12,7 @@ pub(all) suberror SharedError {
   InvalidArchive(String)
   RunError(String)
   HttpError(String)
-} derive(Debug)
+}
 
 ///|
 pub extend SharedError with Debug::{to_repr}

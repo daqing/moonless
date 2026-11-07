@@ -3,10 +3,11 @@
 // builder/runner requests and results, plus the function registry record.
 
 ///|
+#derive(Debug)
 pub struct DeployRequest {
   name : String
   archive : String // tar.gz of the project + vendored .mooncakes/, base64
-} derive(Debug)
+}
 
 ///|
 pub extend DeployRequest with Debug::{to_repr}
@@ -20,12 +21,13 @@ pub fn DeployRequest::DeployRequest(
 }
 
 ///|
+#derive(Debug)
 pub struct BuildResult {
   ok : Bool
   build_id : String // empty when the build failed
   wasm_path : String // path of func.wasm, empty when the build failed
   error_tail : String // tail of build stderr shown by the CLI on failure
-} derive(Debug)
+}
 
 ///|
 pub extend BuildResult with Debug::{to_repr}
@@ -41,13 +43,14 @@ pub fn BuildResult::BuildResult(
 }
 
 ///|
+#derive(Debug)
 pub struct RunRequest {
   name : String
   event : Event
   env : Map[String, String] // extra env injected into the function process
   build_id : String // empty means resolve on the runner
   native_binary : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend RunRequest with Debug::{to_repr}
@@ -64,12 +67,13 @@ pub fn RunRequest::RunRequest(
 }
 
 ///|
+#derive(Debug)
 pub struct ModuleUpload {
   name : String
   build_id : String
   wasm : String // base64-encoded wasm or trusted native binary
   policy : String // empty means no sandbox policy file
-} derive(Debug)
+}
 
 ///|
 pub extend ModuleUpload with Debug::{to_repr}
@@ -85,13 +89,14 @@ pub fn ModuleUpload::ModuleUpload(
 }
 
 ///|
+#derive(Debug)
 pub struct RunResult {
   stdout : String
   stderr : String
   exit_code : Int32
   duration_ms : Int32
   truncated : Bool // per-stream output cap hit, R4
-} derive(Debug)
+}
 
 ///|
 pub extend RunResult with Debug::{to_repr}
@@ -108,13 +113,14 @@ pub fn RunResult::RunResult(
 }
 
 ///|
+#derive(Debug)
 pub struct RegistryRecord {
   name : String
   manifest : Manifest
   build_id : String
   updated_at : String // ISO-8601 UTC
   history : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend RegistryRecord with Debug::{to_repr}

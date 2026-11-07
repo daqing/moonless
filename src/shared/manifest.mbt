@@ -9,10 +9,11 @@
 pub let platform_toolchain : String = "0.10.14+7d59c7ec9"
 
 ///|
+#derive(Debug)
 pub struct S3Trigger {
   bucket : String
   events : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend S3Trigger with Debug::{to_repr}
@@ -26,11 +27,12 @@ pub fn S3Trigger::S3Trigger(
 }
 
 ///|
+#derive(Debug)
 pub struct ManifestTriggers {
   http_enabled : Bool
   cron : String?
   s3 : S3Trigger?
-} derive(Debug)
+}
 
 ///|
 pub extend ManifestTriggers with Debug::{to_repr}
@@ -45,10 +47,11 @@ pub fn ManifestTriggers::ManifestTriggers(
 }
 
 ///|
+#derive(Debug)
 pub struct FunctionLimits {
   timeout_ms : Int32?
   concurrency : Int32?
-} derive(Debug)
+}
 
 ///|
 pub extend FunctionLimits with Debug::{to_repr}
@@ -62,6 +65,7 @@ pub fn FunctionLimits::FunctionLimits(
 }
 
 ///|
+#derive(Debug)
 pub struct Manifest {
   name : String
   triggers : ManifestTriggers
@@ -69,7 +73,7 @@ pub struct Manifest {
   limits : FunctionLimits
   binary : String?
   sandbox : String?
-} derive(Debug)
+}
 
 ///|
 pub extend Manifest with Debug::{to_repr}

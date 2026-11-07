@@ -4,7 +4,7 @@
 完全用 [MoonBit](https://www.moonbitlang.com) 开发。名字是一个合成词：
 **Moon**Bit + server**less**。
 
-> **当前状态：** MoonBit 黑客松参赛项目，开发中（2026 年 10 月）。
+> **当前状态：** MoonBit 黑客松参赛项目，开发中（2026 年 11 月）。
 > 本 README 描述的是设计目标，功能按 [Roadmap](#roadmap) 的顺序逐步落地。
 >
 > [English README](README.mbt.md)
