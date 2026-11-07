@@ -4,7 +4,7 @@
 entirely in [MoonBit](https://www.moonbitlang.com). The name is a
 portmanteau: **Moon**Bit + server**less**.
 
-> **Status:** work-in-progress, built for the MoonBit hackathon (October
+> **Status:** work-in-progress, built for the MoonBit hackathon (November
 > 2026). This README describes the design we are building toward; features
 > land in the order listed in the [Roadmap](#roadmap).
 >
