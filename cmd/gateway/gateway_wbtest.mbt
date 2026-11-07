@@ -3,9 +3,10 @@
 // real tar.gz package layout like `moonless deploy` will upload.
 
 ///|
+#derive(Debug)
 priv suberror FixtureError {
   FixtureError(String)
-} derive(Debug)
+}
 
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen

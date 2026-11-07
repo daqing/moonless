@@ -3,9 +3,10 @@
 // round-trip against a fake gateway.
 
 ///|
+#derive(Debug)
 priv suberror FixtureError {
   FixtureError(String)
-} derive(Debug)
+}
 
 ///|
 // moon test runs test files in parallel worker processes, so fixed listen

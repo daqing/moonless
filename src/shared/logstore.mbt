@@ -106,6 +106,7 @@ async fn LogStore::prune(self : LogStore) -> Unit {
 // One record per invocation, stored as a single JSON line so rotated files
 // stay machine-queryable (T8.2/T8.3). `render` produces the human-readable
 // form the logs API returns.
+#derive(Debug)
 pub struct RunLogRecord {
   ts : String // ISO-8601 UTC, format_timestamp output
   name : String
@@ -115,7 +116,7 @@ pub struct RunLogRecord {
   duration_ms : Int32
   truncated : Bool
   stderr : String
-} derive(Debug)
+}
 
 ///|
 pub extend RunLogRecord with Debug::{to_repr}

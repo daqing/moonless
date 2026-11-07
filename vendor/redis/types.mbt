@@ -2,6 +2,7 @@
 
 ///|
 /// Redis响应的基本类型
+#derive(Debug, Hash, Eq)
 pub(all) enum RedisValue {
   // 简单字符串: +OK\r\n
   SimpleString(String)
@@ -13,7 +14,7 @@ pub(all) enum RedisValue {
   BulkString(String?)
   // 数组: *count\r\n<element1><element2>...
   Array(Array[RedisValue])
-} derive(Debug, Hash, Eq)
+}
 
 ///|
 pub extend RedisValue with @moonbitlang/core/debug.Debug::{to_repr}
@@ -70,10 +71,11 @@ pub type RedisStreamResult = RedisResult[RedisStream]
 pub type RedisStreamMessageArray = RedisResult[Array[RedisStreamMessage]]
 
 ///|
+#derive(Debug)
 pub(all) struct RedisStreamMessage {
   id : String
   fields : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend RedisStreamMessage with @moonbitlang/core/debug.Debug::{to_repr}
@@ -97,10 +99,11 @@ pub impl Show for RedisStreamMessage with fn to_string(
 }
 
 ///|
+#derive(Debug)
 pub(all) struct RedisStream {
   name : String
   messages : Array[RedisStreamMessage]
-} derive(Debug)
+}
 
 ///|
 pub extend RedisStream with @moonbitlang/core/debug.Debug::{to_repr}

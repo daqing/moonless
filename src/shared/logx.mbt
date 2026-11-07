@@ -3,11 +3,12 @@
 // message — one line per event, easy to grep and collect.
 
 ///|
+#derive(Debug)
 pub enum LogLevel {
   Info
   Warn
   Error
-} derive(Debug)
+}
 
 ///|
 pub extend LogLevel with Debug::{to_repr}

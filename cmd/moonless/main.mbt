@@ -2,9 +2,10 @@
 // The moonless CLI: deploy, list, and logs against a running gateway.
 
 ///|
+#derive(Debug)
 priv suberror CliError {
   CliError(String)
-} derive(Debug)
+}
 
 ///|
 async fn main {
