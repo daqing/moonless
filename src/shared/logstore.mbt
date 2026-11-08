@@ -208,7 +208,7 @@ pub fn parse_run_log_line(line : String) -> RunLogRecord? {
 
 ///|
 pub fn RunLogRecord::render(self : RunLogRecord) -> String {
-  "\{self.ts} event=\{self.event.to_json().stringify()} exit=\{self.exit_code} dur=\{self.duration_ms}ms truncated=\{self.truncated}\n\{self.stderr}\n"
+  "\{self.ts} function=\{self.name} event=\{self.event.to_json().stringify()} exit=\{self.exit_code} dur=\{self.duration_ms}ms truncated=\{self.truncated}\n\{self.stderr}\n"
 }
 
 ///|

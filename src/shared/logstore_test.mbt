@@ -139,8 +139,11 @@ test "run log record survives the JSONL line round-trip" {
   assert_eq(parsed.exit_code, 0)
   assert_eq(parsed.duration_ms, 7)
   assert_eq(parsed.stderr, "multi\nline\nstderr")
-  // The human rendering keeps the pre-JSONL shape.
+  // The human rendering identifies the function alongside the event.
   let rendered = parsed.render()
+  assert_true(
+    rendered.has_prefix("2026-10-16T08:00:00.000Z function=fn event="),
+  )
   assert_true(rendered.contains("event={\"source\":\"s3\""))
   assert_true(rendered.contains("exit=0 dur=7ms truncated=false"))
   assert_true(rendered.has_suffix("multi\nline\nstderr\n"))
