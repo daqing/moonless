@@ -346,6 +346,49 @@ async test "error UX: validation errors carry hints, not stack traces" {
 }
 
 ///|
+async test "logs follow waits when no logs exist yet" {
+  let port = fixture_listen_port()
+  let requests = Ref(0)
+  @async.with_task_group(group => {
+    let router = @shared.Router::new()
+    router.add(
+      @shared.route(
+        http_method=@http.Get,
+        pattern="/api/functions/:name/logs",
+        handler=ctx => {
+          requests.val += 1
+          if requests.val == 1 {
+            @shared.send_text(ctx.conn, 404, "no logs")
+          } else {
+            @shared.send_text(ctx.conn, 200, "first log\n")
+          }
+        },
+      ),
+    )
+    let server = @http.Server(
+      @socket.Addr::parse("127.0.0.1:\{port}"),
+      reuse_addr=true,
+    )
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    try
+      @async.with_timeout(
+        2500,
+        () => cli_logs(["hello", "--follow"], "http://127.0.0.1:\{port}"),
+        error=FixtureError("follow timeout"),
+      )
+    catch {
+      FixtureError(_) => ()
+      CliError(message) => fail("follow exited early: \{message}")
+      _ => fail("follow failed unexpectedly")
+    } noraise {
+      _ => fail("follow exited without new logs")
+    }
+    assert_true(requests.val >= 2)
+    server.close()
+  })
+}
+
+///|
 async test "error UX: unknown function hints at list and trigger" {
   let port = fixture_listen_port()
   @async.with_task_group(group => {

@@ -50,6 +50,7 @@ services:
       - server
       - -ip=seaweedfs
       - -ip.bind=0.0.0.0
+      - -master.peers=none
       - -filer=true
       - -s3=true
       - -s3.port=8333

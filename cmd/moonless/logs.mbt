@@ -15,16 +15,17 @@ async fn cli_logs(
         "cannot reach the moonless server at \{server}\n(hint: is the stack running? try 'docker compose up -d')",
       )
   }
-  if response.status != 200 {
+  if response.status == 200 {
+    @stdio.stdout.write(response.body + "\n") catch {
+      _ => ()
+    }
+  } else if !parsed.follow || response.status != 404 {
     raise CliError(
       "no logs for function '\{parsed.name}'\n(hint: check the name with 'moonless list', or trigger it first: curl \{server}/fn/\{parsed.name})",
     )
   }
-  @stdio.stdout.write(response.body + "\n") catch {
-    _ => ()
-  }
   if parsed.follow {
-    let mut previous = response.body
+    let mut previous = if response.status == 200 { response.body } else { "" }
     for ;; {
       @async.sleep(1000)
       let next = @shared.http_get(url, timeout_ms=30_000) catch {

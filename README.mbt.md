@@ -164,7 +164,7 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
-Add `--follow` to keep polling and print new log records as they arrive.
+Add `--follow` to keep polling and print new log records as they arrive. If no logs exist yet, follow mode waits for the first record instead of exiting.
 
 ## The function contract
 

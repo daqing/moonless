@@ -153,7 +153,7 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
-加上 `--follow` 可持续轮询，并在新日志到达时只输出新增记录。
+加上 `--follow` 可持续轮询，并在新日志到达时只输出新增记录。如果暂时没有日志，follow 模式会等待第一条记录，而不是直接退出。
 
 ## 函数运行契约
 
