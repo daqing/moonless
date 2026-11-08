@@ -14,14 +14,14 @@ portmanteau: **Moon**Bit + server**less**.
 
 You have a machine inside your network and a pile of small jobs that deserve
 to run as services: an HTTP endpoint that renders a report, a nightly
-cleanup task, a hook that fires whenever a file lands in a bucket. You
+cleanup task, a hook that fires on S3 requests against a bucket. You
 don't want to babysit a server for each of them, and you can't reach — or
 don't want — a public FaaS cloud.
 
 moonless gives that machine a job: run `docker compose up` once, and you
 have a function platform for the whole intranet. Write functions in
 MoonBit, ship them with one command, trigger them over HTTP, on a schedule,
-or by uploading a file.
+or on S3 requests.
 
 ## Features at a glance
 
@@ -32,7 +32,7 @@ or by uploading a file.
 - **Sandboxed by default.** Functions execute as wasm modules under
   moonrun: memory-isolated, no ambient host access — while keeping full
   networking (TCP / TLS) through the runtime's host layer.
-- **Three trigger types.** HTTP route, cron schedule, and S3 put events —
+- **Three trigger types.** HTTP route, cron schedule, and S3 events —
   declared in a small manifest next to your code.
 - **A Unix-style function contract.** The trigger context arrives as the
   `MOONLESS_EVENT` environment variable; results go to stdout, logs to
@@ -64,7 +64,7 @@ or by uploading a file.
                           │    ▼  │           ▼                           │
                           │  builder        scheduler                    │
                           │    │              ▲                           │
-                          │    ▼              │ put events                │
+                          │    ▼              │ s3 events                 │
                           │  SeaweedFS ───────┘  (S3-compatible storage)  │
                           │                                               │
                           │  your Redis / MySQL / Postgres (external)     │
@@ -77,7 +77,7 @@ or by uploading a file.
 | `builder`    | Builds uploaded sources into wasm modules with the moon toolchain         |
 | `runner`     | Execution plane: runs wasm modules via moonrun, captures stdout/stderr    |
 | `scheduler`  | Fires functions on cron schedules                                         |
-| SeaweedFS    | S3-compatible object storage; notifies moonless on object uploads         |
+| SeaweedFS    | S3-compatible object storage; reports S3 requests to moonless              |
 
 Redis, MySQL, and Postgres stay outside the platform: you run them (or
 reuse the ones you already have), and moonless just hands functions their
@@ -257,9 +257,11 @@ s3 = { bucket = "uploads", methods = ["put"] }
 - **cron** — standard five-field cron expressions; the function fires with
   the schedule in its event.
 - **S3** — bind a bucket and the methods that fire the function (`get`,
-  `post`, `put`, `delete`). Upload an object with any S3 client (`aws`,
-  `mc`, `rclone`…); SeaweedFS notifies moonless and the function fires
-  with the bucket and key in its event. Event delivery is best-effort.
+  `post`, `put`, `delete`). SeaweedFS's S3 audit log is forwarded through
+  fluent-bit, and each successful matching request fires the function with
+  the bucket and key in its event. Because events come from the S3 API
+  layer, writes made directly through the filer do not trigger functions.
+  Event delivery is best-effort.
 
 `http` accepts either `true` / `false` or the explicit table form
 `http = { enabled = true }`.
@@ -344,10 +346,9 @@ moon run scripts/demo_s3_methods.mbtx
 ```
 
 Set `MC=/path/to/mc` if the client is not on `PATH`. The script uses `mc`
-to PUT, GET, and DELETE an object. PUT and DELETE
-arrive as real SeaweedFS events. SeaweedFS does not notify object reads,
-and `mc` has no POST upload command, so the demo also sends GET and POST
-events through `/api/events` to exercise those trigger paths.
+to PUT, GET, and DELETE an object, and all three arrive as real SeaweedFS
+audit events. `mc` has no POST upload command, so the demo sends a POST
+event through `/api/events` to exercise that trigger path.
 
 ## Per-function limits
 

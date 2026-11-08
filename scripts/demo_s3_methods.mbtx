@@ -31,8 +31,9 @@ async fn wait_for_event(
 }
 
 ///|
-// SeaweedFS does not notify reads, and mc has no POST upload command. Send
-// those method events through the gateway's internal intake instead.
+// The demo needs no synthetic GET: SeaweedFS audit logs report the real
+// request. mc has no POST upload command, so POST goes through the gateway's
+// internal intake instead.
 async fn send_event(
   server : String,
   event_name : String,
@@ -100,12 +101,10 @@ async fn main {
   wait_for_event(server, "s3-methods", "put", put_key)
   println("    put event observed")
 
-  println("\n==> GET: mc cat downloads the object (reads are not notified)")
+  println("\n==> GET: mc cat downloads hello/\{put_key}")
   @shell.Cmd(mc, [
     "--config-dir", config_dir, "cat", "moonless-methods/hello/" + put_key,
   ]).run()
-  println("    no event expected; sending a synthetic get event instead")
-  send_event(server, "get", "hello", put_key)
   wait_for_event(server, "s3-methods", "get", put_key)
   println("    get event observed")
 

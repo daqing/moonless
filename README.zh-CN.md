@@ -17,7 +17,7 @@ HTTP 接口、一个每晚定时执行的清理脚本、一个"桶里来了新�
 或者你根本不想用它。
 
 moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内网就有了一个
-函数平台。用 MoonBit 写函数，一条命令发布，通过 HTTP、定时任务或上传文件
+函数平台。用 MoonBit 写函数，一条命令发布，通过 HTTP、定时任务或 S3 事件
 来触发。
 
 ## 特性一览
@@ -28,7 +28,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 - **默认沙箱隔离。** 函数以 wasm 模块在 moonrun 下执行：内存隔离、
   没有对宿主的随意访问——同时经由运行时的 host 层保有完整的网络
   能力（TCP / TLS）。
-- **三种触发方式。** HTTP 路由、cron 定时、S3 上传事件，全部在代码旁的
+- **三种触发方式。** HTTP 路由、cron 定时、S3 事件，全部在代码旁的
   一个小 manifest 里声明。
 - **Unix 风格的函数契约。** 触发上下文通过 `MOONLESS_EVENT` 环境变量传入；
   结果走 stdout，日志走 stderr。调试时平台完全可以让路。
@@ -55,7 +55,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
                           │    ▼  │           ▼                           │
                           │  builder        scheduler                    │
                           │    │              ▲                           │
-                          │    ▼              │ put 事件                  │
+                          │    ▼              │ S3 事件                   │
                           │  SeaweedFS ───────┘  (S3 兼容存储)            │
                           │                                               │
                           │   你的 Redis / MySQL / Postgres（外部自备）   │
@@ -68,7 +68,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 | `builder`    | 用 moon 工具链把上传的源码构建为 wasm 模块                  |
 | `runner`     | 执行面：经 moonrun 运行 wasm 模块，收集 stdout / stderr      |
 | `scheduler`  | 按 cron 配置调度触发函数                                                  |
-| SeaweedFS    | S3 兼容对象存储；对象上传时通知 moonless                                  |
+| SeaweedFS    | S3 兼容对象存储；把 S3 请求上报给 moonless                                |
 
 Redis、MySQL、Postgres 不在平台之内：你自己运行（或复用现有实例），
 moonless 只负责把地址交给函数。
@@ -242,9 +242,9 @@ s3 = { bucket = "uploads", methods = ["put"] }
 - **HTTP** —— 函数挂在 `/fn/<name>` 路由上。
 - **cron** —— 标准的五段式 cron 表达式；触发时调度配置会出现在事件里。
 - **S3** —— 指定 bucket 和会触发函数的 method（`get`、`post`、`put`、
-  `delete`）。用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
-  SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
-  事件交付为尽力而为（best-effort）。
+  `delete`）。SeaweedFS 的 S3 审计日志经 fluent-bit 转发后，每条成功的匹配
+  请求都会触发函数，事件里带有 bucket 和 key。由于事件来自 S3 API 层，直接
+  通过 filer 写入的文件不会触发函数。事件交付为尽力而为（best-effort）。
 
 `http` 既可以写成 `true` / `false`，也可以写成显式的 table 形式
 `http = { enabled = true }`。
@@ -327,9 +327,8 @@ moon run scripts/demo_s3_methods.mbtx
 ```
 
 如果 `mc` 不在 `PATH` 中，设置 `MC=/path/to/mc`。脚本会用 `mc` 对对象
-执行 PUT、GET、DELETE。PUT 和 DELETE 是真实的
-SeaweedFS 事件。SeaweedFS 不会通知对象读取，`mc` 也没有 POST 上传命令，
-因此 GET 和 POST 通过 `/api/events` 发送合成事件来演示这两条触发路径。
+执行 PUT、GET、DELETE，三者都是真实的 SeaweedFS 审计事件。`mc` 没有
+POST 上传命令，因此 POST 通过 `/api/events` 发送合成事件来演示这条触发路径。
 
 ## 函数级限制
 

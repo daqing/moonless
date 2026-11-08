@@ -813,6 +813,19 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     )
     assert_eq(response.stringify(), "[]")
     assert_eq(dispatched.length(), 0)
+    // fluent-bit sends a batch as a JSON array; every event dispatches.
+    dispatched.clear()
+    let batch : Json = [
+      { "source": "s3", "event": "put", "bucket": "uploads", "key": "a.csv" },
+      { "source": "s3", "event": "put", "bucket": "archive", "key": "b.csv" },
+    ]
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      batch,
+    )
+    assert_eq(dispatched.length(), 2)
+    assert_true(response.stringify().contains("on-upload"))
+    assert_true(response.stringify().contains("on-other-bucket"))
     runner_server.close()
     gateway_server.close()
   })

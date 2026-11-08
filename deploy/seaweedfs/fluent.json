@@ -1,0 +1,5 @@
+{
+  "fluent_host": "s3-audit",
+  "fluent_port": 24224,
+  "fluent_network": "tcp"
+}

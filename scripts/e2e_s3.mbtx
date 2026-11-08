@@ -46,7 +46,7 @@ async fn main {
       logs.contains("on-upload received:") &&
       logs.contains("listed uploads:") {
       println(logs)
-      println("S3 e2e OK: mc cp -> webhook -> function log")
+      println("S3 e2e OK: mc cp -> audit log -> function log")
       return
     }
     @async.sleep(250)
