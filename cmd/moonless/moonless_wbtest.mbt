@@ -221,6 +221,110 @@ test "render_function_table matches registry state" {
 }
 
 ///|
+test "parse_show_name handles name and server flags" {
+  assert_eq(parse_show_name(["hello"]), "hello")
+  assert_eq(parse_show_name(["--server", "http://x:1", "hello"]), "hello")
+  assert_eq(parse_show_name(["--server=http://x:1", "hello"]), "hello")
+  try parse_show_name([]) catch {
+    CliError(message) => assert_true(message.contains("usage: moonless show"))
+  } noraise {
+    _ => fail("expected failure for an empty show name")
+  }
+  try parse_show_name(["a", "b"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected failure for extra show arguments")
+  }
+}
+
+///|
+test "render_function_detail shows triggers, limits, and history" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(
+      name="hello-fn",
+      triggers=@shared.ManifestTriggers(
+        http_enabled=true,
+        cron="0 8 * * *",
+        s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+      ),
+      toolchain="0.10.11",
+      limits=@shared.FunctionLimits(timeout_ms=Some(5000), concurrency=Some(2)),
+      binary="func",
+      sandbox="policy.json",
+    ),
+    build_id="b-2",
+    updated_at="2026-10-03T00:00:00.000Z",
+    history=["b-1", "b-2"],
+  )
+  let text = render_function_detail(record, "http://127.0.0.1:8080")
+  assert_true(text.contains("name:      hello-fn"))
+  assert_true(text.contains("build:     b-2"))
+  assert_true(text.contains("updated:   2026-10-03T00:00:00.000Z"))
+  assert_true(text.contains("toolchain: 0.10.11"))
+  assert_true(text.contains("binary:    func"))
+  assert_true(text.contains("sandbox:   policy.json"))
+  assert_true(
+    text.contains("  http: enabled (http://127.0.0.1:8080/fn/hello-fn)"),
+  )
+  assert_true(text.contains("  cron: 0 8 * * *"))
+  assert_true(text.contains("  s3: bucket=uploads events=put,delete"))
+  assert_true(text.contains("  timeout_ms=5000"))
+  assert_true(text.contains("  concurrency=2"))
+  assert_true(text.contains("history:   b-1 b-2"))
+  // A minimal manifest keeps the output short.
+  let minimal = @shared.RegistryRecord(
+    name="bare-fn",
+    manifest=@shared.Manifest(name="bare-fn"),
+    build_id="b-1",
+    updated_at="2026-10-03T00:00:00.000Z",
+  )
+  let text = render_function_detail(minimal, "http://127.0.0.1:8080")
+  assert_true(text.contains("triggers:  none"))
+  assert_false(text.contains("toolchain:"))
+  assert_false(text.contains("limits:"))
+  assert_false(text.contains("history:"))
+}
+
+///|
+async test "show fetches the function record and reports unknown names" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(
+      name="hello-fn",
+      triggers=@shared.ManifestTriggers(http_enabled=true),
+    ),
+    build_id="b-2",
+    updated_at="2026-10-03T00:00:00.000Z",
+  )
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(http_method=@http.Get, pattern="/api/functions/:name", handler=ctx => {
+      if ctx.params["name"] == "hello-fn" {
+        @shared.send_json(ctx.conn, 200, record.to_json())
+      } else {
+        @shared.send_text(ctx.conn, 404, "unknown function\n")
+      }
+    }),
+  )
+  let (server, port) = fixture_server()
+  let base = "http://127.0.0.1:\{port}"
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let out = CliOut::capture()
+    cli_show(["hello-fn"], base, out~)
+    assert_true(out.text().contains("name:      hello-fn"))
+    assert_true(out.text().contains("build:     b-2"))
+    try cli_show(["ghost"], base, out=CliOut::capture()) catch {
+      CliError(message) => assert_true(message.contains("no function 'ghost'"))
+    } noraise {
+      _ => fail("expected failure for an unknown function")
+    }
+    server.close()
+  })
+}
+
+///|
 test "parse_list_quiet handles q and server flags" {
   assert_false(parse_list_quiet([]))
   assert_true(parse_list_quiet(["-q"]))

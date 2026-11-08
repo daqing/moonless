@@ -145,10 +145,12 @@ http = true
 ```bash
 moonless deploy
 moonless list
+moonless show hello
 curl "$MOONLESS_SERVER/fn/hello"
 ```
 
-使用 `moonless list -q` 可省略表格首行 header。
+使用 `moonless list -q` 可省略表格首行 header。`moonless show <name>`
+会打印已部署的 manifest、触发器、限制、当前构建和历史。
 
 ### 5. 查看日志
 

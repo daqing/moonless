@@ -156,10 +156,12 @@ http = true
 ```bash
 moonless deploy
 moonless list
+moonless show hello
 curl "$MOONLESS_SERVER/fn/hello"
 ```
 
-Use `moonless list -q` to omit the table header.
+Use `moonless list -q` to omit the table header. `moonless show <name>`
+prints the deployed manifest, triggers, limits, build, and history.
 
 ### 5. Read the logs
 
