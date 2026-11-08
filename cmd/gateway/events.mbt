@@ -22,9 +22,18 @@ async fn handle_event(
   guard event is Some(event) else {
     return @shared.send_json(ctx.conn, 200, Json::array([]))
   }
+  let target_function = if payload is Object(obj) &&
+    obj.get("function") is Some(String(name)) {
+    Some(name)
+  } else {
+    None
+  }
   let records = registry_all(cfg)
   let dispatches = []
   for name, record in records {
+    if target_function is Some(target) && target != name {
+      continue
+    }
     if trigger_matches(record.manifest.triggers, event) {
       @shared.log_info(
         service="gateway",

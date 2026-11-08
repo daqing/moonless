@@ -309,6 +309,18 @@ moonless rollback <name>
 
 The next invocation uses the selected artifact immediately.
 
+## Deleting functions
+
+Remove a deployed function with:
+
+```bash
+moonless delete <name>
+```
+
+This unregisters the function's HTTP, cron, and S3 triggers and deletes its build
+artifacts, build working directories, and run logs. Other functions and their
+data are left untouched.
+
 ## Multi-node runners
 
 Start another runner with a reachable public URL and gateway address; no shared

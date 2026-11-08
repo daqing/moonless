@@ -598,7 +598,8 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
   }
-  // Three functions: bound to uploads/put, bound to another bucket, cron.
+  // Four functions: bound to uploads/put, bound to another bucket, and two
+  // cron functions sharing one schedule.
   registry_set(
     cfg,
     @shared.RegistryRecord(
@@ -636,6 +637,18 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
         triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
       ),
       build_id="b-3",
+      updated_at="2026-10-03T00:00:00.000Z",
+    ),
+  )
+  registry_set(
+    cfg,
+    @shared.RegistryRecord(
+      name="other-cron",
+      manifest=@shared.Manifest(
+        name="other-cron",
+        triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
+      ),
+      build_id="b-4",
       updated_at="2026-10-03T00:00:00.000Z",
     ),
   )
@@ -690,10 +703,12 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     assert_true(response.stringify().contains("on-upload"))
     assert_eq(dispatched.length(), 1)
     assert_eq(dispatched[0], "on-upload")
-    // A cron event fires only the cron-bound function.
+    // A targeted cron event does not fan out to another function with the
+    // same schedule.
     dispatched.clear()
     let cron_event : Json = {
       "source": "cron",
+      "function": "nightly",
       "schedule": "0 8 * * *",
       "time": "2026-10-03T08:00:00Z",
     }

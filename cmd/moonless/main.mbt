@@ -1,5 +1,5 @@
 ///|
-// The moonless CLI: deploy, list, and logs against a running gateway.
+// The moonless CLI: deploy and operate functions through a running gateway.
 
 ///|
 #derive(Debug)
@@ -35,6 +35,7 @@ async fn cli_main(args : Array[String]) -> Unit raise CliError {
   match command {
     "deploy" => cli_deploy(server)
     "list" => cli_list(server)
+    "delete" => cli_delete(flags, server)
     "logs" => cli_logs(flags, server)
     "runs" => cli_runs(flags, server)
     "rollback" => cli_rollback(flags, server)
@@ -71,6 +72,8 @@ fn print_usage() -> Unit {
     "  moonless deploy [--server URL]     package the current project and deploy it",
   )
   println("  moonless list   [--server URL]     list deployed functions")
+  println("  moonless delete <name> [--server URL]")
+  println("                                     remove a deployed function")
   println(
     "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow] [--server URL]",
   )

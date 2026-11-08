@@ -153,6 +153,7 @@ async test "dispatch_due fires due entries once and reschedules forward" {
     let event = fake.events[0].stringify()
     assert_true(event.contains("\"source\":\"cron\""))
     assert_true(event.contains("\"schedule\":\"* * * * *\""))
+    assert_true(event.contains("\"function\":\"every-minute\""))
     // The overdue entry fired once and rescheduled into the future; the
     // future entry is untouched.
     guard updated.get("every-minute") is Some(rescheduled) else {

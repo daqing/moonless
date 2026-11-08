@@ -289,6 +289,17 @@ moonless rollback <name>
 
 下一次调用会立即使用选中的产物。
 
+## 删除函数
+
+删除一个已部署的函数：
+
+```bash
+moonless delete <name>
+```
+
+这会注销函数的 HTTP、cron 和 S3 触发器，并删除它的构建产物、构建工作目录和
+运行日志。其他函数及其数据不受影响。
+
 ## 多节点 runner
 
 启动另一个具有可访问地址的 runner，并配置 gateway 地址；无需共享 volume：
