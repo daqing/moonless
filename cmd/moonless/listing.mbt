@@ -71,50 +71,32 @@ fn render_function_table(
   if records.length() == 0 {
     return if quiet { "" } else { "no functions deployed\n" }
   }
-  let header = "\{pad("NAME", 20)} \{pad("TRIGGERS", 24)} \{pad("BUILD", 16)} UPDATED\n"
+  let header = "\{pad("NAME", 20)} \{pad("TRIGGERS", 12)} \{pad("BUILD", 16)} UPDATED\n"
   let mut out = if quiet { "" } else { header }
   for record in records {
-    let row = "\{pad(record.name, 20)} \{pad(trigger_summary(record), 24)} \{pad(record.build_id, 16)} \{record.updated_at}\n"
+    let row = "\{pad(record.name, 20)} \{pad(trigger_names(record), 12)} \{pad(record.build_id, 16)} \{record.updated_at}\n"
     out += row
   }
   out
 }
 
 ///|
-fn trigger_summary(record : @shared.RegistryRecord) -> String {
+fn trigger_names(record : @shared.RegistryRecord) -> String {
   let parts : Array[String] = []
   let triggers = record.manifest.triggers
   if triggers.http_enabled {
     parts.push("http")
   }
-  match triggers.cron {
-    Some(expr) => parts.push("cron(\{expr})")
-    None => ()
+  if triggers.cron is Some(_) {
+    parts.push("cron")
   }
-  match triggers.s3 {
-    Some(s3) => {
-      let mut events = ""
-      for i in 0..<s3.events.length() {
-        if i > 0 {
-          events += ","
-        }
-        events += s3.events[i]
-      }
-      parts.push("s3(\{s3.bucket}:\{events})")
-    }
-    None => ()
+  if triggers.s3 is Some(_) {
+    parts.push("s3")
   }
   if parts.length() == 0 {
     return "-"
   }
-  let mut joined = ""
-  for i in 0..<parts.length() {
-    if i > 0 {
-      joined += " "
-    }
-    joined += parts[i]
-  }
-  joined
+  parts.join(" ")
 }
 
 ///|
