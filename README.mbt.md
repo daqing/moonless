@@ -257,11 +257,12 @@ s3 = { bucket = "uploads", methods = ["put"] }
 - **cron** — standard five-field cron expressions; the function fires with
   the schedule in its event.
 - **S3** — bind a bucket and the methods that fire the function (`get`,
-  `post`, `put`, `delete`). SeaweedFS's S3 audit log is forwarded through
+  `put`, `delete`). SeaweedFS's S3 audit log is forwarded through
   fluent-bit, and each successful matching request fires the function with
   the bucket and key in its event. Because events come from the S3 API
   layer, writes made directly through the filer do not trigger functions.
-  Event delivery is best-effort.
+  POST uploads are not supported: SeaweedFS reports them without an object
+  key. Event delivery is best-effort.
 
 `http` accepts either `true` / `false` or the explicit table form
 `http = { enabled = true }`.
@@ -339,7 +340,7 @@ payload to dispatch to a single function.
 
 ### S3 method triggers
 
-`examples/s3-methods` binds bucket `hello` to all four methods. Run:
+`examples/s3-methods` binds bucket `hello` to `get`, `put`, and `delete`. Run:
 
 ```bash
 moon run scripts/demo_s3_methods.mbtx
@@ -347,8 +348,7 @@ moon run scripts/demo_s3_methods.mbtx
 
 Set `MC=/path/to/mc` if the client is not on `PATH`. The script uses `mc`
 to PUT, GET, and DELETE an object, and all three arrive as real SeaweedFS
-audit events. `mc` has no POST upload command, so the demo sends a POST
-event through `/api/events` to exercise that trigger path.
+audit events.
 
 ## Per-function limits
 

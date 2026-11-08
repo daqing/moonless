@@ -421,9 +421,12 @@ gateway 其余逻辑不变。
 
 - 记录字段有 `operation`、`bucket`、`key`、`status` 等；`key` 不带前导 `/`。
 - 映射：`REST.GET.OBJECT` → get，`REST.PUT.OBJECT` → put，
-  `REST.POST.OBJECT` → post，`REST.DELETE.OBJECT` /
-  `BATCH.DELETE.OBJECT` → delete。`mc rm` 走批量删除，并会额外产生一条
-  `key` 为空的记录，需按空 key 丢弃。
+  `REST.DELETE.OBJECT` / `BATCH.DELETE.OBJECT` → delete。`mc rm` 走批量
+  删除，并会额外产生一条 `key` 为空的记录，需按空 key 丢弃。
+- 不支持 POST：S3 表单上传（`mc share upload` + curl）在审计里记为
+  `REST.POST.BUCKET`，`key` 为空，无法构造带对象名的事件；分片上传的
+  Create/Complete 虽记为 `REST.POST.OBJECT`，但那是上传流程的一部分而非
+  独立的 POST 语义。`s3.methods` 只允许 `get` / `put` / `delete`。
 - 只保留 2xx；`REST.HEAD.OBJECT`、`REST.GET.BUCKET` 等不触发。
 - 审计配置里的 `timeout` 等字段是 Go `time.Duration`（纳秒），误写
   `"timeout": 3000` 会让连接超时退化为 3µs，表现为始终连接失败；只保留
@@ -432,7 +435,7 @@ gateway 其余逻辑不变。
   `/api/events` 因此同时接受单个事件和事件数组（`json_lines` / `json_stream`
   在批处理时会产生多行或首尾相接的非法 JSON，不要用）。
 - 取舍：事件来自 S3 API 层，绕过 S3 直接写 filer 的文件不再触发；
-  多段上传的完成请求表现为 `REST.POST.OBJECT`（`mc` 小文件仍是 PUT）。
+  分片上传会按 part 触发多次 put，Create/Complete 的 POST 记录被忽略。
 
 ## T9.5 触发匹配实测
 

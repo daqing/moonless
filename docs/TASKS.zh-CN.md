@@ -58,7 +58,7 @@
   *完成标准：* 单元测试覆盖三种变量的往返（round-trip）。
 - [x] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
   必填、触发器全部可选、`cron` 为五段式表达式、`s3.methods` 取值
-  属于 `{get, post, put, delete}`、可选的 `toolchain` 字段不得超过
+  属于 `{get, put, delete}`、可选的 `toolchain` 字段不得超过
   平台锁定的版本（R1）。
   *完成标准：* 单元测试覆盖合法与非法样例。
 - [x] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量

@@ -241,10 +241,11 @@ s3 = { bucket = "uploads", methods = ["put"] }
 
 - **HTTP** —— 函数挂在 `/fn/<name>` 路由上。
 - **cron** —— 标准的五段式 cron 表达式；触发时调度配置会出现在事件里。
-- **S3** —— 指定 bucket 和会触发函数的 method（`get`、`post`、`put`、
-  `delete`）。SeaweedFS 的 S3 审计日志经 fluent-bit 转发后，每条成功的匹配
+- **S3** —— 指定 bucket 和会触发函数的 method（`get`、`put`、`delete`）。
+  SeaweedFS 的 S3 审计日志经 fluent-bit 转发后，每条成功的匹配
   请求都会触发函数，事件里带有 bucket 和 key。由于事件来自 S3 API 层，直接
-  通过 filer 写入的文件不会触发函数。事件交付为尽力而为（best-effort）。
+  通过 filer 写入的文件不会触发函数。不支持 POST 上传：SeaweedFS 的审计
+  记录不含对象 key。事件交付为尽力而为（best-effort）。
 
 `http` 既可以写成 `true` / `false`，也可以写成显式的 table 形式
 `http = { enabled = true }`。
@@ -318,17 +319,16 @@ curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
 响应会列出所有匹配的函数；返回 `[]` 表示 bucket 或事件名没有匹配到任何
 触发器。在 payload 中加入 `"function":"on-upload"` 可只分发给指定函数。
 
-### S3 四种 method 的演示
+### S3 method 触发演示
 
-`examples/s3-methods` 把 `hello` 桶绑定到全部四种 method。运行：
+`examples/s3-methods` 把 `hello` 桶绑定到 `get`、`put`、`delete`。运行：
 
 ```bash
 moon run scripts/demo_s3_methods.mbtx
 ```
 
 如果 `mc` 不在 `PATH` 中，设置 `MC=/path/to/mc`。脚本会用 `mc` 对对象
-执行 PUT、GET、DELETE，三者都是真实的 SeaweedFS 审计事件。`mc` 没有
-POST 上传命令，因此 POST 通过 `/api/events` 发送合成事件来演示这条触发路径。
+执行 PUT、GET、DELETE，三者都是真实的 SeaweedFS 审计事件。
 
 ## 函数级限制
 

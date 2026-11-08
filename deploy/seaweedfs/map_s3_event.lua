@@ -1,7 +1,6 @@
 local methods = {
   ["REST.GET.OBJECT"] = "get",
   ["REST.PUT.OBJECT"] = "put",
-  ["REST.POST.OBJECT"] = "post",
   ["REST.DELETE.OBJECT"] = "delete",
   ["BATCH.DELETE.OBJECT"] = "delete",
 }

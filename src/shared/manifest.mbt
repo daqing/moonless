@@ -1,7 +1,7 @@
 ///|
 // Decoding and validation of moonless.toml, the function manifest: name
 // required, triggers all optional, cron a five-field expression, s3.methods
-// a subset of {get, post, put, delete}, and an optional toolchain that must
+// a subset of {get, put, delete}, and an optional toolchain that must
 // not exceed the platform's pinned version (R1).
 
 ///|
@@ -246,9 +246,9 @@ fn parse_triggers(
       let methods = match toml_string_array(tbl, "methods") {
         Some(methods) => {
           for entry in methods {
-            guard entry is ("get" | "post" | "put" | "delete") else {
+            guard entry is ("get" | "put" | "delete") else {
               raise InvalidManifest(
-                "s3.methods entries must be get, post, put, or delete, got: \{entry}",
+                "s3.methods entries must be get, put, or delete, got: \{entry}",
               )
             }
           }
