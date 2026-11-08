@@ -159,7 +159,21 @@ async test "deploy uploads the package and reports success" {
     let out = CliOut::capture()
     cli_deploy("http://127.0.0.1:\{port}", dir~, out~)
     assert_true(out.text().contains("deployed hello-fn"))
+    assert_false(out.text().contains("trigger over HTTP"))
     assert_eq(fake.last_name.val, "hello-fn")
+    write_fixture_files(dir, [
+      (
+        "moonless.toml", "name = \"hello-fn\"\n\n[triggers]\nhttp = { enabled = true }\n",
+      ),
+    ])
+    let out = CliOut::capture()
+    cli_deploy("http://127.0.0.1:\{port}", dir~, out~)
+    assert_true(out.text().contains("deployed hello-fn"))
+    assert_true(
+      out
+      .text()
+      .contains("trigger over HTTP at http://127.0.0.1:\{port}/fn/hello-fn"),
+    )
     server.close()
   })
 }

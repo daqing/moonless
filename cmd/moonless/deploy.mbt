@@ -65,7 +65,9 @@ async fn cli_deploy(
   }
   if result.ok {
     out.write("deployed \{manifest.name} (build \{result.build_id})\n")
-    out.write("trigger over HTTP at \{server}/fn/\{manifest.name}\n")
+    if manifest.triggers.http_enabled {
+      out.write("trigger over HTTP at \{server}/fn/\{manifest.name}\n")
+    }
   } else {
     raise CliError("build failed on the server:\n\{result.error_tail}")
   }
