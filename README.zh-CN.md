@@ -246,28 +246,36 @@ s3 = { bucket = "uploads", events = ["put"] }
 ### 测试 S3 触发器
 
 部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 事件绑定到该函数），
-然后用任意 S3 客户端上传一个对象：
+然后用任意 S3 客户端上传一个对象。SeaweedFS 提供标准 S3 API，`curl` 自己就能
+完成 SigV4 签名——不需要安装 AWS CLI（要求 curl 7.75+）：
 
 ```bash
 cd examples/on-upload
 moonless deploy
 
-export AWS_ACCESS_KEY_ID=moonless
-export AWS_SECRET_ACCESS_KEY=moonless-secret
-export AWS_REGION=us-east-1
-aws --endpoint-url http://localhost:8333 s3 mb s3://uploads   # 仅首次需要
+S3=http://localhost:8333
+
+# 200 = 创建成功，409 = 桶已存在。
+curl -sS -o /dev/null -w 'bucket: %{http_code}\n' -X PUT \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads"
+
 echo "hello" > report.txt
-aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+curl -fsS -T report.txt \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads/report.txt"
 
 moonless logs on-upload --tail 5
 ```
 
 日志里应出现 `on-upload received:` 和事件 JSON，其中包含
-`"bucket":"uploads"` 以及上传的 key。用 `mc` 也可以：
+`"bucket":"uploads"` 以及上传的 key。用 AWS CLI 或 `mc` 也可以：
 
 ```bash
+AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+
 mc alias set moonless http://localhost:8333 moonless moonless-secret
-mc mb --ignore-existing moonless/uploads
 mc cp report.txt moonless/uploads/report.txt
 ```
 

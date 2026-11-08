@@ -261,28 +261,36 @@ s3 = { bucket = "uploads", events = ["put"] }
 ### Testing the S3 trigger
 
 Deploy `examples/on-upload`, whose manifest binds bucket `uploads` to `put`
-events, then upload a file with any S3 client:
+events, then upload a file. SeaweedFS speaks the S3 API, and `curl` can sign
+those requests itself — no AWS CLI required (curl 7.75+):
 
 ```bash
 cd examples/on-upload
 moonless deploy
 
-export AWS_ACCESS_KEY_ID=moonless
-export AWS_SECRET_ACCESS_KEY=moonless-secret
-export AWS_REGION=us-east-1
-aws --endpoint-url http://localhost:8333 s3 mb s3://uploads   # first run only
+S3=http://localhost:8333
+
+# 200 = created, 409 = it already exists.
+curl -sS -o /dev/null -w 'bucket: %{http_code}\n' -X PUT \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads"
+
 echo "hello" > report.txt
-aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+curl -fsS -T report.txt \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads/report.txt"
 
 moonless logs on-upload --tail 5
 ```
 
 The log contains `on-upload received:` with the event JSON, including
-`"bucket":"uploads"` and the uploaded key. `mc` works the same way:
+`"bucket":"uploads"` and the uploaded key. The AWS CLI and `mc` work too:
 
 ```bash
+AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+
 mc alias set moonless http://localhost:8333 moonless moonless-secret
-mc mb --ignore-existing moonless/uploads
 mc cp report.txt moonless/uploads/report.txt
 ```
 
