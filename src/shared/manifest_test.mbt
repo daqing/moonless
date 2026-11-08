@@ -21,6 +21,52 @@ test "manifest parses the README's full example" {
 }
 
 ///|
+test "manifest accepts the http trigger as a bool shorthand" {
+  let enabled = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = true
+    ),
+  )
+  assert_eq(enabled.triggers.http_enabled, true)
+  let disabled = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = false
+    ),
+  )
+  assert_eq(disabled.triggers.http_enabled, false)
+  let explicit = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = { enabled = true }
+    ),
+  )
+  assert_eq(explicit.triggers.http_enabled, true)
+  try
+    @shared.parse_manifest(
+      (
+        #|name = "f"
+        #|
+        #|[triggers]
+        #|http = "yes"
+      ),
+    )
+  catch {
+    @shared.InvalidManifest(_) => ()
+    _ => fail("expected InvalidManifest")
+  } noraise {
+    _ => fail("expected a non-bool http trigger to be rejected")
+  }
+}
+
+///|
 test "manifest with only a name uses default triggers" {
   let manifest = @shared.parse_manifest("name = \"hello\"")
   assert_eq(manifest.name, "hello")

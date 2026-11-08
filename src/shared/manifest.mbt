@@ -220,9 +220,12 @@ fn toml_positive_int(
 fn parse_triggers(
   t : Map[String, @toml.TomlValue],
 ) -> ManifestTriggers raise SharedError {
-  let http_enabled = match toml_table(t, "http") {
-    Some(h) => toml_bool(h, "enabled").unwrap_or(true)
+  let http_enabled = match t.get("http") {
+    Some(@toml.TomlBoolean(enabled)) => enabled
+    Some(@toml.TomlTable(h)) => toml_bool(h, "enabled").unwrap_or(true)
     None => false
+    Some(_) =>
+      raise InvalidManifest("manifest trigger http expected a bool or table")
   }
   let cron : String? = match toml_string(t, "cron") {
     Some(expr) =>

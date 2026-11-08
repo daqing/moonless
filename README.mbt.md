@@ -148,7 +148,7 @@ name = "hello"
 toolchain = "0.10.11"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 ### 4. Deploy and call it
@@ -231,7 +231,7 @@ name = "native-worker"
 binary = "func"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 No `moon.mod` is required in this mode. The executable must match the runner's
@@ -246,7 +246,7 @@ All triggers are optional and declared in `moonless.toml`:
 name = "resize-images"
 
 [triggers]
-http = { enabled = true }
+http = true
 cron = "0 8 * * *"
 s3 = { bucket = "uploads", events = ["put"] }
 ```
@@ -257,6 +257,9 @@ s3 = { bucket = "uploads", events = ["put"] }
 - **S3** — upload an object with any S3 client (`aws`, `mc`, `rclone`…);
   SeaweedFS notifies moonless and the function fires with the bucket and
   key in its event. Event delivery is best-effort.
+
+`http` accepts either `true` / `false` or the explicit table form
+`http = { enabled = true }`.
 
 A function is reachable only through the triggers its deployed manifest
 declares; for example, `/fn/<name>` answers `403` unless `http` is enabled.

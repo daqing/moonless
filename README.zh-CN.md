@@ -137,7 +137,7 @@ name = "hello"
 toolchain = "0.10.11"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 ### 4. 部署并调用
@@ -218,7 +218,7 @@ name = "native-worker"
 binary = "func"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 此模式不需要 `moon.mod`。可执行文件必须匹配 runner 的操作系统和架构。
@@ -232,7 +232,7 @@ http = { enabled = true }
 name = "resize-images"
 
 [triggers]
-http = { enabled = true }
+http = true
 cron = "0 8 * * *"
 s3 = { bucket = "uploads", events = ["put"] }
 ```
@@ -242,6 +242,9 @@ s3 = { bucket = "uploads", events = ["put"] }
 - **S3** —— 用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
   SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
   事件交付为尽力而为（best-effort）。
+
+`http` 既可以写成 `true` / `false`，也可以写成显式的 table 形式
+`http = { enabled = true }`。
 
 函数只能通过其已部署 manifest 中声明的触发器调用；例如，未启用 `http` 时
 `/fn/<name>` 会返回 `403`。
