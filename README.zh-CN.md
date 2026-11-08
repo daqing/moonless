@@ -144,8 +144,11 @@ http = { enabled = true }
 
 ```bash
 moonless deploy
+moonless list
 curl "$MOONLESS_SERVER/fn/hello"
 ```
+
+使用 `moonless list -q` 可省略表格首行 header。
 
 ### 5. 查看日志
 
@@ -291,13 +294,19 @@ moonless rollback <name>
 
 ## 删除函数
 
-删除一个已部署的函数：
+删除已部署的函数：
 
 ```bash
-moonless delete <name>
+moonless delete <name>...
 ```
 
-这会注销函数的 HTTP、cron 和 S3 触发器，并删除它的构建产物、构建工作目录和
+可以一次传入多个名字，因此清空整个注册表可以这样写：
+
+```bash
+moonless list -q | awk '{print $1}' | xargs moonless delete
+```
+
+这会注销每个函数的 HTTP、cron 和 S3 触发器，并删除它的构建产物、构建工作目录和
 运行日志。其他函数及其数据不受影响。
 
 ## 多节点 runner

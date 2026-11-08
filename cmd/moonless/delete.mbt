@@ -1,10 +1,16 @@
 ///|
-// `moonless delete <name>` removes a deployed function and its server data.
+// `moonless delete <name>...` removes deployed functions and their server data.
 async fn cli_delete(
   flags : Array[String],
   server : String,
 ) -> Unit raise CliError {
-  let name = parse_delete_name(flags)
+  for name in parse_delete_names(flags) {
+    delete_function(name, server)
+  }
+}
+
+///|
+async fn delete_function(name : String, server : String) -> Unit raise CliError {
   let url = server + "/api/functions/\{name}"
   let headers : @http.Headers = Map([])
   let (response, body) = @async.with_timeout(
@@ -33,8 +39,8 @@ async fn cli_delete(
 }
 
 ///|
-fn parse_delete_name(flags : Array[String]) -> String raise CliError {
-  let mut name = ""
+fn parse_delete_names(flags : Array[String]) -> Array[String] raise CliError {
+  let names : Array[String] = []
   let mut i = 0
   while i < flags.length() {
     if flags[i] == "--server" {
@@ -45,15 +51,11 @@ fn parse_delete_name(flags : Array[String]) -> String raise CliError {
       i += 1
       continue
     }
-    if name == "" {
-      name = flags[i]
-      i += 1
-      continue
-    }
-    raise CliError("unexpected argument '\{flags[i]}' for delete")
+    names.push(flags[i])
+    i += 1
   }
-  if name == "" {
-    raise CliError("usage: moonless delete <name>")
+  if names.length() == 0 {
+    raise CliError("usage: moonless delete <name>...")
   }
-  name
+  names
 }

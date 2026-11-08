@@ -3,7 +3,11 @@
 // the current build.
 
 ///|
-async fn cli_list(server : String) -> Unit raise CliError {
+async fn cli_list(
+  flags : Array[String],
+  server : String,
+) -> Unit raise CliError {
+  let quiet = parse_list_quiet(flags)
   let response = @shared.http_get_json(
     server + "/api/functions",
     timeout_ms=30_000,
@@ -23,7 +27,7 @@ async fn cli_list(server : String) -> Unit raise CliError {
       None => ()
     }
   }
-  @stdio.stdout.write(render_function_table(records)) catch {
+  @stdio.stdout.write(render_function_table(records, quiet~)) catch {
     _ => ()
   }
 }
@@ -38,12 +42,38 @@ fn decode_record(item : Json) -> @shared.RegistryRecord? {
 }
 
 ///|
-fn render_function_table(records : Array[@shared.RegistryRecord]) -> String {
+fn parse_list_quiet(flags : Array[String]) -> Bool raise CliError {
+  let mut quiet = false
+  let mut i = 0
+  while i < flags.length() {
+    if flags[i] == "--server" {
+      i += 2
+      continue
+    }
+    if flags[i].has_prefix("--server=") {
+      i += 1
+      continue
+    }
+    if flags[i] == "-q" {
+      quiet = true
+      i += 1
+      continue
+    }
+    raise CliError("unexpected argument '\{flags[i]}' for list")
+  }
+  quiet
+}
+
+///|
+fn render_function_table(
+  records : Array[@shared.RegistryRecord],
+  quiet~ : Bool = false,
+) -> String {
   if records.length() == 0 {
-    return "no functions deployed\n"
+    return if quiet { "" } else { "no functions deployed\n" }
   }
   let header = "\{pad("NAME", 20)} \{pad("TRIGGERS", 24)} \{pad("BUILD", 16)} UPDATED\n"
-  let mut out = header
+  let mut out = if quiet { "" } else { header }
   for record in records {
     let row = "\{pad(record.name, 20)} \{pad(trigger_summary(record), 24)} \{pad(record.build_id, 16)} \{record.updated_at}\n"
     out += row

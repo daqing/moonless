@@ -155,8 +155,11 @@ http = { enabled = true }
 
 ```bash
 moonless deploy
+moonless list
 curl "$MOONLESS_SERVER/fn/hello"
 ```
+
+Use `moonless list -q` to omit the table header.
 
 ### 5. Read the logs
 
@@ -311,13 +314,19 @@ The next invocation uses the selected artifact immediately.
 
 ## Deleting functions
 
-Remove a deployed function with:
+Remove deployed functions with:
 
 ```bash
-moonless delete <name>
+moonless delete <name>...
 ```
 
-This unregisters the function's HTTP, cron, and S3 triggers and deletes its build
+Names can be passed in bulk, so the whole registry can be cleared with:
+
+```bash
+moonless list -q | awk '{print $1}' | xargs moonless delete
+```
+
+This unregisters each function's HTTP, cron, and S3 triggers and deletes its build
 artifacts, build working directories, and run logs. Other functions and their
 data are left untouched.
 

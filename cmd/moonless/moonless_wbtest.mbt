@@ -188,6 +188,7 @@ test "render_function_table matches registry state" {
     ),
   ]
   let table = render_function_table(records)
+  assert_true(table.has_prefix("NAME"))
   assert_true(table.contains("hello"))
   assert_true(table.contains("http"))
   assert_true(table.contains("resize"))
@@ -195,7 +196,24 @@ test "render_function_table matches registry state" {
   assert_true(table.contains("s3(uploads:put,delete)"))
   assert_true(table.contains("b-100"))
   assert_true(table.contains("b-200"))
+  let quiet_table = render_function_table(records, quiet=true)
+  assert_false(quiet_table.contains("NAME"))
+  assert_true(quiet_table.has_prefix("hello"))
+  assert_true(quiet_table.contains("resize"))
   assert_eq(render_function_table([]), "no functions deployed\n")
+  assert_eq(render_function_table([], quiet=true), "")
+}
+
+///|
+test "parse_list_quiet handles q and server flags" {
+  assert_false(parse_list_quiet([]))
+  assert_true(parse_list_quiet(["-q"]))
+  assert_true(parse_list_quiet(["--server", "http://x:1", "-q"]))
+  try parse_list_quiet(["--unknown"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected failure for an unknown list flag")
+  }
 }
 
 ///|
@@ -312,7 +330,7 @@ async test "error UX: server unreachable prints an actionable hint" {
   } noraise {
     _ => fail("expected failure for unreachable server")
   }
-  try cli_list("http://127.0.0.1:1") catch {
+  try cli_list([], "http://127.0.0.1:1") catch {
     CliError(message) => assert_true(message.contains("cannot reach"))
   } noraise {
     _ => fail("expected failure for unreachable server")

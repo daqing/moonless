@@ -34,7 +34,7 @@ async fn cli_main(args : Array[String]) -> Unit raise CliError {
   let server = resolve_server(flags)
   match command {
     "deploy" => cli_deploy(server)
-    "list" => cli_list(server)
+    "list" => cli_list(flags, server)
     "delete" => cli_delete(flags, server)
     "logs" => cli_logs(flags, server)
     "runs" => cli_runs(flags, server)
@@ -71,9 +71,12 @@ fn print_usage() -> Unit {
   println(
     "  moonless deploy [--server URL]     package the current project and deploy it",
   )
-  println("  moonless list   [--server URL]     list deployed functions")
-  println("  moonless delete <name> [--server URL]")
-  println("                                     remove a deployed function")
+  println("  moonless list   [-q] [--server URL]")
+  println(
+    "                                     list deployed functions (-q hides the header)",
+  )
+  println("  moonless delete <name>... [--server URL]")
+  println("                                     remove deployed functions")
   println(
     "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow] [--server URL]",
   )
