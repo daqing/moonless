@@ -45,6 +45,18 @@ async test "HTTP trigger sends the function's status and headers" {
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
     }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="response-fn",
+        manifest=@shared.Manifest(
+          name="response-fn",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-1",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(runner_server, fake_runner_router(fake))
     })

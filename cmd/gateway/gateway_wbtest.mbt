@@ -525,6 +525,18 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
     }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="hello-fn",
+        manifest=@shared.Manifest(
+          name="hello-fn",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-1",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(runner_server, fake_runner_router(fake))
     })
@@ -555,6 +567,97 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     // for anything not installed).
     let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
     assert_eq(response.code, 404)
+    runner_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
+// Only functions that declare the http trigger are reachable at /fn/<name>;
+// s3-only and cron-only functions are rejected before reaching the runner.
+async test "HTTP trigger only dispatches functions with the http trigger" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let dispatched : Array[String] = []
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
+  let runner = @shared.Router::new()
+  runner.add(
+    @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
+      let request = @shared.read_json_body(ctx)
+      guard request is Object(obj) else { return }
+      guard obj.get("name") is Some(String(name)) else { return }
+      dispatched.push(name)
+      @shared.send_json(
+        ctx.conn,
+        200,
+        @shared.RunResult(stdout="ran \{name}\n", exit_code=0).to_json(),
+      )
+    }),
+  )
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(runner_server, runner))
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
+    }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="on-upload",
+        manifest=@shared.Manifest(
+          name="on-upload",
+          triggers=@shared.ManifestTriggers(
+            s3=@shared.S3Trigger(bucket="uploads", events=["put"]),
+          ),
+        ),
+        build_id="b-2",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="nightly",
+        manifest=@shared.Manifest(
+          name="nightly",
+          triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
+        ),
+        build_id="b-3",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="web",
+        manifest=@shared.Manifest(
+          name="web",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-4",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let (response, _) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/on-upload",
+    )
+    assert_eq(response.code, 403)
+    let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/nightly")
+    assert_eq(response.code, 403)
+    assert_eq(dispatched.length(), 0)
+    let (response, body) = @http.get("http://127.0.0.1:\{gateway_port}/fn/web")
+    assert_eq(response.code, 200)
+    assert_eq(body.text(), "ran web\n")
+    assert_eq(dispatched.length(), 1)
+    let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
+    assert_eq(response.code, 404)
+    assert_eq(dispatched.length(), 1)
     runner_server.close()
     gateway_server.close()
   })

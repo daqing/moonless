@@ -258,6 +258,9 @@ s3 = { bucket = "uploads", events = ["put"] }
   SeaweedFS notifies moonless and the function fires with the bucket and
   key in its event. Event delivery is best-effort.
 
+A function is reachable only through the triggers its deployed manifest
+declares; for example, `/fn/<name>` answers `403` unless `http` is enabled.
+
 ### Testing the S3 trigger
 
 Deploy `examples/on-upload`, whose manifest binds bucket `uploads` to `put`

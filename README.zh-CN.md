@@ -243,6 +243,9 @@ s3 = { bucket = "uploads", events = ["put"] }
   SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
   事件交付为尽力而为（best-effort）。
 
+函数只能通过其已部署 manifest 中声明的触发器调用；例如，未启用 `http` 时
+`/fn/<name>` 会返回 `403`。
+
 ### 测试 S3 触发器
 
 部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 事件绑定到该函数），

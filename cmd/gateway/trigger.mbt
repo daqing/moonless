@@ -1,6 +1,7 @@
 ///|
-// HTTP trigger intake: /fn/<name> (any method) builds the http event,
-// dispatches to the runner, and applies the optional stdout response header.
+// HTTP trigger intake: /fn/<name> (any method) only dispatches functions
+// whose manifest enables the http trigger, then builds the http event and
+// applies the optional stdout response header.
 
 ///|
 async fn handle_trigger(
@@ -8,6 +9,18 @@ async fn handle_trigger(
   cfg : GatewayConfig,
 ) -> Unit {
   let name = ctx.params["name"]
+  let record = match registry_all(cfg).get(name) {
+    Some(record) => record
+    None =>
+      return @shared.send_text(ctx.conn, 404, "unknown function \{name}\n")
+  }
+  if !record.manifest.triggers.http_enabled {
+    return @shared.send_text(
+      ctx.conn,
+      403,
+      "function \{name} does not have an http trigger\n",
+    )
+  }
   let body = ctx.body.read_all().text() catch { _ => "" }
   let query = match ctx.request.path.split_once("?") {
     Some((_, q)) => q.to_owned()
