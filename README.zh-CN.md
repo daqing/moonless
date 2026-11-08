@@ -243,6 +243,50 @@ s3 = { bucket = "uploads", events = ["put"] }
   SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
   事件交付为尽力而为（best-effort）。
 
+### 测试 S3 触发器
+
+部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 事件绑定到该函数），
+然后用任意 S3 客户端上传一个对象：
+
+```bash
+cd examples/on-upload
+moonless deploy
+
+export AWS_ACCESS_KEY_ID=moonless
+export AWS_SECRET_ACCESS_KEY=moonless-secret
+export AWS_REGION=us-east-1
+aws --endpoint-url http://localhost:8333 s3 mb s3://uploads   # 仅首次需要
+echo "hello" > report.txt
+aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+
+moonless logs on-upload --tail 5
+```
+
+日志里应出现 `on-upload received:` 和事件 JSON，其中包含
+`"bucket":"uploads"` 以及上传的 key。用 `mc` 也可以：
+
+```bash
+mc alias set moonless http://localhost:8333 moonless moonless-secret
+mc mb --ignore-existing moonless/uploads
+mc cp report.txt moonless/uploads/report.txt
+```
+
+脚本化的端到端验证：`moon run scripts/e2e_s3.mbtx` 会用 `mc` 上传对象并等待
+函数日志；`moon run scripts/demo.mbtx` 则用 AWS CLI 走一遍 HTTP、cron 和
+S3 三种触发。
+
+不经过对象存储、只验证触发器匹配与分发时，可以直接向 gateway 的内部事件入口
+投递一个合成事件：
+
+```bash
+curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
+  -H 'Content-Type: application/json' \
+  -d '{"source":"s3","event":"put","bucket":"uploads","key":"report.csv"}'
+```
+
+响应会列出所有匹配的函数；返回 `[]` 表示 bucket 或事件名没有匹配到任何
+触发器。在 payload 中加入 `"function":"on-upload"` 可只分发给指定函数。
+
 ## 函数级限制
 
 在 `moonless.toml` 中设置可选的超时与并发覆盖值：

@@ -258,6 +258,51 @@ s3 = { bucket = "uploads", events = ["put"] }
   SeaweedFS notifies moonless and the function fires with the bucket and
   key in its event. Event delivery is best-effort.
 
+### Testing the S3 trigger
+
+Deploy `examples/on-upload`, whose manifest binds bucket `uploads` to `put`
+events, then upload a file with any S3 client:
+
+```bash
+cd examples/on-upload
+moonless deploy
+
+export AWS_ACCESS_KEY_ID=moonless
+export AWS_SECRET_ACCESS_KEY=moonless-secret
+export AWS_REGION=us-east-1
+aws --endpoint-url http://localhost:8333 s3 mb s3://uploads   # first run only
+echo "hello" > report.txt
+aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+
+moonless logs on-upload --tail 5
+```
+
+The log contains `on-upload received:` with the event JSON, including
+`"bucket":"uploads"` and the uploaded key. `mc` works the same way:
+
+```bash
+mc alias set moonless http://localhost:8333 moonless moonless-secret
+mc mb --ignore-existing moonless/uploads
+mc cp report.txt moonless/uploads/report.txt
+```
+
+For scripted end-to-end checks, `moon run scripts/e2e_s3.mbtx` uploads an
+object with `mc` and waits for the function log, while
+`moon run scripts/demo.mbtx` exercises HTTP, cron, and S3 with the AWS CLI.
+
+To test trigger matching and dispatch without touching storage, post a
+synthetic event to the gateway's internal intake:
+
+```bash
+curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
+  -H 'Content-Type: application/json' \
+  -d '{"source":"s3","event":"put","bucket":"uploads","key":"report.csv"}'
+```
+
+The response lists every function that matched; `[]` means the bucket or
+event name did not match any trigger. Add `"function":"on-upload"` to the
+payload to dispatch to a single function.
+
 ## Per-function limits
 
 Set optional timeout and concurrency overrides in `moonless.toml`:
