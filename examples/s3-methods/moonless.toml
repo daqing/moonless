@@ -1,0 +1,4 @@
+name = "s3-methods"
+
+[triggers]
+s3 = { bucket = "hello", methods = ["get", "post", "put", "delete"] }

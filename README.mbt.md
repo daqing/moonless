@@ -335,6 +335,20 @@ The response lists every function that matched; `[]` means the bucket or
 event name did not match any trigger. Add `"function":"on-upload"` to the
 payload to dispatch to a single function.
 
+### S3 method triggers
+
+`examples/s3-methods` binds bucket `hello` to all four methods. Run:
+
+```bash
+moon run scripts/demo_s3_methods.mbtx
+```
+
+Set `MC=/path/to/mc` if the client is not on `PATH`. The script uses `mc`
+to PUT, GET, and DELETE an object. PUT and DELETE
+arrive as real SeaweedFS events. SeaweedFS does not notify object reads,
+and `mc` has no POST upload command, so the demo also sends GET and POST
+events through `/api/events` to exercise those trigger paths.
+
 ## Per-function limits
 
 Set optional timeout and concurrency overrides in `moonless.toml`:

@@ -318,6 +318,19 @@ curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
 响应会列出所有匹配的函数；返回 `[]` 表示 bucket 或事件名没有匹配到任何
 触发器。在 payload 中加入 `"function":"on-upload"` 可只分发给指定函数。
 
+### S3 四种 method 的演示
+
+`examples/s3-methods` 把 `hello` 桶绑定到全部四种 method。运行：
+
+```bash
+moon run scripts/demo_s3_methods.mbtx
+```
+
+如果 `mc` 不在 `PATH` 中，设置 `MC=/path/to/mc`。脚本会用 `mc` 对对象
+执行 PUT、GET、DELETE。PUT 和 DELETE 是真实的
+SeaweedFS 事件。SeaweedFS 不会通知对象读取，`mc` 也没有 POST 上传命令，
+因此 GET 和 POST 通过 `/api/events` 发送合成事件来演示这两条触发路径。
+
 ## 函数级限制
 
 在 `moonless.toml` 中设置可选的超时与并发覆盖值：
