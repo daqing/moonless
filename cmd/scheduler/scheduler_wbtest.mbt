@@ -3,14 +3,10 @@
 // fake clock, and the skip-if-late policy.
 
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_478
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn fixture_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -74,7 +70,7 @@ fn registry_json(records : Array[(String, String?)]) -> Json {
 
 ///|
 async test "sync_table picks up cron functions within a poll" {
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   let fake = FakeGateway(
     functions=registry_json([
       ("nightly", Some("0 8 * * *")),
@@ -84,10 +80,6 @@ async test "sync_table picks up cron functions within a poll" {
     events=[],
   )
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, fake_gateway_router(fake))
     })
@@ -121,13 +113,9 @@ async test "sync_table picks up cron functions within a poll" {
 
 ///|
 async test "dispatch_due fires due entries once and reschedules forward" {
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   let fake = FakeGateway(functions=Json::array([]), events=[])
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, fake_gateway_router(fake))
     })
@@ -168,13 +156,9 @@ async test "dispatch_due fires due entries once and reschedules forward" {
 
 ///|
 async test "entries overdue beyond the grace are skipped, not caught up" {
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   let fake = FakeGateway(functions=Json::array([]), events=[])
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, fake_gateway_router(fake))
     })

@@ -6,6 +6,7 @@
 async fn cli_list(
   flags : Array[String],
   server : String,
+  out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
   let quiet = parse_list_quiet(flags)
   let response = @shared.http_get_json(
@@ -27,9 +28,7 @@ async fn cli_list(
       None => ()
     }
   }
-  @stdio.stdout.write(render_function_table(records, quiet~)) catch {
-    _ => ()
-  }
+  out.write(render_function_table(records, quiet~))
 }
 
 ///|

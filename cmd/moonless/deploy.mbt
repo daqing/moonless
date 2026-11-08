@@ -4,7 +4,11 @@
 // upload it, and report the server-side build outcome.
 
 ///|
-async fn cli_deploy(server : String, dir~ : String = "") -> Unit raise CliError {
+async fn cli_deploy(
+  server : String,
+  dir~ : String = "",
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
   let dir = if dir == "" {
     match @env.current_dir() {
       Some(d) => d
@@ -37,11 +41,11 @@ async fn cli_deploy(server : String, dir~ : String = "") -> Unit raise CliError 
         "not a MoonBit project: no moon.mod in \{dir}\n(hint: use a MoonBit project or set binary explicitly)",
       )
     }
-    ensure_vendored_deps(dir)
+    ensure_vendored_deps(dir, out~)
   }
-  println("packaging \{manifest.name} ...")
+  out.write("packaging \{manifest.name} ...\n")
   let archive = pack_project(dir)
-  println("uploading to \{server} ...")
+  out.write("uploading to \{server} ...\n")
   let payload = @shared.DeployRequest(
     name=manifest.name,
     archive=@base64.encode(archive[:]),
@@ -60,8 +64,8 @@ async fn cli_deploy(server : String, dir~ : String = "") -> Unit raise CliError 
     _ => raise CliError("the server sent an unreadable build result")
   }
   if result.ok {
-    println("deployed \{manifest.name} (build \{result.build_id})")
-    println("trigger over HTTP at \{server}/fn/\{manifest.name}")
+    out.write("deployed \{manifest.name} (build \{result.build_id})\n")
+    out.write("trigger over HTTP at \{server}/fn/\{manifest.name}\n")
   } else {
     raise CliError("build failed on the server:\n\{result.error_tail}")
   }
@@ -71,7 +75,10 @@ async fn cli_deploy(server : String, dir~ : String = "") -> Unit raise CliError 
 // R2: dependencies must travel inside the package so the builder never
 // needs network. If moon.mod declares imports but .mooncakes is absent,
 // resolve them locally first (moon check fetches into .mooncakes).
-async fn ensure_vendored_deps(dir : String) -> Unit raise CliError {
+async fn ensure_vendored_deps(
+  dir : String,
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
   let has_mooncakes = @fs.exists(dir + "/.mooncakes") catch { _ => false }
   if has_mooncakes {
     return
@@ -80,7 +87,7 @@ async fn ensure_vendored_deps(dir : String) -> Unit raise CliError {
   if !moon_mod.contains("import") {
     return
   }
-  println("resolving dependencies locally (moon check) ...")
+  out.write("resolving dependencies locally (moon check) ...\n")
   let (code, _, stderr) = @process.collect_output("moon", ["check"], cwd=dir[:]) catch {
     _ => raise CliError("failed to run 'moon check' locally")
   }

@@ -26,18 +26,20 @@ async test "delete calls the management API and reports unknown functions" {
       }
     }),
   )
-  let port = fixture_listen_port()
-  let server = @http.Server(
-    @socket.Addr::parse("127.0.0.1:\{port}"),
-    reuse_addr=true,
-  )
+  let (server, port) = fixture_server()
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
     let base_url = "http://127.0.0.1:\{port}"
-    cli_main(["moonless", "delete", "hello-fn", "bye-fn", "--server", base_url])
+    let out = CliOut::capture()
+    cli_main(
+      ["moonless", "delete", "hello-fn", "bye-fn", "--server", base_url],
+      out~,
+    )
     let expected : Array[String] = ["hello-fn", "bye-fn"]
     assert_eq(deleted, expected)
-    try cli_delete(["ghost"], base_url) catch {
+    assert_true(out.text().contains("deleted hello-fn"))
+    assert_true(out.text().contains("deleted bye-fn"))
+    try cli_delete(["ghost"], base_url, out=CliOut::capture()) catch {
       CliError(message) => {
         assert_true(message.contains("unknown function 'ghost'"))
         assert_true(message.contains("moonless list"))
@@ -51,7 +53,7 @@ async test "delete calls the management API and reports unknown functions" {
 
 ///|
 async test "delete reports an unreachable server" {
-  try cli_delete(["hello"], "http://127.0.0.1:1") catch {
+  try cli_delete(["hello"], "http://127.0.0.1:1", out=CliOut::capture()) catch {
     CliError(message) => {
       assert_true(message.contains("cannot reach the moonless server"))
       assert_true(message.contains("hint"))

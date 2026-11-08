@@ -3,12 +3,8 @@ async test "uploaded wasm executes by build id without a local registry" {
   let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
   let wasm = build_fixture_module(fixture_dir, echo_pkg(), echo_main())
   let data_root = @fs.tmpdir(prefix="moonless-runner-remote-")
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, runner_router(test_config(data_root)))
     })

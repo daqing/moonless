@@ -10,14 +10,10 @@ priv suberror FixtureError {
 }
 
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_474
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn fixture_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -189,12 +185,8 @@ async test "POST /build answers over HTTP with a BuildResult" {
   ])
   let archive = pack_tar_gz(fixture_dir)
   let data_root = @fs.tmpdir(prefix="moonless-builder-test-")
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, builder_router())
     })

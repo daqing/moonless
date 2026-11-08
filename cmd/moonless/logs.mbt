@@ -6,6 +6,7 @@
 async fn cli_logs(
   flags : Array[String],
   server : String,
+  out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
   let parsed = parse_logs_args(flags)
   let url = logs_url(parsed, server)
@@ -16,9 +17,7 @@ async fn cli_logs(
       )
   }
   if response.status == 200 {
-    @stdio.stdout.write(response.body + "\n") catch {
-      _ => ()
-    }
+    out.write(response.body + "\n")
   } else if !parsed.follow || response.status != 404 {
     raise CliError(
       "no logs for function '\{parsed.name}'\n(hint: check the name with 'moonless list', or trigger it first: curl \{server}/fn/\{parsed.name})",
@@ -36,9 +35,7 @@ async fn cli_logs(
       }
       let delta = follow_delta(previous, next.body)
       if delta != "" {
-        @stdio.stdout.write(delta) catch {
-          _ => ()
-        }
+        out.write(delta)
       }
       previous = next.body
     }

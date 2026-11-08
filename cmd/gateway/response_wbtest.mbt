@@ -26,8 +26,8 @@ test "function response parser reads status, headers, and body" {
 
 ///|
 async test "HTTP trigger sends the function's status and headers" {
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   let data_root = @fs.tmpdir(prefix="moonless-gw-response-")
   let fake = FakeRunner(
     result=@shared.RunResult(
@@ -38,14 +38,6 @@ async test "HTTP trigger sends the function's status and headers" {
     installed=Ref(["response-fn"]),
   )
   @async.with_task_group(group => {
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     let cfg : GatewayConfig = {
       data_root,
       builder_url: "http://127.0.0.1:65534",

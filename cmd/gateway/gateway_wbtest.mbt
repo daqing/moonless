@@ -9,14 +9,10 @@ priv suberror FixtureError {
 }
 
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_476
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn fixture_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -184,17 +180,9 @@ async test "deploy registers the function; list, detail, and logs answer" {
   )
   let pkg_dir = @fs.tmpdir(prefix="moonless-gw-fixture-")
   let archive = write_test_package(pkg_dir)
-  let builder_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (builder_server, builder_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let builder_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{builder_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(builder_server, fake_builder_router(fake))
     })
@@ -281,7 +269,7 @@ async test "deploy registers the function; list, detail, and logs answer" {
 ///|
 async test "logs filter by trigger source and since timestamp" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   // Two sources across two day files: http + cron on the 16th, cron on 17th.
   let r1 = test_record(
     "multi-fn",
@@ -303,10 +291,6 @@ async test "logs filter by trigger source and since timestamp" {
   )
   write_test_records(data_root, "multi-fn", [r1, r2, r3])
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(
         gateway_server,
@@ -335,7 +319,7 @@ async test "logs filter by trigger source and since timestamp" {
 ///|
 async test "runs endpoint lists the last N invocations with metadata" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   let r1 = @shared.RunLogRecord(
     ts="2026-10-16T08:00:00.000Z",
     name="jobs-fn",
@@ -365,10 +349,6 @@ async test "runs endpoint lists the last N invocations with metadata" {
   )
   write_test_records(data_root, "jobs-fn", [r1, r2, r3])
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(
         gateway_server,
@@ -529,8 +509,8 @@ fn fake_runner_router(fake : FakeRunner) -> @shared.Router {
 
 ///|
 async test "HTTP trigger builds the event and returns stdout as 200" {
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
   let fake = FakeRunner(
     result=@shared.RunResult(stdout="hello from fn\n", exit_code=0),
@@ -538,14 +518,6 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     installed=Ref(["hello-fn"]),
   )
   @async.with_task_group(group => {
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     let cfg : GatewayConfig = {
       data_root,
       builder_url: "http://127.0.0.1:65534",
@@ -653,8 +625,8 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     ),
   )
   let dispatched : Array[String] = []
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   let runner = @shared.Router::new()
   runner.add(
     @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
@@ -670,14 +642,6 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     }),
   )
   @async.with_task_group(group => {
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => @shared.serve_on(runner_server, runner))
     let gateway_cfg : GatewayConfig = {
       data_root,
@@ -768,22 +732,10 @@ async test "broken deploy surfaces the reason; a good deploy is callable" {
   )
   let pkg_dir = @fs.tmpdir(prefix="moonless-gw-fixture-")
   let archive = write_test_package(pkg_dir)
-  let builder_port = fixture_listen_port()
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (builder_server, builder_port) = fixture_server()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let builder_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{builder_port}"),
-      reuse_addr=true,
-    )
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     let cfg : GatewayConfig = {
       data_root,
       builder_url: "http://127.0.0.1:\{builder_port}",

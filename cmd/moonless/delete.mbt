@@ -3,14 +3,19 @@
 async fn cli_delete(
   flags : Array[String],
   server : String,
+  out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
   for name in parse_delete_names(flags) {
-    delete_function(name, server)
+    delete_function(name, server, out~)
   }
 }
 
 ///|
-async fn delete_function(name : String, server : String) -> Unit raise CliError {
+async fn delete_function(
+  name : String,
+  server : String,
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
   let url = server + "/api/functions/\{name}"
   let headers : @http.Headers = Map([])
   let (response, body) = @async.with_timeout(
@@ -35,7 +40,7 @@ async fn delete_function(name : String, server : String) -> Unit raise CliError 
       "delete failed for '\{name}' (HTTP \{response.code}): \{response_body}",
     )
   }
-  println("deleted \{name}")
+  out.write("deleted \{name}\n")
 }
 
 ///|

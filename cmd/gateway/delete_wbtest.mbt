@@ -32,12 +32,8 @@ async test "delete unregisters a function and removes only its data" {
     ("builds/b-2001/src/main.mbt", "current"),
     ("builds/b-3001/src/main.mbt", "keep"),
   ])
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(gateway_server, gateway_router(cfg))
     })
