@@ -269,19 +269,33 @@ moonless logs on-upload --tail 5
 ```
 
 日志里应出现 `on-upload received:` 和事件 JSON，其中包含
-`"bucket":"uploads"` 以及上传的 key。用 AWS CLI 或 `mc` 也可以：
+`"bucket":"uploads"` 以及上传的 key。用 AWS CLI 也可以：
 
 ```bash
 AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
   aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+```
+
+`mc` 不在 moonless 的安装范围内。需要先安装 MinIO 客户端，再按同样的方式
+使用：
+
+```bash
+# macOS
+brew install minio-mc
+
+# Linux (x86_64；ARM 使用 linux-arm64)
+curl -fsSL https://dl.min.io/aistor/mc/release/linux-amd64/mc -o mc
+chmod +x mc && sudo mv mc /usr/local/bin/mc
+
+mc --version
 
 mc alias set moonless http://localhost:8333 moonless moonless-secret
 mc cp report.txt moonless/uploads/report.txt
 ```
 
 脚本化的端到端验证：`moon run scripts/e2e_s3.mbtx` 会用 `mc` 上传对象并等待
-函数日志；`moon run scripts/demo.mbtx` 则用 AWS CLI 走一遍 HTTP、cron 和
-S3 三种触发。
+函数日志（先按上面安装 `mc`，或设置 `MC=/path/to/mc`）；
+`moon run scripts/demo.mbtx` 则用 AWS CLI 走一遍 HTTP、cron 和 S3 三种触发。
 
 不经过对象存储、只验证触发器匹配与分发时，可以直接向 gateway 的内部事件入口
 投递一个合成事件：

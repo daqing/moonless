@@ -284,19 +284,34 @@ moonless logs on-upload --tail 5
 ```
 
 The log contains `on-upload received:` with the event JSON, including
-`"bucket":"uploads"` and the uploaded key. The AWS CLI and `mc` work too:
+`"bucket":"uploads"` and the uploaded key. The AWS CLI works too:
 
 ```bash
 AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
   aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+```
+
+`mc` is not bundled with moonless. Install the MinIO client first, then use
+it the same way:
+
+```bash
+# macOS
+brew install minio-mc
+
+# Linux (x86_64; use linux-arm64 on ARM)
+curl -fsSL https://dl.min.io/aistor/mc/release/linux-amd64/mc -o mc
+chmod +x mc && sudo mv mc /usr/local/bin/mc
+
+mc --version
 
 mc alias set moonless http://localhost:8333 moonless moonless-secret
 mc cp report.txt moonless/uploads/report.txt
 ```
 
 For scripted end-to-end checks, `moon run scripts/e2e_s3.mbtx` uploads an
-object with `mc` and waits for the function log, while
-`moon run scripts/demo.mbtx` exercises HTTP, cron, and S3 with the AWS CLI.
+object with `mc` (install it as above, or set `MC=/path/to/mc`) and waits
+for the function log, while `moon run scripts/demo.mbtx` exercises HTTP,
+cron, and S3 with the AWS CLI.
 
 To test trigger matching and dispatch without touching storage, post a
 synthetic event to the gateway's internal intake:
