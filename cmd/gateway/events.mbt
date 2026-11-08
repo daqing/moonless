@@ -101,7 +101,7 @@ fn trigger_matches(
     Cron(_) => triggers.cron is Some(_)
     S3(e) =>
       match triggers.s3 {
-        Some(s3) => s3.bucket == e.bucket && has_event(s3.events, e.event_name)
+        Some(s3) => s3.bucket == e.bucket && has_event(s3.methods, e.event_name)
         None => false
       }
   }

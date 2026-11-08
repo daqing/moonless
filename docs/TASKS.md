@@ -66,7 +66,7 @@ Conventions:
   *Done when:* unit tests round-trip all three variants.
 - [x] **T2.2 — Manifest parsing.** Decode and validate `moonless.toml`:
   `name` required, triggers all optional, `cron` a five-field expression,
-  `s3.events` a subset of `{put, delete}`, and the optional `toolchain`
+  `s3.methods` a subset of `{get, post, put, delete}`, and the optional `toolchain`
   field must not exceed the platform's pinned version (R1).
   *Done when:* unit tests cover valid and invalid samples.
 - [x] **T2.3 — HTTP server helper.** A thin router on top of
@@ -255,7 +255,7 @@ Conventions:
   `/buckets/<bucket>/...` path convention; ignore non-S3 paths.
   *Done when:* unit tests over recorded event fixtures.
 - [x] **T9.5 — Trigger matching.** Match s3 events against
-  `moonless.toml` s3 triggers (bucket + events) and dispatch.
+  `moonless.toml` s3 triggers (bucket + methods) and dispatch.
   *Done when:* an upload to a bound bucket triggers the function; other
   buckets do not.
 - [x] **T9.6 — E2E.** `mc cp` a file → the bound function logs an s3

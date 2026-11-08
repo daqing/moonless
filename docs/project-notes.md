@@ -146,7 +146,7 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
   [triggers]
   http = { enabled = true }
   cron = "0 8 * * *"
-  s3 = { bucket = "uploads", events = ["put"] }
+  s3 = { bucket = "uploads", methods = ["put"] }
   ```
   （触发器均为可选；http 默认路径 `/fn/<name>`。）
 - HTTP 路由约定：`/fn/<function-name>`。

@@ -196,7 +196,7 @@ test "render_function_table matches registry state" {
         name="resize",
         triggers=@shared.ManifestTriggers(
           cron="0 8 * * *",
-          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+          s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
         ),
       ),
       build_id="b-200",
@@ -247,7 +247,7 @@ test "render_function_detail shows triggers, limits, and history" {
       triggers=@shared.ManifestTriggers(
         http_enabled=true,
         cron="0 8 * * *",
-        s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+        s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
       ),
       toolchain="0.10.11",
       limits=@shared.FunctionLimits(timeout_ms=Some(5000), concurrency=Some(2)),
@@ -269,7 +269,7 @@ test "render_function_detail shows triggers, limits, and history" {
     text.contains("  http: enabled (http://127.0.0.1:8080/fn/hello-fn)"),
   )
   assert_true(text.contains("  cron: 0 8 * * *"))
-  assert_true(text.contains("  s3: bucket=uploads events=put,delete"))
+  assert_true(text.contains("  s3: bucket=uploads methods=put,delete"))
   assert_true(text.contains("  timeout_ms=5000"))
   assert_true(text.contains("  concurrency=2"))
   assert_true(text.contains("history:   b-1 b-2"))

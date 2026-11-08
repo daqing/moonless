@@ -250,15 +250,16 @@ name = "resize-images"
 [triggers]
 http = true
 cron = "0 8 * * *"
-s3 = { bucket = "uploads", events = ["put"] }
+s3 = { bucket = "uploads", methods = ["put"] }
 ```
 
 - **HTTP** — the function is routed at `/fn/<name>`.
 - **cron** — standard five-field cron expressions; the function fires with
   the schedule in its event.
-- **S3** — upload an object with any S3 client (`aws`, `mc`, `rclone`…);
-  SeaweedFS notifies moonless and the function fires with the bucket and
-  key in its event. Event delivery is best-effort.
+- **S3** — bind a bucket and the methods that fire the function (`get`,
+  `post`, `put`, `delete`). Upload an object with any S3 client (`aws`,
+  `mc`, `rclone`…); SeaweedFS notifies moonless and the function fires
+  with the bucket and key in its event. Event delivery is best-effort.
 
 `http` accepts either `true` / `false` or the explicit table form
 `http = { enabled = true }`.
@@ -269,7 +270,7 @@ declares; for example, `/fn/<name>` answers `403` unless `http` is enabled.
 ### Testing the S3 trigger
 
 Deploy `examples/on-upload`, whose manifest binds bucket `uploads` to `put`
-events, then upload a file. SeaweedFS speaks the S3 API, and `curl` can sign
+requests, then upload a file. SeaweedFS speaks the S3 API, and `curl` can sign
 those requests itself — no AWS CLI required (curl 7.75+):
 
 ```bash

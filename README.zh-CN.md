@@ -236,12 +236,13 @@ name = "resize-images"
 [triggers]
 http = true
 cron = "0 8 * * *"
-s3 = { bucket = "uploads", events = ["put"] }
+s3 = { bucket = "uploads", methods = ["put"] }
 ```
 
 - **HTTP** —— 函数挂在 `/fn/<name>` 路由上。
 - **cron** —— 标准的五段式 cron 表达式；触发时调度配置会出现在事件里。
-- **S3** —— 用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
+- **S3** —— 指定 bucket 和会触发函数的 method（`get`、`post`、`put`、
+  `delete`）。用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
   SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
   事件交付为尽力而为（best-effort）。
 
@@ -253,7 +254,7 @@ s3 = { bucket = "uploads", events = ["put"] }
 
 ### 测试 S3 触发器
 
-部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 事件绑定到该函数），
+部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 请求绑定到该函数），
 然后用任意 S3 客户端上传一个对象。SeaweedFS 提供标准 S3 API，`curl` 自己就能
 完成 SigV4 签名——不需要安装 AWS CLI（要求 curl 7.75+）：
 

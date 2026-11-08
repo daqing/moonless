@@ -57,9 +57,9 @@
   上下文建模为含 http / cron / s3 三个变体的类型，并实现编解码。
   *完成标准：* 单元测试覆盖三种变量的往返（round-trip）。
 - [x] **T2.2 — Manifest 解析。** 解码并校验 `moonless.toml`：`name`
-  必填、触发器全部可选、`cron` 为五段式表达式、`s3.events` 取值
-  属于 `{put, delete}`、可选的 `toolchain` 字段不得超过平台锁定的
-  版本（R1）。
+  必填、触发器全部可选、`cron` 为五段式表达式、`s3.methods` 取值
+  属于 `{get, post, put, delete}`、可选的 `toolchain` 字段不得超过
+  平台锁定的版本（R1）。
   *完成标准：* 单元测试覆盖合法与非法样例。
 - [x] **T2.3 — HTTP server 辅助。** 基于 `moonbitlang/async` 的轻量
   路由封装：路径匹配、方法分发、JSON body 读取、响应辅助函数。
@@ -229,7 +229,7 @@
   `/buckets/<bucket>/...` 路径约定；忽略非 S3 路径。
   *完成标准：* 基于录制事件 fixture 的单元测试。
 - [x] **T9.5 — 触发器匹配。** 将 s3 事件与 `moonless.toml` 的 s3
-  触发器（bucket + events）匹配并派发。
+  触发器（bucket + methods）匹配并派发。
   *完成标准：* 上传到已绑定桶触发函数，其他桶不触发。
 - [x] **T9.6 — 端到端。** `mc cp` 上传文件 → 绑定函数的日志出现含
   正确 bucket/key 的 s3 事件。

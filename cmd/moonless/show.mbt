@@ -109,7 +109,7 @@ fn render_detail_triggers(
   }
   match triggers.s3 {
     Some(s3) =>
-      lines.push("  s3: bucket=\{s3.bucket} events=\{s3.events.join(",")}")
+      lines.push("  s3: bucket=\{s3.bucket} methods=\{s3.methods.join(",")}")
     None => ()
   }
   if lines.length() == 0 {

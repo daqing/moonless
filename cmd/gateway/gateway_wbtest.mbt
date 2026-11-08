@@ -610,7 +610,7 @@ async test "HTTP trigger only dispatches functions with the http trigger" {
         manifest=@shared.Manifest(
           name="on-upload",
           triggers=@shared.ManifestTriggers(
-            s3=@shared.S3Trigger(bucket="uploads", events=["put"]),
+            s3=@shared.S3Trigger(bucket="uploads", methods=["put"]),
           ),
         ),
         build_id="b-2",
@@ -682,7 +682,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       manifest=@shared.Manifest(
         name="on-upload",
         triggers=@shared.ManifestTriggers(
-          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+          s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
         ),
       ),
       build_id="b-1",
@@ -696,7 +696,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       manifest=@shared.Manifest(
         name="on-other-bucket",
         triggers=@shared.ManifestTriggers(
-          s3=@shared.S3Trigger(bucket="archive", events=["put"]),
+          s3=@shared.S3Trigger(bucket="archive", methods=["put"]),
         ),
       ),
       build_id="b-2",
