@@ -26,7 +26,7 @@ services:
     build: .
     image: moonless
     command: ["/app/bin/runner"]
-    # Optional user-provided data services:
+    # Optional user-provided data services. Set these in .env (see .env.example):
     # REDIS_URL=redis://redis.internal:6379
     # MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
     # POSTGRES_URL=postgres://user:pass@pg.internal:5432/db

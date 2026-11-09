@@ -62,7 +62,7 @@ or on S3 requests.
    deploy / list / logs   │    │  ▲           │        (wasm via moonrun) │
                           │    │  │           │                           │
                           │    ▼  │           ▼                           │
-                          │  builder        scheduler                    │
+                          │  builder        scheduler                     │
                           │    │              ▲                           │
                           │    ▼              │ s3 events                 │
                           │  SeaweedFS ───────┘  (S3-compatible storage)  │
