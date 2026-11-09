@@ -302,9 +302,9 @@ pub fn S3EventData::to_repr(Self) -> @debug.Repr
 #derive(@debug.Debug)
 pub struct S3Trigger {
   bucket : String
-  events : Array[String]
+  methods : Array[String]
 }
-pub fn S3Trigger::S3Trigger(bucket~ : String, events~ : Array[String]) -> Self
+pub fn S3Trigger::S3Trigger(bucket~ : String, methods~ : Array[String]) -> Self
 pub fn S3Trigger::to_repr(Self) -> @debug.Repr
 
 pub struct TarEntry {

@@ -17,7 +17,7 @@ HTTP 接口、一个每晚定时执行的清理脚本、一个"桶里来了新�
 或者你根本不想用它。
 
 moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内网就有了一个
-函数平台。用 MoonBit 写函数，一条命令发布，通过 HTTP、定时任务或上传文件
+函数平台。用 MoonBit 写函数，一条命令发布，通过 HTTP、定时任务或 S3 事件
 来触发。
 
 ## 特性一览
@@ -28,7 +28,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 - **默认沙箱隔离。** 函数以 wasm 模块在 moonrun 下执行：内存隔离、
   没有对宿主的随意访问——同时经由运行时的 host 层保有完整的网络
   能力（TCP / TLS）。
-- **三种触发方式。** HTTP 路由、cron 定时、S3 上传事件，全部在代码旁的
+- **三种触发方式。** HTTP 路由、cron 定时、S3 事件，全部在代码旁的
   一个小 manifest 里声明。
 - **Unix 风格的函数契约。** 触发上下文通过 `MOONLESS_EVENT` 环境变量传入；
   结果走 stdout，日志走 stderr。调试时平台完全可以让路。
@@ -55,7 +55,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
                           │    ▼  │           ▼                           │
                           │  builder        scheduler                    │
                           │    │              ▲                           │
-                          │    ▼              │ put 事件                  │
+                          │    ▼              │ S3 事件                   │
                           │  SeaweedFS ───────┘  (S3 兼容存储)            │
                           │                                               │
                           │   你的 Redis / MySQL / Postgres（外部自备）   │
@@ -68,7 +68,7 @@ moonless 让这台机器发挥价值：跑一次 `docker compose up`，整个内
 | `builder`    | 用 moon 工具链把上传的源码构建为 wasm 模块                  |
 | `runner`     | 执行面：经 moonrun 运行 wasm 模块，收集 stdout / stderr      |
 | `scheduler`  | 按 cron 配置调度触发函数                                                  |
-| SeaweedFS    | S3 兼容对象存储；对象上传时通知 moonless                                  |
+| SeaweedFS    | S3 兼容对象存储；把 S3 请求上报给 moonless                                |
 
 Redis、MySQL、Postgres 不在平台之内：你自己运行（或复用现有实例），
 moonless 只负责把地址交给函数。
@@ -137,15 +137,20 @@ name = "hello"
 toolchain = "0.10.11"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 ### 4. 部署并调用
 
 ```bash
 moonless deploy
+moonless list
+moonless show hello
 curl "$MOONLESS_SERVER/fn/hello"
 ```
+
+使用 `moonless list -q` 可省略表格首行 header。`moonless show <name>`
+会打印已部署的 manifest、触发器、限制、当前构建和历史。
 
 ### 5. 查看日志
 
@@ -153,7 +158,7 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
-加上 `--follow` 可持续轮询，并在新日志到达时只输出新增记录。
+加上 `--follow` 可持续轮询，并在新日志到达时只输出新增记录。如果暂时没有日志，follow 模式会等待第一条记录，而不是直接退出。
 
 ## 函数运行契约
 
@@ -215,7 +220,7 @@ name = "native-worker"
 binary = "func"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 此模式不需要 `moon.mod`。可执行文件必须匹配 runner 的操作系统和架构。
@@ -229,16 +234,101 @@ http = { enabled = true }
 name = "resize-images"
 
 [triggers]
-http = { enabled = true }
+http = true
 cron = "0 8 * * *"
-s3 = { bucket = "uploads", events = ["put"] }
+s3 = { bucket = "uploads", methods = ["put"] }
 ```
 
 - **HTTP** —— 函数挂在 `/fn/<name>` 路由上。
 - **cron** —— 标准的五段式 cron 表达式；触发时调度配置会出现在事件里。
-- **S3** —— 用任意 S3 客户端（`aws`、`mc`、`rclone`……）上传对象，
-  SeaweedFS 通知 moonless，函数被触发，事件里带有 bucket 和 key。
-  事件交付为尽力而为（best-effort）。
+- **S3** —— 指定 bucket 和会触发函数的 method（`get`、`put`、`delete`）。
+  SeaweedFS 的 S3 审计日志经 fluent-bit 转发后，每条成功的匹配
+  请求都会触发函数，事件里带有 bucket 和 key。由于事件来自 S3 API 层，直接
+  通过 filer 写入的文件不会触发函数。不支持 POST 上传：SeaweedFS 的审计
+  记录不含对象 key。事件交付为尽力而为（best-effort）。
+
+`http` 既可以写成 `true` / `false`，也可以写成显式的 table 形式
+`http = { enabled = true }`。
+
+函数只能通过其已部署 manifest 中声明的触发器调用；例如，未启用 `http` 时
+`/fn/<name>` 会返回 `403`。
+
+### 测试 S3 触发器
+
+部署 `examples/on-upload`（manifest 把 `uploads` 桶的 `put` 请求绑定到该函数），
+然后用任意 S3 客户端上传一个对象。SeaweedFS 提供标准 S3 API，`curl` 自己就能
+完成 SigV4 签名——不需要安装 AWS CLI（要求 curl 7.75+）：
+
+```bash
+cd examples/on-upload
+moonless deploy
+
+S3=http://localhost:8333
+
+# 200 = 创建成功，409 = 桶已存在。
+curl -sS -o /dev/null -w 'bucket: %{http_code}\n' -X PUT \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads"
+
+echo "hello" > report.txt
+curl -fsS -T report.txt \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads/report.txt"
+
+moonless logs on-upload --tail 5
+```
+
+日志里应出现 `on-upload received:` 和事件 JSON，其中包含
+`"bucket":"uploads"` 以及上传的 key。用 AWS CLI 也可以：
+
+```bash
+AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+```
+
+`mc` 不在 moonless 的安装范围内。需要先安装 MinIO 客户端，再按同样的方式
+使用：
+
+```bash
+# macOS
+brew install minio-mc
+
+# Linux (x86_64；ARM 使用 linux-arm64)
+curl -fsSL https://dl.min.io/aistor/mc/release/linux-amd64/mc -o mc
+chmod +x mc && sudo mv mc /usr/local/bin/mc
+
+mc --version
+
+mc alias set moonless http://localhost:8333 moonless moonless-secret
+mc cp report.txt moonless/uploads/report.txt
+```
+
+脚本化的端到端验证：`moon run scripts/e2e_s3.mbtx` 会用 `mc` 上传对象并等待
+函数日志（先按上面安装 `mc`，或设置 `MC=/path/to/mc`）；
+`moon run scripts/demo.mbtx` 则用 AWS CLI 走一遍 HTTP、cron 和 S3 三种触发。
+
+不经过对象存储、只验证触发器匹配与分发时，可以直接向 gateway 的内部事件入口
+投递一个合成事件：
+
+```bash
+curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
+  -H 'Content-Type: application/json' \
+  -d '{"source":"s3","event":"put","bucket":"uploads","key":"report.csv"}'
+```
+
+响应会列出所有匹配的函数；返回 `[]` 表示 bucket 或事件名没有匹配到任何
+触发器。在 payload 中加入 `"function":"on-upload"` 可只分发给指定函数。
+
+### S3 method 触发演示
+
+`examples/s3-methods` 把 `hello` 桶绑定到 `get`、`put`、`delete`。运行：
+
+```bash
+moon run scripts/demo_s3_methods.mbtx
+```
+
+如果 `mc` 不在 `PATH` 中，设置 `MC=/path/to/mc`。脚本会用 `mc` 对对象
+执行 PUT、GET、DELETE，三者都是真实的 SeaweedFS 审计事件。
 
 ## 函数级限制
 
@@ -288,6 +378,23 @@ moonless rollback <name>
 ```
 
 下一次调用会立即使用选中的产物。
+
+## 删除函数
+
+删除已部署的函数：
+
+```bash
+moonless delete <name>...
+```
+
+可以一次传入多个名字，因此清空整个注册表可以这样写：
+
+```bash
+moonless list -q | awk '{print $1}' | xargs moonless delete
+```
+
+这会注销每个函数的 HTTP、cron 和 S3 触发器，并删除它的构建产物、构建工作目录和
+运行日志。其他函数及其数据不受影响。
 
 ## 多节点 runner
 

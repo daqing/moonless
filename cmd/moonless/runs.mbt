@@ -6,6 +6,7 @@
 async fn cli_runs(
   flags : Array[String],
   server : String,
+  out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
   let parsed = parse_runs_args(flags)
   let response = @shared.http_get(
@@ -28,9 +29,7 @@ async fn cli_runs(
   guard json is Array(items) else {
     raise CliError("the server sent an unreadable run list")
   }
-  @stdio.stdout.write(render_runs_table(items)) catch {
-    _ => ()
-  }
+  out.write(render_runs_table(items))
 }
 
 ///|

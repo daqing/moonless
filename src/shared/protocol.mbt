@@ -309,8 +309,8 @@ pub fn Manifest::to_json(self : Manifest) -> Json {
     Some(s3) => {
       let s3_json : Map[String, Json] = Map([])
       s3_json["bucket"] = Json::string(s3.bucket)
-      s3_json["events"] = Json::array(
-        s3.events.map(event => Json::string(event)),
+      s3_json["methods"] = Json::array(
+        s3.methods.map(entry => Json::string(entry)),
       )
       Json::object(s3_json)
     }
@@ -372,7 +372,10 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
             raise InvalidJson("manifest s3.bucket must not be empty")
           }
           Some(
-            S3Trigger(bucket~, events=json_field_string_array(s3_obj, "events")),
+            S3Trigger(
+              bucket~,
+              methods=json_field_string_array(s3_obj, "methods"),
+            ),
           )
         }
         None => None

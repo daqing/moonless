@@ -2,11 +2,16 @@
 # moon toolchain plus the prebuilt native service binaries. Builder and runner
 # differ only in the entry point, which docker-compose.yml selects per service.
 
-FROM ubuntu:24.04
+FROM reg.mindwork.cool/ubuntu:24.04
 
-ARG MOONBIT_VERSION=0.10.15+943464bfa
+ARG MOONBIT_VERSION=0.10.20+65efd5b93
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN sed -i \
+      -e 's|archive.ubuntu.com|mirrors.aliyun.com|g' \
+      -e 's|security.ubuntu.com|mirrors.aliyun.com|g' \
+      -e 's|ports.ubuntu.com|mirrors.aliyun.com|g' \
+      /etc/apt/sources.list.d/ubuntu.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       gcc \

@@ -1,12 +1,8 @@
 ///|
 async test "SeaweedFS webhook intake accepts concurrent payloads" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-events-")
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(
         gateway_server,

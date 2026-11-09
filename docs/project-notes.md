@@ -130,8 +130,9 @@
 **已拍板（2026-10-02）：集成 SeaweedFS。** store 不再自研；平台为
 4 个 MoonBit 服务（gateway / builder / runner / scheduler）+ CLI，
 存储与 Redis/DB 同样作为第三方服务被 docker-compose 编排。
-S3 事件触发通过 SeaweedFS 的 Filer webhook 通知实现（moonless 侧
+S3 事件触发最初通过 SeaweedFS 的 Filer webhook 通知实现（moonless 侧
 解析事件、提取 bucket/key、转成 `MOONLESS_EVENT` 触发函数）；
+2026-11-08 起改为 S3 审计日志，见 T9.4b。
 SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
 
 ## 产品接口默认约定（写作 README 时采用的默认值，可调整）
@@ -146,7 +147,7 @@ SigV4 等协议兼容由 SeaweedFS 提供，moonless 不再实现。
   [triggers]
   http = { enabled = true }
   cron = "0 8 * * *"
-  s3 = { bucket = "uploads", events = ["put"] }
+  s3 = { bucket = "uploads", methods = ["put"] }
   ```
   （触发器均为可选；http 默认路径 `/fn/<name>`。）
 - HTTP 路由约定：`/fn/<function-name>`。
@@ -406,6 +407,35 @@ delete 与目录事件。适配器仅接受 `/buckets/<bucket>/<key>` 对象路�
 create/update 映射为 `put`，delete 映射为 `delete`，目录、桶根、`.system`
 内部元数据、其他路径及 rename 均忽略。原始 webhook 与内部事件共用
 `/api/events` 和现有注册表匹配、runner 派发流程。
+
+## T9.4b S3 事件源改为审计日志（2026-11-08）
+
+Filer webhook 只能观察存储变更，因此 GET/POST 无法触发。改为观察 S3
+请求：SeaweedFS 用 `-s3.auditLogConfig` 把每次请求的访问日志通过 Fluent
+forward 协议（msgpack，tag `s3.access`）推给 fluent-bit，fluent-bit 用
+Lua 过滤器映射后 POST 到 gateway 的 `/api/events`（数组按条派发），
+gateway 其余逻辑不变。
+`deploy/seaweedfs/notification.toml` 已移除，避免与审计事件重复派发。
+
+实测发现（SeaweedFS 4.52）：
+
+- 记录字段有 `operation`、`bucket`、`key`、`status` 等；`key` 不带前导 `/`。
+- 映射：`REST.GET.OBJECT` → get，`REST.PUT.OBJECT` → put，
+  `REST.DELETE.OBJECT` / `BATCH.DELETE.OBJECT` → delete。`mc rm` 走批量
+  删除，并会额外产生一条 `key` 为空的记录，需按空 key 丢弃。
+- 不支持 POST：S3 表单上传（`mc share upload` + curl）在审计里记为
+  `REST.POST.BUCKET`，`key` 为空，无法构造带对象名的事件；分片上传的
+  Create/Complete 虽记为 `REST.POST.OBJECT`，但那是上传流程的一部分而非
+  独立的 POST 语义。`s3.methods` 只允许 `get` / `put` / `delete`。
+- 只保留 2xx；`REST.HEAD.OBJECT`、`REST.GET.BUCKET` 等不触发。
+- 审计配置里的 `timeout` 等字段是 Go `time.Duration`（纳秒），误写
+  `"timeout": 3000` 会让连接超时退化为 3µs，表现为始终连接失败；只保留
+  `fluent_host` / `fluent_port` / `fluent_network` 最稳。
+- fluent-bit HTTP 输出用 `Format json`，同一批记录会合成一个 JSON 数组；
+  `/api/events` 因此同时接受单个事件和事件数组（`json_lines` / `json_stream`
+  在批处理时会产生多行或首尾相接的非法 JSON，不要用）。
+- 取舍：事件来自 S3 API 层，绕过 S3 直接写 filer 的文件不再触发；
+  分片上传会按 part 触发多次 put，Create/Complete 的 POST 记录被忽略。
 
 ## T9.5 触发匹配实测
 

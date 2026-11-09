@@ -1,7 +1,9 @@
-# moonless platform stack. One shared image (see Dockerfile); services differ
-# only in the binary they run. Internal ports: gateway 8080, builder 8081,
-# runner 8082, scheduler 8083. Gateway 8080 and SeaweedFS S3 8333 are published.
-# Builder, runner, and gateway share the named volume /var/lib/moonless.
+# moonless platform stack. The four moonless services share one image (see
+# Dockerfile) and differ only in the binary they run. Internal ports: gateway
+# 8080, builder 8081, runner 8082, scheduler 8083. Gateway 8080 and SeaweedFS
+# S3 8333 are published. Builder, runner, and gateway share the named volume
+# /var/lib/moonless. SeaweedFS forwards its S3 audit log to fluent-bit
+# (s3-audit), which maps each request into a moonless event.
 
 services:
   gateway:
@@ -24,7 +26,7 @@ services:
     build: .
     image: moonless
     command: ["/app/bin/runner"]
-    # Optional user-provided data services:
+    # Optional user-provided data services. Set these in .env (see .env.example):
     # REDIS_URL=redis://redis.internal:6379
     # MYSQL_URL=mysql://user:pass@mysql.internal:3306/db
     # POSTGRES_URL=postgres://user:pass@pg.internal:5432/db
@@ -44,23 +46,31 @@ services:
     image: moonless
     command: ["/app/bin/scheduler"]
 
+  s3-audit:
+    image: fluent/fluent-bit:3.1.10
+    volumes:
+      - ./deploy/seaweedfs/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./deploy/seaweedfs/map_s3_event.lua:/fluent-bit/etc/map_s3_event.lua:ro
+
   seaweedfs:
     image: chrislusf/seaweedfs:4.52
     command:
       - server
       - -ip=seaweedfs
       - -ip.bind=0.0.0.0
+      - -master.peers=none
       - -filer=true
       - -s3=true
       - -s3.port=8333
       - -s3.config=/etc/seaweedfs/s3.json
+      - -s3.auditLogConfig=/etc/seaweedfs/fluent.json
       - -master.telemetry=false
     ports:
       - "8333:8333"
     volumes:
       - seaweedfs-data:/data
       - ./deploy/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
-      - ./deploy/seaweedfs/notification.toml:/etc/seaweedfs/notification.toml:ro
+      - ./deploy/seaweedfs/fluent.json:/etc/seaweedfs/fluent.json:ro
 
 volumes:
   moonless-data:

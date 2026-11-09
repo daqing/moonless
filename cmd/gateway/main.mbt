@@ -36,6 +36,11 @@ fn gateway_router(cfg : GatewayConfig) -> @shared.Router {
     }),
   )
   router.add(
+    @shared.route(http_method=@http.Delete, pattern="/api/functions/:name", handler=ctx => {
+      handle_delete(ctx, cfg)
+    }),
+  )
+  router.add(
     @shared.route(http_method=@http.Get, pattern="/api/functions/:name/logs", handler=ctx => {
       handle_logs(ctx, cfg)
     }),

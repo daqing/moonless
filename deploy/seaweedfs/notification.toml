@@ -1,9 +1,0 @@
-[notification.webhook]
-enabled = true
-endpoint = "http://gateway:8080/api/events"
-event_types = ["create", "update", "delete"]
-path_prefixes = ["/buckets/"]
-timeout_seconds = 10
-max_retries = 2
-backoff_seconds = 1
-max_backoff_seconds = 5

@@ -14,14 +14,14 @@ portmanteau: **Moon**Bit + server**less**.
 
 You have a machine inside your network and a pile of small jobs that deserve
 to run as services: an HTTP endpoint that renders a report, a nightly
-cleanup task, a hook that fires whenever a file lands in a bucket. You
+cleanup task, a hook that fires on S3 requests against a bucket. You
 don't want to babysit a server for each of them, and you can't reach — or
 don't want — a public FaaS cloud.
 
 moonless gives that machine a job: run `docker compose up` once, and you
 have a function platform for the whole intranet. Write functions in
 MoonBit, ship them with one command, trigger them over HTTP, on a schedule,
-or by uploading a file.
+or on S3 requests.
 
 ## Features at a glance
 
@@ -32,7 +32,7 @@ or by uploading a file.
 - **Sandboxed by default.** Functions execute as wasm modules under
   moonrun: memory-isolated, no ambient host access — while keeping full
   networking (TCP / TLS) through the runtime's host layer.
-- **Three trigger types.** HTTP route, cron schedule, and S3 put events —
+- **Three trigger types.** HTTP route, cron schedule, and S3 events —
   declared in a small manifest next to your code.
 - **A Unix-style function contract.** The trigger context arrives as the
   `MOONLESS_EVENT` environment variable; results go to stdout, logs to
@@ -62,9 +62,9 @@ or by uploading a file.
    deploy / list / logs   │    │  ▲           │        (wasm via moonrun) │
                           │    │  │           │                           │
                           │    ▼  │           ▼                           │
-                          │  builder        scheduler                    │
+                          │  builder        scheduler                     │
                           │    │              ▲                           │
-                          │    ▼              │ put events                │
+                          │    ▼              │ s3 events                 │
                           │  SeaweedFS ───────┘  (S3-compatible storage)  │
                           │                                               │
                           │  your Redis / MySQL / Postgres (external)     │
@@ -77,7 +77,7 @@ or by uploading a file.
 | `builder`    | Builds uploaded sources into wasm modules with the moon toolchain         |
 | `runner`     | Execution plane: runs wasm modules via moonrun, captures stdout/stderr    |
 | `scheduler`  | Fires functions on cron schedules                                         |
-| SeaweedFS    | S3-compatible object storage; notifies moonless on object uploads         |
+| SeaweedFS    | S3-compatible object storage; reports S3 requests to moonless              |
 
 Redis, MySQL, and Postgres stay outside the platform: you run them (or
 reuse the ones you already have), and moonless just hands functions their
@@ -148,15 +148,20 @@ name = "hello"
 toolchain = "0.10.11"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 ### 4. Deploy and call it
 
 ```bash
 moonless deploy
+moonless list
+moonless show hello
 curl "$MOONLESS_SERVER/fn/hello"
 ```
+
+Use `moonless list -q` to omit the table header. `moonless show <name>`
+prints the deployed manifest, triggers, limits, build, and history.
 
 ### 5. Read the logs
 
@@ -164,7 +169,7 @@ curl "$MOONLESS_SERVER/fn/hello"
 moonless logs hello
 ```
 
-Add `--follow` to keep polling and print new log records as they arrive.
+Add `--follow` to keep polling and print new log records as they arrive. If no logs exist yet, follow mode waits for the first record instead of exiting.
 
 ## The function contract
 
@@ -228,7 +233,7 @@ name = "native-worker"
 binary = "func"
 
 [triggers]
-http = { enabled = true }
+http = true
 ```
 
 No `moon.mod` is required in this mode. The executable must match the runner's
@@ -243,17 +248,107 @@ All triggers are optional and declared in `moonless.toml`:
 name = "resize-images"
 
 [triggers]
-http = { enabled = true }
+http = true
 cron = "0 8 * * *"
-s3 = { bucket = "uploads", events = ["put"] }
+s3 = { bucket = "uploads", methods = ["put"] }
 ```
 
 - **HTTP** — the function is routed at `/fn/<name>`.
 - **cron** — standard five-field cron expressions; the function fires with
   the schedule in its event.
-- **S3** — upload an object with any S3 client (`aws`, `mc`, `rclone`…);
-  SeaweedFS notifies moonless and the function fires with the bucket and
-  key in its event. Event delivery is best-effort.
+- **S3** — bind a bucket and the methods that fire the function (`get`,
+  `put`, `delete`). SeaweedFS's S3 audit log is forwarded through
+  fluent-bit, and each successful matching request fires the function with
+  the bucket and key in its event. Because events come from the S3 API
+  layer, writes made directly through the filer do not trigger functions.
+  POST uploads are not supported: SeaweedFS reports them without an object
+  key. Event delivery is best-effort.
+
+`http` accepts either `true` / `false` or the explicit table form
+`http = { enabled = true }`.
+
+A function is reachable only through the triggers its deployed manifest
+declares; for example, `/fn/<name>` answers `403` unless `http` is enabled.
+
+### Testing the S3 trigger
+
+Deploy `examples/on-upload`, whose manifest binds bucket `uploads` to `put`
+requests, then upload a file. SeaweedFS speaks the S3 API, and `curl` can sign
+those requests itself — no AWS CLI required (curl 7.75+):
+
+```bash
+cd examples/on-upload
+moonless deploy
+
+S3=http://localhost:8333
+
+# 200 = created, 409 = it already exists.
+curl -sS -o /dev/null -w 'bucket: %{http_code}\n' -X PUT \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads"
+
+echo "hello" > report.txt
+curl -fsS -T report.txt \
+  --aws-sigv4 "aws:amz:us-east-1:s3" --user "moonless:moonless-secret" \
+  "$S3/uploads/report.txt"
+
+moonless logs on-upload --tail 5
+```
+
+The log contains `on-upload received:` with the event JSON, including
+`"bucket":"uploads"` and the uploaded key. The AWS CLI works too:
+
+```bash
+AWS_ACCESS_KEY_ID=moonless AWS_SECRET_ACCESS_KEY=moonless-secret AWS_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 s3 cp report.txt s3://uploads/report.txt
+```
+
+`mc` is not bundled with moonless. Install the MinIO client first, then use
+it the same way:
+
+```bash
+# macOS
+brew install minio-mc
+
+# Linux (x86_64; use linux-arm64 on ARM)
+curl -fsSL https://dl.min.io/aistor/mc/release/linux-amd64/mc -o mc
+chmod +x mc && sudo mv mc /usr/local/bin/mc
+
+mc --version
+
+mc alias set moonless http://localhost:8333 moonless moonless-secret
+mc cp report.txt moonless/uploads/report.txt
+```
+
+For scripted end-to-end checks, `moon run scripts/e2e_s3.mbtx` uploads an
+object with `mc` (install it as above, or set `MC=/path/to/mc`) and waits
+for the function log, while `moon run scripts/demo.mbtx` exercises HTTP,
+cron, and S3 with the AWS CLI.
+
+To test trigger matching and dispatch without touching storage, post a
+synthetic event to the gateway's internal intake:
+
+```bash
+curl -fsS -X POST "$MOONLESS_SERVER/api/events" \
+  -H 'Content-Type: application/json' \
+  -d '{"source":"s3","event":"put","bucket":"uploads","key":"report.csv"}'
+```
+
+The response lists every function that matched; `[]` means the bucket or
+event name did not match any trigger. Add `"function":"on-upload"` to the
+payload to dispatch to a single function.
+
+### S3 method triggers
+
+`examples/s3-methods` binds bucket `hello` to `get`, `put`, and `delete`. Run:
+
+```bash
+moon run scripts/demo_s3_methods.mbtx
+```
+
+Set `MC=/path/to/mc` if the client is not on `PATH`. The script uses `mc`
+to PUT, GET, and DELETE an object, and all three arrive as real SeaweedFS
+audit events.
 
 ## Per-function limits
 
@@ -308,6 +403,24 @@ moonless rollback <name>
 ```
 
 The next invocation uses the selected artifact immediately.
+
+## Deleting functions
+
+Remove deployed functions with:
+
+```bash
+moonless delete <name>...
+```
+
+Names can be passed in bulk, so the whole registry can be cleared with:
+
+```bash
+moonless list -q | awk '{print $1}' | xargs moonless delete
+```
+
+This unregisters each function's HTTP, cron, and S3 triggers and deletes its build
+artifacts, build working directories, and run logs. Other functions and their
+data are left untouched.
 
 ## Multi-node runners
 

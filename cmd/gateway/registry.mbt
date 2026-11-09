@@ -121,6 +121,20 @@ async fn registry_set(
 }
 
 ///|
+async fn registry_remove(
+  cfg : GatewayConfig,
+  name : String,
+) -> @shared.RegistryRecord? {
+  cfg.registry_lock.acquire()
+  defer cfg.registry_lock.release()
+  let records = registry_load(cfg)
+  guard records.get(name) is Some(record) else { return None }
+  records.remove(name)
+  registry_save(cfg, records)
+  Some(record)
+}
+
+///|
 async fn registry_all(
   cfg : GatewayConfig,
 ) -> Map[String, @shared.RegistryRecord] {

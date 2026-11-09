@@ -3,6 +3,7 @@
 async fn cli_rollback(
   flags : Array[String],
   server : String,
+  out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
   let name = parse_rollback_name(flags)
   let response = @shared.http_post_json(
@@ -16,7 +17,7 @@ async fn cli_rollback(
   let record = @shared.RegistryRecord::from_json(response) catch {
     _ => raise CliError("the server sent an unreadable rollback response")
   }
-  println("rolled back \{record.name} to \{record.build_id}")
+  out.write("rolled back \{record.name} to \{record.build_id}\n")
 }
 
 ///|

@@ -59,7 +59,7 @@ test "registry record round-trips through JSON including the manifest" {
       triggers=@shared.ManifestTriggers(
         http_enabled=true,
         cron="0 8 * * *",
-        s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+        s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
       ),
       toolchain="0.10.11",
     ),

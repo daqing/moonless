@@ -7,7 +7,7 @@ test "manifest parses the README's full example" {
       #|[triggers]
       #|http = { enabled = true }
       #|cron = "0 8 * * *"
-      #|s3 = { bucket = "uploads", events = ["put"] }
+      #|s3 = { bucket = "uploads", methods = ["get", "put", "delete"] }
     ),
   )
   assert_eq(manifest.name, "resize-images")
@@ -15,9 +15,57 @@ test "manifest parses the README's full example" {
   assert_eq(manifest.triggers.cron, Some("0 8 * * *"))
   guard manifest.triggers.s3 is Some(s3) else { fail("s3 trigger missing") }
   assert_eq(s3.bucket, "uploads")
-  assert_eq(s3.events.length(), 1)
-  assert_eq(s3.events[0], "put")
+  assert_eq(s3.methods.length(), 3)
+  assert_eq(s3.methods[0], "get")
+  assert_eq(s3.methods[1], "put")
+  assert_eq(s3.methods[2], "delete")
   assert_eq(manifest.toolchain, None)
+}
+
+///|
+test "manifest accepts the http trigger as a bool shorthand" {
+  let enabled = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = true
+    ),
+  )
+  assert_eq(enabled.triggers.http_enabled, true)
+  let disabled = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = false
+    ),
+  )
+  assert_eq(disabled.triggers.http_enabled, false)
+  let explicit = @shared.parse_manifest(
+    (
+      #|name = "f"
+      #|
+      #|[triggers]
+      #|http = { enabled = true }
+    ),
+  )
+  assert_eq(explicit.triggers.http_enabled, true)
+  try
+    @shared.parse_manifest(
+      (
+        #|name = "f"
+        #|
+        #|[triggers]
+        #|http = "yes"
+      ),
+    )
+  catch {
+    @shared.InvalidManifest(_) => ()
+    _ => fail("expected InvalidManifest")
+  } noraise {
+    _ => fail("expected a non-bool http trigger to be rejected")
+  }
 }
 
 ///|
@@ -79,7 +127,7 @@ test "manifest rejects malformed cron expressions" {
 }
 
 ///|
-test "manifest rejects s3 events outside put/delete and missing fields" {
+test "manifest rejects s3 methods outside the allowed set and missing fields" {
   try
     @shared.parse_manifest(
       (
@@ -87,14 +135,14 @@ test "manifest rejects s3 events outside put/delete and missing fields" {
         #|
         #|[triggers.s3]
         #|bucket = "uploads"
-        #|events = ["put", "copy"]
+        #|methods = ["put", "copy"]
       ),
     )
   catch {
     @shared.InvalidManifest(_) => ()
     _ => fail("expected InvalidManifest")
   } noraise {
-    _ => fail("expected s3 event copy to be rejected")
+    _ => fail("expected s3 method copy to be rejected")
   }
   try
     @shared.parse_manifest(
@@ -102,7 +150,23 @@ test "manifest rejects s3 events outside put/delete and missing fields" {
         #|name = "f"
         #|
         #|[triggers.s3]
-        #|events = ["put"]
+        #|bucket = "uploads"
+        #|methods = ["post"]
+      ),
+    )
+  catch {
+    @shared.InvalidManifest(_) => ()
+    _ => fail("expected InvalidManifest")
+  } noraise {
+    _ => fail("expected s3 method post to be rejected")
+  }
+  try
+    @shared.parse_manifest(
+      (
+        #|name = "f"
+        #|
+        #|[triggers.s3]
+        #|methods = ["put"]
       ),
     )
   catch {

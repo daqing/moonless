@@ -2,6 +2,7 @@ import {
   "daqing/moonless/src/shared",
   "moonbitlang/async",
   "moonbitlang/async/fs",
+  "moonbitlang/async/http",
   "moonbitlang/async/process",
   "moonbitlang/async/stdio",
   "moonbitlang/core/debug",

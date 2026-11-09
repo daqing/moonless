@@ -1,0 +1,108 @@
+---
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/http",
+  "moonbitlang/async@0.22.4/shell",
+  "moonbitlang/core/env",
+}
+---
+
+///|
+// Wait until the function log contains both the event name and the unique
+// object key, so a previous run cannot satisfy the check.
+async fn wait_for_event(
+  server : String,
+  name : String,
+  event_name : String,
+  key : String,
+) -> Unit {
+  let marker = "\"event\":\"\{event_name}\""
+  let url = server + "/api/functions/" + name + "/logs?tail=100&source=s3"
+  for _ in 0..<90 {
+    let (response, data) = @http.get(url)
+    let logs = data.text()
+    if response.code == 200 && logs.contains(marker) && logs.contains(key) {
+      return
+    }
+    @async.sleep(500)
+  }
+  fail("timed out waiting for s3 \{event_name} event on \{key}")
+}
+
+///|
+async fn main {
+  let root = @shell.Cmd("pwd", []).output().stdout().trim().to_owned()
+  let server = @env.get_env_var("MOONLESS_SERVER").unwrap_or(
+    "http://127.0.0.1:8080",
+  )
+  let mc = @env.get_env_var("MC").unwrap_or("mc")
+
+  println("==> Starting the stack (rebuilding the platform image)")
+  @shell.Cmd("docker", ["compose", "up", "-d", "--build"], cwd=root).run()
+  @shell.Cmd("curl", [
+    "-fsS",
+    "--retry",
+    "30",
+    "--retry-connrefused",
+    "--retry-delay",
+    "1",
+    server + "/healthz",
+  ]).run()
+
+  println("\n==> Building the CLI and deploying examples/s3-methods")
+  @shell.Cmd("moon", ["build", "--target", "native", "cmd/moonless"], cwd=root).run()
+  let cli = root + "/_build/native/debug/build/cmd/moonless/moonless.exe"
+  @shell.Cmd(
+    cli,
+    ["deploy", "--server", server],
+    cwd=root + "/examples/s3-methods",
+  ).run()
+
+  let work = @fs.tmpdir(prefix="moonless-s3-methods-")
+  let config_dir = work + "/mc-config"
+  @fs.mkdir(config_dir, recursive=true, allow_exist=true)
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "alias", "set", "moonless-methods", "http://127.0.0.1:8333",
+    "moonless", "moonless-secret",
+  ]).run()
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "mb", "--ignore-existing", "moonless-methods/hello",
+  ]).run()
+
+  let stamp = @async.now().to_string()
+  let put_key = "methods/put-\{stamp}.txt"
+  let input = work + "/put.txt"
+  @fs.write_file(input, "moonless s3 methods demo\n")
+
+  println("\n==> PUT: mc cp uploads hello/\{put_key}")
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "cp", input, "moonless-methods/hello/" + put_key,
+  ]).run()
+  wait_for_event(server, "s3-methods", "put", put_key)
+  println("    put event observed")
+
+  println("\n==> GET: mc cat downloads hello/\{put_key}")
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "cat", "moonless-methods/hello/" + put_key,
+  ]).run()
+  wait_for_event(server, "s3-methods", "get", put_key)
+  println("    get event observed")
+
+  println("\n==> DELETE: mc rm removes hello/\{put_key}")
+  @shell.Cmd(mc, [
+    "--config-dir", config_dir, "rm", "moonless-methods/hello/" + put_key,
+  ]).run()
+  wait_for_event(server, "s3-methods", "delete", put_key)
+  println("    delete event observed")
+
+  let (response, data) = @http.get(
+    server + "/api/functions/s3-methods/logs?tail=20&source=s3",
+  )
+  if response.code != 200 {
+    fail("cannot read s3-methods logs: \{response.code}")
+  }
+  println("\n==> Recent s3-methods logs")
+  println(data.text())
+  println("S3 methods demo OK: put/get/delete")
+}

@@ -101,10 +101,10 @@ async fn sync_table(
 }
 
 ///|
-// Fires every due entry: assembles the cron event (schedule + scheduled
-// fire time) and POSTs it to the gateway's /api/events. Entries are then
-// rescheduled from `now` — a late wake-up fires once and skips the missed
-// periods (skip-if-late, T7.4).
+// Fires every due entry: assembles a targeted cron event (function +
+// schedule + scheduled fire time) and POSTs it to the gateway's
+// /api/events. Entries are then rescheduled from `now` — a late wake-up
+// fires once and skips the missed periods (skip-if-late, T7.4).
 async fn dispatch_due(
   cfg : SchedulerConfig,
   table : Map[String, ScheduleEntry],
@@ -115,6 +115,7 @@ async fn dispatch_due(
     if entry.next_fire_ms <= now {
       let event : Json = {
         "source": "cron",
+        "function": name,
         "schedule": entry.schedule.expression,
         "time": @shared.format_timestamp(entry.next_fire_ms),
       }

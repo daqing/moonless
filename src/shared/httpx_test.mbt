@@ -1,12 +1,8 @@
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn test_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_471
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn test_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -47,11 +43,7 @@ async test "router serves requests end to end" {
       @shared.send_json(ctx.conn, 200, json)
     }),
   )
-  let port = test_listen_port()
-  let server = @http.Server(
-    @socket.Addr::parse("127.0.0.1:\{port}"),
-    reuse_addr=true,
-  )
+  let (server, port) = test_server()
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
     let (response, body) = @http.get("http://127.0.0.1:\{port}/healthz")

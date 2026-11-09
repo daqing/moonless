@@ -1,7 +1,7 @@
 ///|
 // Internal event intake: POST /api/events accepts any trigger event,
 // matches it against the registry's declared triggers, and dispatches
-// every match to the runner (cron scheduler, SeaweedFS webhooks, ...).
+// every match to the runner (cron scheduler, S3 audit events, ...).
 
 ///|
 async fn handle_event(
@@ -9,6 +9,22 @@ async fn handle_event(
   cfg : GatewayConfig,
 ) -> Unit {
   let payload = @shared.read_json_body(ctx)
+  // fluent-bit batches several audit records into one JSON array.
+  let items : Array[Json] = match payload {
+    Array(events) => events
+    single => [single]
+  }
+  let dispatches : Array[Json] = []
+  for item in items {
+    for entry in dispatch_event(cfg, item) {
+      dispatches.push(entry)
+    }
+  }
+  @shared.send_json(ctx.conn, 200, Json::array(dispatches))
+}
+
+///|
+async fn dispatch_event(cfg : GatewayConfig, payload : Json) -> Array[Json] {
   let event : @shared.Event? = if payload is Object(obj) &&
     obj.get("event_type") is Some(_) {
     @shared.log_info(
@@ -19,12 +35,19 @@ async fn handle_event(
   } else {
     Some(@shared.Event::from_json(payload))
   }
-  guard event is Some(event) else {
-    return @shared.send_json(ctx.conn, 200, Json::array([]))
+  guard event is Some(event) else { return [] }
+  let target_function = if payload is Object(obj) &&
+    obj.get("function") is Some(String(name)) {
+    Some(name)
+  } else {
+    None
   }
   let records = registry_all(cfg)
-  let dispatches = []
+  let dispatches : Array[Json] = []
   for name, record in records {
+    if target_function is Some(target) && target != name {
+      continue
+    }
     if trigger_matches(record.manifest.triggers, event) {
       @shared.log_info(
         service="gateway",
@@ -37,7 +60,7 @@ async fn handle_event(
       dispatches.push(Json::object(entry))
     }
   }
-  @shared.send_json(ctx.conn, 200, Json::array(dispatches))
+  dispatches
 }
 
 ///|
@@ -92,7 +115,7 @@ fn trigger_matches(
     Cron(_) => triggers.cron is Some(_)
     S3(e) =>
       match triggers.s3 {
-        Some(s3) => s3.bucket == e.bucket && has_event(s3.events, e.event_name)
+        Some(s3) => s3.bucket == e.bucket && has_event(s3.methods, e.event_name)
         None => false
       }
   }

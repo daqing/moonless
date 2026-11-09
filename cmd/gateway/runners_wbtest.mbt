@@ -34,17 +34,9 @@ async test "registered runner receives the module and selected build" {
       )
     }),
   )
-  let node_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (node_server, node_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let node_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{node_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => @shared.serve_on(node_server, node))
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(gateway_server, gateway_router(cfg))

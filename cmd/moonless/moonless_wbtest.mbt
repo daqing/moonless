@@ -9,14 +9,10 @@ priv suberror FixtureError {
 }
 
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_477
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn fixture_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -54,7 +50,9 @@ fn good_project_files() -> Array[(String, String)] {
 ///|
 async test "deploy rejects non-projects and missing manifests" {
   let empty_dir = @fs.tmpdir(prefix="moonless-cli-fixture-")
-  try cli_deploy("http://127.0.0.1:65534", dir=empty_dir) catch {
+  try
+    cli_deploy("http://127.0.0.1:65534", dir=empty_dir, out=CliOut::capture())
+  catch {
     CliError(message) => assert_true(message.contains("not a MoonBit project"))
   } noraise {
     _ => fail("expected failure for missing moon.mod")
@@ -64,7 +62,13 @@ async test "deploy rejects non-projects and missing manifests" {
     ("moon.mod", "name = \"x\"\nversion = \"0.1.0\"\n"),
     ("main.mbt", "fn main {\n}\n"),
   ])
-  try cli_deploy("http://127.0.0.1:65534", dir=no_manifest_dir) catch {
+  try
+    cli_deploy(
+      "http://127.0.0.1:65534",
+      dir=no_manifest_dir,
+      out=CliOut::capture(),
+    )
+  catch {
     CliError(message) => assert_true(message.contains("moonless.toml"))
   } noraise {
     _ => fail("expected failure for missing moonless.toml")
@@ -147,17 +151,29 @@ async test "deploy uploads the package and reports success" {
     deploy_result=@shared.BuildResult(ok=true, build_id="b-6001"),
     last_name=Ref(""),
   )
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   @async.with_task_group(group => {
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(server, fake_gateway_router(fake))
     })
-    cli_deploy("http://127.0.0.1:\{port}", dir~)
+    let out = CliOut::capture()
+    cli_deploy("http://127.0.0.1:\{port}", dir~, out~)
+    assert_true(out.text().contains("deployed hello-fn"))
+    assert_false(out.text().contains("trigger over HTTP"))
     assert_eq(fake.last_name.val, "hello-fn")
+    write_fixture_files(dir, [
+      (
+        "moonless.toml", "name = \"hello-fn\"\n\n[triggers]\nhttp = { enabled = true }\n",
+      ),
+    ])
+    let out = CliOut::capture()
+    cli_deploy("http://127.0.0.1:\{port}", dir~, out~)
+    assert_true(out.text().contains("deployed hello-fn"))
+    assert_true(
+      out
+      .text()
+      .contains("trigger over HTTP at http://127.0.0.1:\{port}/fn/hello-fn"),
+    )
     server.close()
   })
 }
@@ -180,7 +196,7 @@ test "render_function_table matches registry state" {
         name="resize",
         triggers=@shared.ManifestTriggers(
           cron="0 8 * * *",
-          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+          s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
         ),
       ),
       build_id="b-200",
@@ -188,14 +204,137 @@ test "render_function_table matches registry state" {
     ),
   ]
   let table = render_function_table(records)
+  assert_true(table.has_prefix("NAME"))
   assert_true(table.contains("hello"))
   assert_true(table.contains("http"))
   assert_true(table.contains("resize"))
-  assert_true(table.contains("cron(0 8 * * *)"))
-  assert_true(table.contains("s3(uploads:put,delete)"))
+  assert_true(table.contains("cron s3"))
+  assert_false(table.contains("0 8 * * *"))
+  assert_false(table.contains("uploads"))
   assert_true(table.contains("b-100"))
   assert_true(table.contains("b-200"))
+  let quiet_table = render_function_table(records, quiet=true)
+  assert_false(quiet_table.contains("NAME"))
+  assert_true(quiet_table.has_prefix("hello"))
+  assert_true(quiet_table.contains("resize"))
   assert_eq(render_function_table([]), "no functions deployed\n")
+  assert_eq(render_function_table([], quiet=true), "")
+}
+
+///|
+test "parse_show_name handles name and server flags" {
+  assert_eq(parse_show_name(["hello"]), "hello")
+  assert_eq(parse_show_name(["--server", "http://x:1", "hello"]), "hello")
+  assert_eq(parse_show_name(["--server=http://x:1", "hello"]), "hello")
+  try parse_show_name([]) catch {
+    CliError(message) => assert_true(message.contains("usage: moonless show"))
+  } noraise {
+    _ => fail("expected failure for an empty show name")
+  }
+  try parse_show_name(["a", "b"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected failure for extra show arguments")
+  }
+}
+
+///|
+test "render_function_detail shows triggers, limits, and history" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(
+      name="hello-fn",
+      triggers=@shared.ManifestTriggers(
+        http_enabled=true,
+        cron="0 8 * * *",
+        s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
+      ),
+      toolchain="0.10.11",
+      limits=@shared.FunctionLimits(timeout_ms=Some(5000), concurrency=Some(2)),
+      binary="func",
+      sandbox="policy.json",
+    ),
+    build_id="b-2",
+    updated_at="2026-10-03T00:00:00.000Z",
+    history=["b-1", "b-2"],
+  )
+  let text = render_function_detail(record, "http://127.0.0.1:8080")
+  assert_true(text.contains("name:      hello-fn"))
+  assert_true(text.contains("build:     b-2"))
+  assert_true(text.contains("updated:   2026-10-03T00:00:00.000Z"))
+  assert_true(text.contains("toolchain: 0.10.11"))
+  assert_true(text.contains("binary:    func"))
+  assert_true(text.contains("sandbox:   policy.json"))
+  assert_true(
+    text.contains("  http: enabled (http://127.0.0.1:8080/fn/hello-fn)"),
+  )
+  assert_true(text.contains("  cron: 0 8 * * *"))
+  assert_true(text.contains("  s3: bucket=uploads methods=put,delete"))
+  assert_true(text.contains("  timeout_ms=5000"))
+  assert_true(text.contains("  concurrency=2"))
+  assert_true(text.contains("history:   b-1 b-2"))
+  // A minimal manifest keeps the output short.
+  let minimal = @shared.RegistryRecord(
+    name="bare-fn",
+    manifest=@shared.Manifest(name="bare-fn"),
+    build_id="b-1",
+    updated_at="2026-10-03T00:00:00.000Z",
+  )
+  let text = render_function_detail(minimal, "http://127.0.0.1:8080")
+  assert_true(text.contains("triggers:  none"))
+  assert_false(text.contains("toolchain:"))
+  assert_false(text.contains("limits:"))
+  assert_false(text.contains("history:"))
+}
+
+///|
+async test "show fetches the function record and reports unknown names" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(
+      name="hello-fn",
+      triggers=@shared.ManifestTriggers(http_enabled=true),
+    ),
+    build_id="b-2",
+    updated_at="2026-10-03T00:00:00.000Z",
+  )
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(http_method=@http.Get, pattern="/api/functions/:name", handler=ctx => {
+      if ctx.params["name"] == "hello-fn" {
+        @shared.send_json(ctx.conn, 200, record.to_json())
+      } else {
+        @shared.send_text(ctx.conn, 404, "unknown function\n")
+      }
+    }),
+  )
+  let (server, port) = fixture_server()
+  let base = "http://127.0.0.1:\{port}"
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let out = CliOut::capture()
+    cli_show(["hello-fn"], base, out~)
+    assert_true(out.text().contains("name:      hello-fn"))
+    assert_true(out.text().contains("build:     b-2"))
+    try cli_show(["ghost"], base, out=CliOut::capture()) catch {
+      CliError(message) => assert_true(message.contains("no function 'ghost'"))
+    } noraise {
+      _ => fail("expected failure for an unknown function")
+    }
+    server.close()
+  })
+}
+
+///|
+test "parse_list_quiet handles q and server flags" {
+  assert_false(parse_list_quiet([]))
+  assert_true(parse_list_quiet(["-q"]))
+  assert_true(parse_list_quiet(["--server", "http://x:1", "-q"]))
+  try parse_list_quiet(["--unknown"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected failure for an unknown list flag")
+  }
 }
 
 ///|
@@ -304,7 +443,9 @@ async test "error UX: server unreachable prints an actionable hint" {
   // valid so the failure comes from the upload step.
   let project_dir = @fs.tmpdir(prefix="moonless-cli-fixture-")
   write_fixture_files(project_dir, good_project_files())
-  try cli_deploy("http://127.0.0.1:1", dir=project_dir) catch {
+  try
+    cli_deploy("http://127.0.0.1:1", dir=project_dir, out=CliOut::capture())
+  catch {
     CliError(message) => {
       assert_true(message.contains("cannot reach the moonless server"))
       assert_true(message.contains("hint"))
@@ -312,7 +453,7 @@ async test "error UX: server unreachable prints an actionable hint" {
   } noraise {
     _ => fail("expected failure for unreachable server")
   }
-  try cli_list("http://127.0.0.1:1") catch {
+  try cli_list([], "http://127.0.0.1:1", out=CliOut::capture()) catch {
     CliError(message) => assert_true(message.contains("cannot reach"))
   } noraise {
     _ => fail("expected failure for unreachable server")
@@ -322,7 +463,9 @@ async test "error UX: server unreachable prints an actionable hint" {
 ///|
 async test "error UX: validation errors carry hints, not stack traces" {
   let empty_dir = @fs.tmpdir(prefix="moonless-cli-fixture-")
-  try cli_deploy("http://127.0.0.1:1", dir=empty_dir) catch {
+  try
+    cli_deploy("http://127.0.0.1:1", dir=empty_dir, out=CliOut::capture())
+  catch {
     CliError(message) => {
       assert_true(message.contains("not a MoonBit project"))
       assert_true(message.contains("hint"))
@@ -335,7 +478,9 @@ async test "error UX: validation errors carry hints, not stack traces" {
   write_fixture_files(no_manifest, [
     ("moon.mod", "name = \"x\"\nversion = \"0.1.0\"\n"),
   ])
-  try cli_deploy("http://127.0.0.1:1", dir=no_manifest) catch {
+  try
+    cli_deploy("http://127.0.0.1:1", dir=no_manifest, out=CliOut::capture())
+  catch {
     CliError(message) => {
       assert_true(message.contains("missing moonless.toml"))
       assert_true(message.contains("hint"))
@@ -346,8 +491,49 @@ async test "error UX: validation errors carry hints, not stack traces" {
 }
 
 ///|
+async test "logs follow waits when no logs exist yet" {
+  let (server, port) = fixture_server()
+  let requests = Ref(0)
+  @async.with_task_group(group => {
+    let router = @shared.Router::new()
+    router.add(
+      @shared.route(
+        http_method=@http.Get,
+        pattern="/api/functions/:name/logs",
+        handler=ctx => {
+          requests.val += 1
+          if requests.val == 1 {
+            @shared.send_text(ctx.conn, 404, "no logs")
+          } else {
+            @shared.send_text(ctx.conn, 200, "first log\n")
+          }
+        },
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let out = CliOut::capture()
+    try
+      @async.with_timeout(
+        2500,
+        () => cli_logs(["hello", "--follow"], "http://127.0.0.1:\{port}", out~),
+        error=FixtureError("follow timeout"),
+      )
+    catch {
+      FixtureError(_) => ()
+      CliError(message) => fail("follow exited early: \{message}")
+      _ => fail("follow failed unexpectedly")
+    } noraise {
+      _ => fail("follow exited without new logs")
+    }
+    assert_true(requests.val >= 2)
+    assert_true(out.text().contains("first log"))
+    server.close()
+  })
+}
+
+///|
 async test "error UX: unknown function hints at list and trigger" {
-  let port = fixture_listen_port()
+  let (server, port) = fixture_server()
   @async.with_task_group(group => {
     let router = @shared.Router::new()
     router.add(
@@ -357,12 +543,10 @@ async test "error UX: unknown function hints at list and trigger" {
         handler=ctx => @shared.send_text(ctx.conn, 404, "no logs"),
       ),
     )
-    let server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
-    try cli_logs(["ghost"], "http://127.0.0.1:\{port}") catch {
+    try
+      cli_logs(["ghost"], "http://127.0.0.1:\{port}", out=CliOut::capture())
+    catch {
       CliError(message) => {
         assert_true(message.contains("no logs for function 'ghost'"))
         assert_true(message.contains("moonless list"))

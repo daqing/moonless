@@ -1,5 +1,5 @@
 ///|
-// The moonless CLI: deploy, list, and logs against a running gateway.
+// The moonless CLI: deploy and operate functions through a running gateway.
 
 ///|
 #derive(Debug)
@@ -16,14 +16,17 @@ async fn main {
 }
 
 ///|
-async fn cli_main(args : Array[String]) -> Unit raise CliError {
+async fn cli_main(
+  args : Array[String],
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
   // args[0] is the executable; the rest are the user's command line.
   let rest : Array[String] = []
   for i in 1..<args.length() {
     rest.push(args[i])
   }
   if rest.length() == 0 {
-    print_usage()
+    print_usage(out~)
     return
   }
   let command = rest[0]
@@ -33,12 +36,14 @@ async fn cli_main(args : Array[String]) -> Unit raise CliError {
   }
   let server = resolve_server(flags)
   match command {
-    "deploy" => cli_deploy(server)
-    "list" => cli_list(server)
-    "logs" => cli_logs(flags, server)
-    "runs" => cli_runs(flags, server)
-    "rollback" => cli_rollback(flags, server)
-    "help" | "--help" | "-h" => print_usage()
+    "deploy" => cli_deploy(server, out~)
+    "list" => cli_list(flags, server, out~)
+    "show" => cli_show(flags, server, out~)
+    "delete" => cli_delete(flags, server, out~)
+    "logs" => cli_logs(flags, server, out~)
+    "runs" => cli_runs(flags, server, out~)
+    "rollback" => cli_rollback(flags, server, out~)
+    "help" | "--help" | "-h" => print_usage(out~)
     other => raise CliError("unknown command '\{other}'")
   }
 }
@@ -63,27 +68,40 @@ fn resolve_server(flags : Array[String]) -> String raise CliError {
 }
 
 ///|
-fn print_usage() -> Unit {
-  println("moonless — deploy and operate serverless MoonBit functions")
-  println("")
-  println("Usage:")
-  println(
-    "  moonless deploy [--server URL]     package the current project and deploy it",
+async fn print_usage(out~ : CliOut = CliOut::stdout()) -> Unit noraise {
+  out.write("moonless — deploy and operate serverless MoonBit functions\n")
+  out.write("\n")
+  out.write("Usage:\n")
+  out.write(
+    "  moonless deploy [--server URL]     package the current project and deploy it\n",
   )
-  println("  moonless list   [--server URL]     list deployed functions")
-  println(
-    "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow] [--server URL]",
+  out.write("  moonless list   [-q] [--server URL]\n")
+  out.write(
+    "                                     list deployed functions (-q hides the header)\n",
   )
-  println(
-    "                                     show the last runs of a function",
+  out.write("  moonless show <name> [--server URL]\n")
+  out.write(
+    "                                     show a function's manifest and build details\n",
   )
-  println("  moonless runs <name> [--tail N] [--server URL]")
-  println(
-    "                                     show recent invocations (source, exit, duration)",
+  out.write("  moonless delete <name>... [--server URL]\n")
+  out.write("                                     remove deployed functions\n")
+  out.write(
+    "  moonless logs <name> [--tail N] [--source http|cron|s3] [--since TS] [--follow] [--server URL]\n",
   )
-  println("  moonless rollback <name> [--server URL]")
-  println("                                     switch to the previous build")
-  println("")
-  println("Environment:")
-  println("  MOONLESS_SERVER  gateway base URL (default http://127.0.0.1:8080)")
+  out.write(
+    "                                     show the last runs of a function\n",
+  )
+  out.write("  moonless runs <name> [--tail N] [--server URL]\n")
+  out.write(
+    "                                     show recent invocations (source, exit, duration)\n",
+  )
+  out.write("  moonless rollback <name> [--server URL]\n")
+  out.write(
+    "                                     switch to the previous build\n",
+  )
+  out.write("\n")
+  out.write("Environment:\n")
+  out.write(
+    "  MOONLESS_SERVER  gateway base URL (default http://127.0.0.1:8080)\n",
+  )
 }

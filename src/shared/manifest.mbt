@@ -1,8 +1,8 @@
 ///|
 // Decoding and validation of moonless.toml, the function manifest: name
-// required, triggers all optional, cron a five-field expression, s3.events
-// a subset of {put, delete}, and an optional toolchain that must not exceed
-// the platform's pinned version (R1).
+// required, triggers all optional, cron a five-field expression, s3.methods
+// a subset of {get, put, delete}, and an optional toolchain that must
+// not exceed the platform's pinned version (R1).
 
 ///|
 // Must stay in sync with ARG MOONBIT_VERSION in the Dockerfile.
@@ -12,7 +12,7 @@ pub let platform_toolchain : String = "0.10.14+7d59c7ec9"
 #derive(Debug)
 pub struct S3Trigger {
   bucket : String
-  events : Array[String]
+  methods : Array[String]
 }
 
 ///|
@@ -21,9 +21,9 @@ pub extend S3Trigger with Debug::{to_repr}
 ///|
 pub fn S3Trigger::S3Trigger(
   bucket~ : String,
-  events~ : Array[String],
+  methods~ : Array[String],
 ) -> S3Trigger {
-  { bucket, events, }
+  { bucket, methods, }
 }
 
 ///|
@@ -220,9 +220,12 @@ fn toml_positive_int(
 fn parse_triggers(
   t : Map[String, @toml.TomlValue],
 ) -> ManifestTriggers raise SharedError {
-  let http_enabled = match toml_table(t, "http") {
-    Some(h) => toml_bool(h, "enabled").unwrap_or(true)
+  let http_enabled = match t.get("http") {
+    Some(@toml.TomlBoolean(enabled)) => enabled
+    Some(@toml.TomlTable(h)) => toml_bool(h, "enabled").unwrap_or(true)
     None => false
+    Some(_) =>
+      raise InvalidManifest("manifest trigger http expected a bool or table")
   }
   let cron : String? = match toml_string(t, "cron") {
     Some(expr) =>
@@ -240,20 +243,20 @@ fn parse_triggers(
         Some(b) => b
         None => raise InvalidManifest("s3.bucket is required")
       }
-      let events = match toml_string_array(tbl, "events") {
-        Some(events) => {
-          for event in events {
-            guard event is ("put" | "delete") else {
+      let methods = match toml_string_array(tbl, "methods") {
+        Some(methods) => {
+          for entry in methods {
+            guard entry is ("get" | "put" | "delete") else {
               raise InvalidManifest(
-                "s3.events entries must be put or delete, got: \{event}",
+                "s3.methods entries must be get, put, or delete, got: \{entry}",
               )
             }
           }
-          events
+          methods
         }
-        None => raise InvalidManifest("s3.events is required")
+        None => raise InvalidManifest("s3.methods is required")
       }
-      Some(S3Trigger(bucket~, events~))
+      Some(S3Trigger(bucket~, methods~))
     }
     None => None
   }

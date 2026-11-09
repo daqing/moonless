@@ -9,14 +9,10 @@ priv suberror FixtureError {
 }
 
 ///|
-// moon test runs test files in parallel worker processes, so fixed listen
-// ports collide across runs; pick a random port instead.
-fn fixture_listen_port() -> Int32 {
-  match @env.rand(2) {
-    Some(bytes) =>
-      20_000 + (bytes[0].to_int() * 256 + bytes[1].to_int()) % 30_000
-    None => 18_476
-  }
+// Bind an ephemeral port so concurrent tests never collide.
+async fn fixture_server() -> (@http.Server, Int32) {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"), reuse_addr=true)
+  (server, server.addr.port())
 }
 
 ///|
@@ -184,17 +180,9 @@ async test "deploy registers the function; list, detail, and logs answer" {
   )
   let pkg_dir = @fs.tmpdir(prefix="moonless-gw-fixture-")
   let archive = write_test_package(pkg_dir)
-  let builder_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (builder_server, builder_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let builder_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{builder_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(builder_server, fake_builder_router(fake))
     })
@@ -281,7 +269,7 @@ async test "deploy registers the function; list, detail, and logs answer" {
 ///|
 async test "logs filter by trigger source and since timestamp" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   // Two sources across two day files: http + cron on the 16th, cron on 17th.
   let r1 = test_record(
     "multi-fn",
@@ -303,10 +291,6 @@ async test "logs filter by trigger source and since timestamp" {
   )
   write_test_records(data_root, "multi-fn", [r1, r2, r3])
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(
         gateway_server,
@@ -335,7 +319,7 @@ async test "logs filter by trigger source and since timestamp" {
 ///|
 async test "runs endpoint lists the last N invocations with metadata" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
-  let gateway_port = fixture_listen_port()
+  let (gateway_server, gateway_port) = fixture_server()
   let r1 = @shared.RunLogRecord(
     ts="2026-10-16T08:00:00.000Z",
     name="jobs-fn",
@@ -365,10 +349,6 @@ async test "runs endpoint lists the last N invocations with metadata" {
   )
   write_test_records(data_root, "jobs-fn", [r1, r2, r3])
   @async.with_task_group(group => {
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(
         gateway_server,
@@ -529,8 +509,8 @@ fn fake_runner_router(fake : FakeRunner) -> @shared.Router {
 
 ///|
 async test "HTTP trigger builds the event and returns stdout as 200" {
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
   let fake = FakeRunner(
     result=@shared.RunResult(stdout="hello from fn\n", exit_code=0),
@@ -538,14 +518,6 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     installed=Ref(["hello-fn"]),
   )
   @async.with_task_group(group => {
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     let cfg : GatewayConfig = {
       data_root,
       builder_url: "http://127.0.0.1:65534",
@@ -553,6 +525,18 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
     }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="hello-fn",
+        manifest=@shared.Manifest(
+          name="hello-fn",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-1",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(runner_server, fake_runner_router(fake))
     })
@@ -589,6 +573,97 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
 }
 
 ///|
+// Only functions that declare the http trigger are reachable at /fn/<name>;
+// s3-only and cron-only functions are rejected before reaching the runner.
+async test "HTTP trigger only dispatches functions with the http trigger" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let dispatched : Array[String] = []
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
+  let runner = @shared.Router::new()
+  runner.add(
+    @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
+      let request = @shared.read_json_body(ctx)
+      guard request is Object(obj) else { return }
+      guard obj.get("name") is Some(String(name)) else { return }
+      dispatched.push(name)
+      @shared.send_json(
+        ctx.conn,
+        200,
+        @shared.RunResult(stdout="ran \{name}\n", exit_code=0).to_json(),
+      )
+    }),
+  )
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(runner_server, runner))
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
+    }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="on-upload",
+        manifest=@shared.Manifest(
+          name="on-upload",
+          triggers=@shared.ManifestTriggers(
+            s3=@shared.S3Trigger(bucket="uploads", methods=["put"]),
+          ),
+        ),
+        build_id="b-2",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="nightly",
+        manifest=@shared.Manifest(
+          name="nightly",
+          triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
+        ),
+        build_id="b-3",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="web",
+        manifest=@shared.Manifest(
+          name="web",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-4",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let (response, _) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/on-upload",
+    )
+    assert_eq(response.code, 403)
+    let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/nightly")
+    assert_eq(response.code, 403)
+    assert_eq(dispatched.length(), 0)
+    let (response, body) = @http.get("http://127.0.0.1:\{gateway_port}/fn/web")
+    assert_eq(response.code, 200)
+    assert_eq(body.text(), "ran web\n")
+    assert_eq(dispatched.length(), 1)
+    let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
+    assert_eq(response.code, 404)
+    assert_eq(dispatched.length(), 1)
+    runner_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
 async test "synthetic s3 and cron events dispatch to bound functions only" {
   let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
   let cfg : GatewayConfig = {
@@ -598,7 +673,8 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
   }
-  // Three functions: bound to uploads/put, bound to another bucket, cron.
+  // Four functions: bound to uploads/put, bound to another bucket, and two
+  // cron functions sharing one schedule.
   registry_set(
     cfg,
     @shared.RegistryRecord(
@@ -606,7 +682,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       manifest=@shared.Manifest(
         name="on-upload",
         triggers=@shared.ManifestTriggers(
-          s3=@shared.S3Trigger(bucket="uploads", events=["put", "delete"]),
+          s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
         ),
       ),
       build_id="b-1",
@@ -620,7 +696,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       manifest=@shared.Manifest(
         name="on-other-bucket",
         triggers=@shared.ManifestTriggers(
-          s3=@shared.S3Trigger(bucket="archive", events=["put"]),
+          s3=@shared.S3Trigger(bucket="archive", methods=["put"]),
         ),
       ),
       build_id="b-2",
@@ -639,9 +715,21 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       updated_at="2026-10-03T00:00:00.000Z",
     ),
   )
+  registry_set(
+    cfg,
+    @shared.RegistryRecord(
+      name="other-cron",
+      manifest=@shared.Manifest(
+        name="other-cron",
+        triggers=@shared.ManifestTriggers(cron="0 8 * * *"),
+      ),
+      build_id="b-4",
+      updated_at="2026-10-03T00:00:00.000Z",
+    ),
+  )
   let dispatched : Array[String] = []
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   let runner = @shared.Router::new()
   runner.add(
     @shared.route(http_method=@http.Post, pattern="/run", handler=ctx => {
@@ -657,14 +745,6 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     }),
   )
   @async.with_task_group(group => {
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     group.spawn_bg(no_wait=true, () => @shared.serve_on(runner_server, runner))
     let gateway_cfg : GatewayConfig = {
       data_root,
@@ -690,10 +770,12 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     assert_true(response.stringify().contains("on-upload"))
     assert_eq(dispatched.length(), 1)
     assert_eq(dispatched[0], "on-upload")
-    // A cron event fires only the cron-bound function.
+    // A targeted cron event does not fan out to another function with the
+    // same schedule.
     dispatched.clear()
     let cron_event : Json = {
       "source": "cron",
+      "function": "nightly",
       "schedule": "0 8 * * *",
       "time": "2026-10-03T08:00:00Z",
     }
@@ -731,6 +813,19 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     )
     assert_eq(response.stringify(), "[]")
     assert_eq(dispatched.length(), 0)
+    // fluent-bit sends a batch as a JSON array; every event dispatches.
+    dispatched.clear()
+    let batch : Json = [
+      { "source": "s3", "event": "put", "bucket": "uploads", "key": "a.csv" },
+      { "source": "s3", "event": "put", "bucket": "archive", "key": "b.csv" },
+    ]
+    let response = @shared.http_post_json(
+      "http://127.0.0.1:\{gateway_port}/api/events",
+      batch,
+    )
+    assert_eq(dispatched.length(), 2)
+    assert_true(response.stringify().contains("on-upload"))
+    assert_true(response.stringify().contains("on-other-bucket"))
     runner_server.close()
     gateway_server.close()
   })
@@ -753,22 +848,10 @@ async test "broken deploy surfaces the reason; a good deploy is callable" {
   )
   let pkg_dir = @fs.tmpdir(prefix="moonless-gw-fixture-")
   let archive = write_test_package(pkg_dir)
-  let builder_port = fixture_listen_port()
-  let runner_port = fixture_listen_port()
-  let gateway_port = fixture_listen_port()
+  let (builder_server, builder_port) = fixture_server()
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
   @async.with_task_group(group => {
-    let builder_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{builder_port}"),
-      reuse_addr=true,
-    )
-    let runner_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{runner_port}"),
-      reuse_addr=true,
-    )
-    let gateway_server = @http.Server(
-      @socket.Addr::parse("127.0.0.1:\{gateway_port}"),
-      reuse_addr=true,
-    )
     let cfg : GatewayConfig = {
       data_root,
       builder_url: "http://127.0.0.1:\{builder_port}",
