@@ -77,10 +77,6 @@ fn render_function_detail(
     Some(value) => out += "toolchain: \{value}\n"
     None => ()
   }
-  match manifest.binary {
-    Some(value) => out += "binary:    \{value}\n"
-    None => ()
-  }
   match manifest.sandbox {
     Some(value) => out += "sandbox:   \{value}\n"
     None => ()

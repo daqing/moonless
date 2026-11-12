@@ -69,9 +69,9 @@ async fn dispatch_run(
   name : String,
   event : @shared.Event,
 ) -> @shared.RunResult {
-  let (build_id, native_binary) = match registry_all(cfg).get(name) {
-    Some(record) => (record.build_id, record.manifest.binary is Some(_))
-    None => ("", false)
+  let build_id = match registry_all(cfg).get(name) {
+    Some(record) => record.build_id
+    None => ""
   }
   let (runner_url, upload_required) = select_runner(cfg)
   if upload_required &&
@@ -85,7 +85,7 @@ async fn dispatch_run(
   }
   let response = @shared.http_post_json(
     runner_url + "/run",
-    @shared.RunRequest(name~, event~, build_id~, native_binary~).to_json(),
+    @shared.RunRequest(name~, event~, build_id~).to_json(),
     timeout_ms=70_000,
   ) catch {
     _ =>

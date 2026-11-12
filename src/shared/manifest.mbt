@@ -71,7 +71,6 @@ pub struct Manifest {
   triggers : ManifestTriggers
   toolchain : String?
   limits : FunctionLimits
-  binary : String?
   sandbox : String?
 }
 
@@ -84,10 +83,9 @@ pub fn Manifest::Manifest(
   triggers~ : ManifestTriggers = ManifestTriggers(),
   toolchain? : String,
   limits~ : FunctionLimits = FunctionLimits(),
-  binary? : String,
   sandbox? : String,
 ) -> Manifest {
-  { name, triggers, toolchain, limits, binary, sandbox, }
+  { name, triggers, toolchain, limits, sandbox, }
 }
 
 ///|
@@ -165,15 +163,11 @@ pub fn parse_manifest(source : String) -> Manifest raise SharedError {
     Some(t) => parse_limits(t)
     None => FunctionLimits()
   }
-  let binary = match toml_string(root, "binary") {
-    Some(path) => Some(validate_package_path(path))
-    None => None
-  }
   let sandbox = match toml_string(root, "sandbox") {
     Some(path) => Some(validate_package_path(path))
     None => None
   }
-  Manifest(name~, triggers~, toolchain?, limits~, binary?, sandbox?)
+  Manifest(name~, triggers~, toolchain?, limits~, sandbox?)
 }
 
 ///|

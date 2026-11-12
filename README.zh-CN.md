@@ -210,22 +210,6 @@ MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
 
-## 其他语言——显式启用
-
-事件环境变量与 stdout/stderr 契约天然与语言无关。如需部署已有的可执行文件，
-而不是 MoonBit 源码，在 `moonless.toml` 中显式设置包内相对路径：
-
-```toml
-name = "native-worker"
-binary = "func"
-
-[triggers]
-http = true
-```
-
-此模式不需要 `moon.mod`。可执行文件必须匹配 runner 的操作系统和架构。
-**原生二进制会直接执行，不经过 wasm 沙箱**；只应对受信任的函数启用。
-
 ## 触发器
 
 所有触发器都是可选的，在 `moonless.toml` 中声明：
@@ -364,7 +348,7 @@ sandbox = "policy.json"
 
 `net.connect` 控制出站连接，并允许所需的 hostname DNS 查询；`net.bind` 接受
 IP 地址或 `*`。文件系统根路径使用宿主路径，相对路径从策略文件位置解析。
-策略随每个构建保存并上传到远端 runner。原生 binary 函数不使用此机制。
+策略随每个构建保存并上传到远端 runner。
 
 moonrun 策略目前仍是实验功能，且不覆盖 WASI。特别注意，
 `process.spawn: true` 会给子进程宿主的原有权限，而不是用其他策略段限制它。

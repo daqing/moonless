@@ -184,10 +184,9 @@ pub struct Manifest {
   triggers : ManifestTriggers
   toolchain : String?
   limits : FunctionLimits
-  binary : String?
   sandbox : String?
 }
-pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, binary? : String, sandbox? : String) -> Self
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, sandbox? : String) -> Self
 pub fn Manifest::from_json(@json.Json) -> Self raise SharedError
 pub fn Manifest::to_json(Self) -> @json.Json
 pub fn Manifest::to_repr(Self) -> @debug.Repr
@@ -270,9 +269,8 @@ pub struct RunRequest {
   event : Event
   env : Map[String, String]
   build_id : String
-  native_binary : Bool
 }
-pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String], build_id? : String, native_binary? : Bool) -> Self
+pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String], build_id? : String) -> Self
 pub fn RunRequest::from_json(@json.Json) -> Self raise SharedError
 pub fn RunRequest::to_json(Self) -> @json.Json
 pub fn RunRequest::to_repr(Self) -> @debug.Repr

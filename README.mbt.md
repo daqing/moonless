@@ -222,24 +222,6 @@ MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
 
-## Other languages — explicit opt-in
-
-The event environment variable and stdout/stderr contract is language-agnostic.
-To deploy an existing executable instead of MoonBit source, set its package-local
-path in `moonless.toml`:
-
-```toml
-name = "native-worker"
-binary = "func"
-
-[triggers]
-http = true
-```
-
-No `moon.mod` is required in this mode. The executable must match the runner's
-OS and architecture. **Native binaries run directly without the wasm sandbox**;
-only use this opt-in for trusted functions.
-
 ## Triggers
 
 All triggers are optional and declared in `moonless.toml`:
@@ -387,7 +369,7 @@ surfaces by default:
 `net.connect` controls outbound sockets and also permits the required hostname
 lookups; `net.bind` accepts IP addresses or `*`. Filesystem roots are host paths,
 with relative roots resolved from the policy file. The policy is stored and
-uploaded with each build. Native binary functions do not use this mechanism.
+uploaded with each build.
 
 This moonrun policy mode is experimental and does not cover WASI. In particular,
 `process.spawn: true` gives child processes ambient host access rather than

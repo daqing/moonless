@@ -313,9 +313,6 @@ Conventions:
 - [x] **T12.4 — `logs --follow`.** Stream logs to the terminal.
 - [x] **T12.5 — Multi-node runners.** Runner registration with the
   gateway and function placement across nodes.
-- [x] **T12.6 — Multi-language functions.** Document that the contract
-  is language-agnostic; accept non-MoonBit binaries with explicit
-  opt-in.
 - [x] **T12.7 — CI.** GitHub Actions running `moon test` and
   `moon fmt --check` on push.
 - [x] **T12.8 — Sandbox policies.** Explore moonrun's experimental

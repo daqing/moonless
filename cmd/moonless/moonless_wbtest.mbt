@@ -251,7 +251,6 @@ test "render_function_detail shows triggers, limits, and history" {
       ),
       toolchain="0.10.11",
       limits=@shared.FunctionLimits(timeout_ms=Some(5000), concurrency=Some(2)),
-      binary="func",
       sandbox="policy.json",
     ),
     build_id="b-2",
@@ -263,7 +262,6 @@ test "render_function_detail shows triggers, limits, and history" {
   assert_true(text.contains("build:     b-2"))
   assert_true(text.contains("updated:   2026-10-03T00:00:00.000Z"))
   assert_true(text.contains("toolchain: 0.10.11"))
-  assert_true(text.contains("binary:    func"))
   assert_true(text.contains("sandbox:   policy.json"))
   assert_true(
     text.contains("  http: enabled (http://127.0.0.1:8080/fn/hello-fn)"),

@@ -54,35 +54,29 @@ async fn build_steps(
       "manifest name \{manifest.name} does not match deploy name \{name}",
     )
   }
-  let source_path = match manifest.binary {
-    Some(path) => src_dir + "/" + path
-    None => {
-      if !has_entry(files, "moon.mod") {
-        raise @shared.InvalidArchive("package is missing moon.mod")
-      }
-      let (code, _, stderr) = @process.collect_output(
-        "moon",
-        ["build", "--target", "wasm"],
-        cwd=src_dir[:],
-      ) catch {
-        err =>
-          raise @shared.InvalidArchive(
-            "failed to run moon: \{@debug.to_string(err)}",
-          )
-      }
-      if code != 0 {
-        let output = stderr.text() catch { _ => "" }
-        return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
-      }
-      find_wasm_module(src_dir)
-    }
+  if !has_entry(files, "moon.mod") {
+    raise @shared.InvalidArchive("package is missing moon.mod")
   }
+  let (code, _, stderr) = @process.collect_output(
+    "moon",
+    ["build", "--target", "wasm"],
+    cwd=src_dir[:],
+  ) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to run moon: \{@debug.to_string(err)}",
+      )
+  }
+  if code != 0 {
+    let output = stderr.text() catch { _ => "" }
+    return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
+  }
+  let source_path = find_wasm_module(src_dir)
   store_artifact(
     data_root,
     name,
     build_id,
     source_path,
-    executable=manifest.binary is Some(_),
     policy_path=match manifest.sandbox {
       Some(path) => src_dir + "/" + path
       None => ""
@@ -96,7 +90,6 @@ async fn store_artifact(
   name : String,
   build_id : String,
   source_path : String,
-  executable~ : Bool,
   policy_path~ : String,
 ) -> @shared.BuildResult raise @shared.SharedError {
   let artifact_dir = data_root + "/functions/" + name + "/" + build_id
@@ -113,14 +106,6 @@ async fn store_artifact(
       raise @shared.InvalidArchive(
         "failed to store artifact: \{@debug.to_string(err)}",
       )
-  }
-  if executable {
-    @fs.chmod(artifact, 0o755) catch {
-      err =>
-        raise @shared.InvalidArchive(
-          "failed to mark binary executable: \{@debug.to_string(err)}",
-        )
-    }
   }
   if policy_path != "" {
     let policy = (@fs.read_file(policy_path) catch {

@@ -165,21 +165,13 @@ async fn run_steps(
   let stdout_capture = StreamCapture(cap=cfg.output_cap)
   let stderr_capture = StreamCapture(cap=cfg.output_cap)
   let timed_out : Ref[Bool] = Ref(false)
-  let native_binary = request.native_binary ||
-    (
-      load_registry_record(cfg.data_root, request.name) is Some(record) &&
-      record.manifest.binary is Some(_)
-    )
   let policy_path = match module_path.rev_split_once("/") {
     Some((dir, _)) => dir.to_owned() + "/policy.json"
     None => ""
   }
-  let has_policy = !native_binary &&
-    policy_path != "" &&
+  let has_policy = policy_path != "" &&
     (@fs.exists(policy_path) catch { _ => false })
-  let (program, args) = if native_binary {
-    (module_path, [])
-  } else if has_policy {
+  let (program, args) = if has_policy {
     ("moonrun", ["--policy", policy_path, module_path])
   } else {
     ("moonrun", [module_path])
