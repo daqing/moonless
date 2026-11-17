@@ -11,7 +11,7 @@
 
 name = "daqing/moonless"
 
-version = "0.2.0"
+version = "0.3.1"
 
 readme = "README.mbt.md"
 

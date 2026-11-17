@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/builtin",
   "moonbitlang/core/encoding/utf8" @encoding/utf8,
+  "moonbitlang/core/encoding/percent",
 }
 
 supported_targets = "+native+wasm"

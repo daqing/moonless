@@ -486,8 +486,10 @@ moonrun 的完整路径。
 
 `examples/redis-counter` 是根模块中的 executable package，直接导入
 `daqing/moonless/vendor/redis`，通过 `INCR moonless:example:counter` 计数并在
-HTTP stdout 中返回新值。它读取 `MOONLESS_REDIS_URL`，支持 `redis://host:port`
-地址；未配置时默认本机 Redis，便于本地调试。
+HTTP stdout 中返回新值。它读取 `MOONLESS_REDIS_URL`，通过
+`@redis.connect_with_url` 支持
+`redis://[[username]:[password]@]host[:port][/db]` 形式的地址；未配置时默认
+本机 Redis，便于本地调试。
 
 由于该示例直接复用根目录 vendor，`scripts/e2e_redis_counter.mbtx` 会在临时
 目录生成独立部署项目并携带同一份 driver，避免复制维护。运行前将 runner 的
