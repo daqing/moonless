@@ -4,3 +4,6 @@ install:
   mkdir -p "$HOME/.local/bin"
   cp "$PWD/_build/native/debug/build/cmd/moonless/moonless.exe" "$HOME/.local/bin/moonless" || true
 
+up:
+  docker compose up --build
+

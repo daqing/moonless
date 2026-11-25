@@ -57,18 +57,16 @@ async fn build_steps(
   if !has_entry(files, "moon.mod") {
     raise @shared.InvalidArchive("package is missing moon.mod")
   }
-  let (code, _, stderr) = @process.collect_output(
-    "moon",
-    ["build", "--target", "wasm"],
-    cwd=src_dir[:],
-  ) catch {
-    err =>
-      raise @shared.InvalidArchive(
-        "failed to run moon: \{@debug.to_string(err)}",
-      )
+  let (code, output) = run_moon_build(src_dir)
+  let (code, output) = if code == 0 || !is_stale_registry(output) {
+    (code, output)
+  } else {
+    refresh_registry(src_dir) catch {
+      _ => ()
+    }
+    run_moon_build(src_dir)
   }
   if code != 0 {
-    let output = stderr.text() catch { _ => "" }
     return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
   }
   let source_path = find_wasm_module(src_dir)
@@ -81,6 +79,42 @@ async fn build_steps(
       Some(path) => src_dir + "/" + path
       None => ""
     },
+  )
+}
+
+///|
+async fn run_moon_build(
+  src_dir : String,
+) -> (Int32, String) raise @shared.SharedError {
+  let (code, _, stderr) = @process.collect_output(
+    "moon",
+    ["build", "--target", "wasm"],
+    cwd=src_dir[:],
+  ) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to run moon: \{@debug.to_string(err)}",
+      )
+  }
+  (code, stderr.text() catch { _ => "" })
+}
+
+///|
+// The image bakes a registry index at build time, so a dependency published
+// after that fails resolution until the index is refreshed.
+fn is_stale_registry(output : String) -> Bool {
+  output.contains("Failed to resolve the module dependency graph") ||
+  output.contains("was not found in the registry")
+}
+
+///|
+// Best effort: an offline builder still builds vendored packages, and a
+// failed refresh simply lets the retry report the original error.
+async fn refresh_registry(src_dir : String) -> Unit {
+  let (_code, _, _) = @process.collect_output(
+    "moon",
+    ["update"],
+    cwd=src_dir[:],
   )
 }
 
