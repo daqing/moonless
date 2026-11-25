@@ -377,7 +377,16 @@ checks both the completion waves and the runner's process count.
 A wasm function can name a package-local moonrun policy in `moonless.toml`:
 
 ```toml
+name = "demo"
 sandbox = "policy.json"
+
+[triggers]
+http = true
+
+[limits]
+timeout_ms = 10000
+concurrency = 2
+max_connection = 1
 ```
 
 For example, this policy permits only the event variable and denies other host

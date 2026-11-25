@@ -352,7 +352,16 @@ max_connection = 4
 wasm 函数可在 `moonless.toml` 中指定包内的 moonrun 策略文件：
 
 ```toml
+name = "demo"
 sandbox = "policy.json"
+
+[triggers]
+http = true
+
+[limits]
+timeout_ms = 10000
+concurrency = 2
+max_connection = 1
 ```
 
 例如，以下策略只允许读取事件变量，其他宿主能力默认拒绝：
