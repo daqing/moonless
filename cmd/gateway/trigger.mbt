@@ -63,6 +63,17 @@ async fn handle_trigger(
   if result.exit_code == 124 && result.stderr.contains("timed out") {
     return @shared.send_text(ctx.conn, 504, result.stderr)
   }
+  // A non-zero exit means the function aborted (uncaught error, sandbox
+  // denial, ...). Treat it as a server failure and append stderr to the
+  // response body so the caller sees why the invocation died.
+  if result.exit_code != 0 {
+    let output = parse_function_response(result.stdout)
+    return @shared.send_response(
+      ctx.conn,
+      500,
+      join_output(output.body, result.stderr),
+    )
+  }
   let output = parse_function_response(result.stdout)
   @shared.send_response(
     ctx.conn,

@@ -212,6 +212,12 @@ The control line must contain `status` or `headers`. Output without a valid
 control line remains unchanged. `Content-Length`, `Transfer-Encoding`, and
 `Connection` are managed by the gateway and cannot be overridden.
 
+A function that exits with a non-zero status is treated as a server failure:
+the gateway answers `500` regardless of any control line and appends the
+captured stderr to the response body, after the stdout written so far. That is
+where uncaught errors (including sandbox policy denials) surface. Timeouts are
+reported as `504` instead.
+
 ### Debug locally — platform optional
 
 Because the contract is just environment variables and standard streams,

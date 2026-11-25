@@ -201,6 +201,10 @@ moonless logs hello
 `Content-Length`、`Transfer-Encoding` 和 `Connection` 由 gateway 管理，函数
 不能覆盖。
 
+函数以非零状态退出时视为服务端失败：gateway 一律返回 `500`（忽略控制行），
+并把已写入的 stdout 和收集到的 stderr 一起放进响应体，未捕获的异常（包括
+sandbox 策略拒绝）会在这里显示出来。超时仍返回 `504`。
+
 ### 本地调试——平台可缺席
 
 契约只是环境变量和标准流，所以你可以手工以平台的方式运行函数：

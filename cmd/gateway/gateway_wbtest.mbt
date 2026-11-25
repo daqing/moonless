@@ -570,6 +570,21 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     // for anything not installed).
     let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
     assert_eq(response.code, 404)
+    // A non-zero exit is a server failure: the gateway answers 500 and keeps
+    // the captured stderr in the body so the caller sees the abort reason.
+    fake.result = @shared.RunResult(
+      stdout="waiting for 5s\n",
+      stderr="Sandbox policy blocked DNS lookup: \"host.docker.internal\"\nOSError(\"...: Permission denied\")\n",
+      exit_code=1,
+    )
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn",
+    )
+    assert_eq(response.code, 500)
+    assert_eq(
+      body.text(),
+      "waiting for 5s\nSandbox policy blocked DNS lookup: \"host.docker.internal\"\nOSError(\"...: Permission denied\")\n",
+    )
     runner_server.close()
     gateway_server.close()
   })
@@ -624,7 +639,8 @@ async test "HTTP trigger maps function timeouts to 504" {
     )
     assert_eq(response.code, 504)
     assert_eq(body.text(), "moonless: function timed out after 2000ms\n")
-    // A function that merely exits 124 is not a timeout.
+    // A function that merely exits 124 is not a timeout; it is still a
+    // non-zero exit and maps to 500 with stderr appended.
     fake.result = @shared.RunResult(
       stdout="done\n",
       stderr="custom\n",
@@ -633,8 +649,8 @@ async test "HTTP trigger maps function timeouts to 504" {
     let (response, body) = @http.get(
       "http://127.0.0.1:\{gateway_port}/fn/slow-fn",
     )
-    assert_eq(response.code, 200)
-    assert_eq(body.text(), "done\n")
+    assert_eq(response.code, 500)
+    assert_eq(body.text(), "done\ncustom\n")
     runner_server.close()
     gateway_server.close()
   })
