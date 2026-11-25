@@ -329,6 +329,108 @@ async test "show fetches the function record and reports unknown names" {
 }
 
 ///|
+test "parse_versions_name handles name and server flags" {
+  assert_eq(parse_versions_name(["hello"]), "hello")
+  assert_eq(parse_versions_name(["--server", "http://x:1", "hello"]), "hello")
+  assert_eq(parse_versions_name(["--server=http://x:1", "hello"]), "hello")
+  try parse_versions_name([]) catch {
+    CliError(message) =>
+      assert_true(message.contains("usage: moonless versions"))
+  } noraise {
+    _ => fail("expected failure for an empty versions name")
+  }
+  try parse_versions_name(["a", "b"]) catch {
+    CliError(message) => assert_true(message.contains("unexpected argument"))
+  } noraise {
+    _ => fail("expected failure for extra versions arguments")
+  }
+}
+
+///|
+test "render_versions lists builds newest first with short times" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(name="hello-fn"),
+    build_id="b-1795602615000",
+    updated_at="2026-11-25T10:30:15.000Z",
+    history=["b-1790928000000", "b-1790989200000", "b-1795602615000"],
+  )
+  let text = render_versions(record)
+  assert_true(text.has_prefix("BUILD"))
+  assert_true(text.contains("2026-10-02 08:00:00"))
+  assert_true(text.contains("2026-10-03 01:00:00"))
+  assert_true(text.contains("2026-11-25 10:30:15"))
+  guard text.find("b-1795602615000") is Some(newest) else {
+    fail("newest build missing")
+  }
+  guard text.find("b-1790989200000") is Some(middle) else {
+    fail("middle build missing")
+  }
+  guard text.find("b-1790928000000") is Some(oldest) else {
+    fail("oldest build missing")
+  }
+  assert_true(newest < middle)
+  assert_true(middle < oldest)
+  // Records written before history existed still show their current build.
+  let legacy = @shared.RegistryRecord(
+    name="legacy-fn",
+    manifest=@shared.Manifest(name="legacy-fn"),
+    build_id="b-1790989200000",
+    updated_at="2026-10-03T01:00:00.000Z",
+  )
+  let text = render_versions(legacy)
+  assert_true(text.contains("b-1790989200000"))
+  assert_true(text.contains("2026-10-03 01:00:00"))
+  // A build id without an embedded timestamp shows "-".
+  assert_eq(build_created_at("b-1795602615000"), "2026-11-25 10:30:15")
+  assert_eq(build_created_at("legacy-1"), "-")
+  assert_eq(build_created_at("b-"), "-")
+  let empty = @shared.RegistryRecord(
+    name="empty-fn",
+    manifest=@shared.Manifest(name="empty-fn"),
+    build_id="",
+    updated_at="",
+  )
+  assert_eq(render_versions(empty), "no versions saved\n")
+}
+
+///|
+async test "versions fetches the function record and reports unknown names" {
+  let record = @shared.RegistryRecord(
+    name="hello-fn",
+    manifest=@shared.Manifest(name="hello-fn"),
+    build_id="b-1795602615000",
+    updated_at="2026-11-25T10:30:15.000Z",
+    history=["b-1790928000000", "b-1795602615000"],
+  )
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(http_method=@http.Get, pattern="/api/functions/:name", handler=ctx => {
+      if ctx.params["name"] == "hello-fn" {
+        @shared.send_json(ctx.conn, 200, record.to_json())
+      } else {
+        @shared.send_text(ctx.conn, 404, "unknown function\n")
+      }
+    }),
+  )
+  let (server, port) = fixture_server()
+  let base = "http://127.0.0.1:\{port}"
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let out = CliOut::capture()
+    cli_versions(["hello-fn"], base, out~)
+    assert_true(out.text().contains("b-1795602615000"))
+    assert_true(out.text().contains("2026-11-25 10:30:15"))
+    try cli_versions(["ghost"], base, out=CliOut::capture()) catch {
+      CliError(message) => assert_true(message.contains("no function 'ghost'"))
+    } noraise {
+      _ => fail("expected failure for an unknown function")
+    }
+    server.close()
+  })
+}
+
+///|
 test "parse_list_quiet handles q and server flags" {
   assert_false(parse_list_quiet([]))
   assert_true(parse_list_quiet(["-q"]))

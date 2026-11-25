@@ -384,7 +384,14 @@ moonrun 策略目前仍是实验功能，且不覆盖 WASI。特别注意，
 
 ## 版本与回滚
 
-每次成功部署都会保留 wasm 产物，并把构建加入函数历史。回滚到前一个构建：
+每次成功部署都会保留 wasm 产物，并把构建加入函数历史。按从新到旧的顺序列出
+已保存的构建及其创建时间（UTC）：
+
+```bash
+moonless versions <name>
+```
+
+回滚到前一个构建：
 
 ```bash
 moonless rollback <name>

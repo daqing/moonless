@@ -413,7 +413,14 @@ sandboxing them under the other policy sections.
 ## Versioning and rollback
 
 Every successful deploy keeps its wasm artifact and adds the build to the
-function's history. Roll back to the previous build with:
+function's history. List the saved builds, newest first, with their creation
+time in UTC:
+
+```bash
+moonless versions <name>
+```
+
+Roll back to the previous build with:
 
 ```bash
 moonless rollback <name>
