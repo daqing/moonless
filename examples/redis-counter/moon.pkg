@@ -1,6 +1,6 @@
 import {
   "daqing/moonless/vendor/redis",
-  "moonbitlang/async",
+  //"moonbitlang/async",
   "moonbitlang/core/env",
 }
 
