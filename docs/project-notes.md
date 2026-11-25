@@ -601,7 +601,7 @@ runner 设置 `MOONLESS_GATEWAY_URL` 与 `MOONLESS_RUNNER_PUBLIC_URL` 后每 30 
 ## T12.7 CI
 
 新增 `.github/workflows/ci.yml`，在 push 和 pull request 上使用
-ubuntu-24.04，安装 `0.10.20+65efd5b93` 工具链，依次执行 `moon update`、
+ubuntu-24.04，安装 `0.10.22+124d61d05` 工具链，依次执行 `moon update`、
 `moon test`、`moon fmt --check`，并设置最小 contents:read 权限。YAML 已解析验证，
 固定工具链容器中的测试与格式检查均通过。
 
