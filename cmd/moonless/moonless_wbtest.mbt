@@ -329,17 +329,30 @@ async test "show fetches the function record and reports unknown names" {
 }
 
 ///|
-test "parse_versions_name handles name and server flags" {
-  assert_eq(parse_versions_name(["hello"]), "hello")
-  assert_eq(parse_versions_name(["--server", "http://x:1", "hello"]), "hello")
-  assert_eq(parse_versions_name(["--server=http://x:1", "hello"]), "hello")
-  try parse_versions_name([]) catch {
+test "parse_versions_args handles action, name, and server flags" {
+  assert_eq(parse_versions_args(["list", "hello"]), ("list", "hello"))
+  assert_eq(parse_versions_args(["clear", "hello"]), ("clear", "hello"))
+  assert_eq(
+    parse_versions_args(["--server", "http://x:1", "list", "hello"]),
+    ("list", "hello"),
+  )
+  assert_eq(
+    parse_versions_args(["--server=http://x:1", "clear", "hello"]),
+    ("clear", "hello"),
+  )
+  try parse_versions_args([]) catch {
     CliError(message) =>
       assert_true(message.contains("usage: moonless versions"))
   } noraise {
-    _ => fail("expected failure for an empty versions name")
+    _ => fail("expected failure for an empty versions command")
   }
-  try parse_versions_name(["a", "b"]) catch {
+  try parse_versions_args(["list"]) catch {
+    CliError(message) =>
+      assert_true(message.contains("usage: moonless versions"))
+  } noraise {
+    _ => fail("expected failure for a missing versions name")
+  }
+  try parse_versions_args(["list", "a", "b"]) catch {
     CliError(message) => assert_true(message.contains("unexpected argument"))
   } noraise {
     _ => fail("expected failure for extra versions arguments")
@@ -418,14 +431,59 @@ async test "versions fetches the function record and reports unknown names" {
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
     let out = CliOut::capture()
-    cli_versions(["hello-fn"], base, out~)
+    cli_versions(["list", "hello-fn"], base, out~)
     assert_true(out.text().contains("b-1795602615000"))
     assert_true(out.text().contains("2026-11-25 10:30:15"))
-    try cli_versions(["ghost"], base, out=CliOut::capture()) catch {
+    try cli_versions(["list", "ghost"], base, out=CliOut::capture()) catch {
       CliError(message) => assert_true(message.contains("no function 'ghost'"))
     } noraise {
       _ => fail("expected failure for an unknown function")
     }
+    try cli_versions(["bogus", "hello-fn"], base, out=CliOut::capture()) catch {
+      CliError(message) =>
+        assert_true(message.contains("unknown versions command"))
+    } noraise {
+      _ => fail("expected failure for an unknown versions command")
+    }
+    server.close()
+  })
+}
+
+///|
+async test "versions clear posts to the gateway and reports removals" {
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(
+      http_method=@http.Post,
+      pattern="/api/functions/:name/versions/clear",
+      handler=ctx => {
+        let name = ctx.params["name"]
+        let removed = if name == "quiet-fn" { [] } else { ["b-1790928000000"] }
+        let response : Json = {
+          "name": name,
+          "buildId": "b-1795602615000",
+          "removed": Json::array(
+            removed.map(build_id => Json::string(build_id)),
+          ),
+        }
+        @shared.send_json(ctx.conn, 200, response)
+      },
+    ),
+  )
+  let (server, port) = fixture_server()
+  let base = "http://127.0.0.1:\{port}"
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let out = CliOut::capture()
+    cli_versions(["clear", "hello-fn"], base, out~)
+    assert_true(
+      out
+      .text()
+      .contains("cleared 1 saved version of hello-fn (kept b-1795602615000)"),
+    )
+    let out = CliOut::capture()
+    cli_versions(["clear", "quiet-fn"], base, out~)
+    assert_true(out.text().contains("no saved versions to clear for quiet-fn"))
     server.close()
   })
 }

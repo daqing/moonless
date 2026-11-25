@@ -1,5 +1,6 @@
 ///|
-// `moonless versions <name>` lists a function's saved builds, newest first.
+// `moonless versions <list|clear> <name>` views or prunes a function's saved
+// builds.
 
 ///|
 async fn cli_versions(
@@ -7,7 +8,23 @@ async fn cli_versions(
   server : String,
   out~ : CliOut = CliOut::stdout(),
 ) -> Unit raise CliError {
-  let name = parse_versions_name(flags)
+  let (action, name) = parse_versions_args(flags)
+  match action {
+    "list" => cli_versions_list(name, server, out~)
+    "clear" => cli_versions_clear(name, server, out~)
+    other =>
+      raise CliError(
+        "unknown versions command '\{other}'\n(hint: use 'moonless versions list|clear <name>')",
+      )
+  }
+}
+
+///|
+async fn cli_versions_list(
+  name : String,
+  server : String,
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
   let response = @shared.http_get(
     server + "/api/functions/\{name}",
     timeout_ms=30_000,
@@ -38,7 +55,49 @@ async fn cli_versions(
 }
 
 ///|
-fn parse_versions_name(flags : Array[String]) -> String raise CliError {
+async fn cli_versions_clear(
+  name : String,
+  server : String,
+  out~ : CliOut = CliOut::stdout(),
+) -> Unit raise CliError {
+  let response = @shared.http_post_json(
+    server + "/api/functions/\{name}/versions/clear",
+    Json::object(Map([])),
+    timeout_ms=30_000,
+  ) catch {
+    err =>
+      raise CliError(
+        "cannot clear versions of '\{name}': \{@debug.to_string(err)}",
+      )
+  }
+  guard response is Object(obj) else {
+    raise CliError("the server sent an unreadable clear response")
+  }
+  let removed = @shared.json_field_string_array(obj, "removed") catch {
+    _ => raise CliError("the server sent an unreadable clear response")
+  }
+  let kept = @shared.json_field_string(obj, "buildId") catch {
+    _ => raise CliError("the server sent an unreadable clear response")
+  }
+  if removed.length() == 0 {
+    out.write("no saved versions to clear for \{name}\n")
+    return
+  }
+  let noun = if removed.length() == 1 { "version" } else { "versions" }
+  if kept == "" {
+    out.write("cleared \{removed.length()} saved \{noun} of \{name}\n")
+  } else {
+    out.write(
+      "cleared \{removed.length()} saved \{noun} of \{name} (kept \{kept})\n",
+    )
+  }
+}
+
+///|
+fn parse_versions_args(
+  flags : Array[String],
+) -> (String, String) raise CliError {
+  let mut action = ""
   let mut name = ""
   let mut i = 0
   while i < flags.length() {
@@ -50,17 +109,19 @@ fn parse_versions_name(flags : Array[String]) -> String raise CliError {
       i += 1
       continue
     }
-    if name == "" {
+    if action == "" {
+      action = flags[i]
+    } else if name == "" {
       name = flags[i]
-      i += 1
-      continue
+    } else {
+      raise CliError("unexpected argument '\{flags[i]}' for versions")
     }
-    raise CliError("unexpected argument '\{flags[i]}' for versions")
+    i += 1
   }
-  if name == "" {
-    raise CliError("usage: moonless versions <name>")
+  if action == "" || name == "" {
+    raise CliError("usage: moonless versions <list|clear> <name>")
   }
-  name
+  (action, name)
 }
 
 ///|

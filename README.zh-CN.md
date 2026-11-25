@@ -388,8 +388,16 @@ moonrun 策略目前仍是实验功能，且不覆盖 WASI。特别注意，
 已保存的构建及其创建时间（UTC）：
 
 ```bash
-moonless versions <name>
+moonless versions list <name>
 ```
+
+清除除当前构建以外的全部已保存构建，同时删除它们的产物和构建目录：
+
+```bash
+moonless versions clear <name>
+```
+
+清除不可撤销：被删除的构建无法再回滚。
 
 回滚到前一个构建：
 

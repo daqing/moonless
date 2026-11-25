@@ -84,9 +84,9 @@ async fn print_usage(out~ : CliOut = CliOut::stdout()) -> Unit noraise {
   out.write(
     "                                     show a function's manifest and build details\n",
   )
-  out.write("  moonless versions <name> [--server URL]\n")
+  out.write("  moonless versions list|clear <name> [--server URL]\n")
   out.write(
-    "                                     list a function's saved builds, newest first\n",
+    "                                     list saved builds (newest first) or delete all but the active one\n",
   )
   out.write("  moonless delete <name>... [--server URL]\n")
   out.write("                                     remove deployed functions\n")

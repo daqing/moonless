@@ -417,8 +417,17 @@ function's history. List the saved builds, newest first, with their creation
 time in UTC:
 
 ```bash
-moonless versions <name>
+moonless versions list <name>
 ```
+
+Clear every saved build except the active one, deleting their artifacts and
+build directories:
+
+```bash
+moonless versions clear <name>
+```
+
+Clearing is irreversible: the removed builds can no longer be rolled back to.
 
 Roll back to the previous build with:
 
