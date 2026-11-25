@@ -346,6 +346,10 @@ Both must be positive integers. Excess calls queue, and the runner's global
 `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
 function has no override.
 
+To verify the limit against a running stack, run
+`scripts/accept_concurrency.sh bot 2 6`. It fires the requests in parallel and
+checks both the completion waves and the runner's process count.
+
 A function that exceeds its deadline is killed. The HTTP trigger then answers
 `504 Gateway Timeout` with the runner's timeout message; the same run shows
 exit code 124 in `moonless runs` and `moonless logs`.
@@ -427,7 +431,9 @@ docker run -d --network moonless_default \
 Registered nodes join round-robin placement with the default runner. The gateway
 uploads the active wasm build before each remote invocation, and runners renew
 registration every 30 seconds. Registration is in memory, so a gateway restart
-clears the node list until runners renew.
+clears the node list until runners renew. Per-function `[limits]` are resolved
+by the gateway and sent with every run, so remote nodes honor them without the
+shared registry volume.
 
 ## Using data services
 

@@ -49,6 +49,7 @@ pub struct RunRequest {
   event : Event
   env : Map[String, String] // extra env injected into the function process
   build_id : String // empty means resolve on the runner
+  limits : FunctionLimits? // None means the runner falls back to its local registry
 }
 
 ///|
@@ -60,8 +61,9 @@ pub fn RunRequest::RunRequest(
   event~ : Event,
   env~ : Map[String, String] = Map([]),
   build_id~ : String = "",
+  limits? : FunctionLimits,
 ) -> RunRequest {
-  { name, event, env, build_id, }
+  { name, event, env, build_id, limits, }
 }
 
 ///|
@@ -181,13 +183,17 @@ pub fn RunRequest::to_json(self : RunRequest) -> Json {
   for key, value in self.env {
     env[key] = Json::string(value)
   }
-  let json : Json = {
-    "name": self.name,
-    "event": self.event.to_json(),
-    "env": Json::object(env),
-    "buildId": self.build_id,
+  let root : Map[String, Json] = Map([])
+  root["name"] = Json::string(self.name)
+  root["event"] = self.event.to_json()
+  root["env"] = Json::object(env)
+  root["buildId"] = Json::string(self.build_id)
+  // Present only when the gateway resolved the function: an absent key
+  // tells an older runner to read the limits from its local registry.
+  if self.limits is Some(limits) {
+    root["limits"] = function_limits_to_json(limits)
   }
-  json
+  Json::object(root)
 }
 
 ///|
@@ -199,11 +205,17 @@ pub fn RunRequest::from_json(json : Json) -> RunRequest raise SharedError {
     raise InvalidJson("run request has no event")
   }
   let event = Event::from_json(event_json)
+  let limits = match obj.get("limits") {
+    Some(Object(fields)) => Some(function_limits_from_fields(fields))
+    Some(Null) | None => None
+    Some(_) => raise InvalidJson("run request limits expected an object")
+  }
   RunRequest(
     name=json_field_string(obj, "name"),
     event~,
     env=json_field_string_map(obj, "env"),
     build_id=json_field_string(obj, "buildId", default=""),
+    limits?,
   )
 }
 
@@ -319,14 +331,7 @@ pub fn Manifest::to_json(self : Manifest) -> Json {
     None => Json::null()
   }
   root["triggers"] = Json::object(triggers)
-  let limits : Map[String, Json] = Map([])
-  if self.limits.timeout_ms is Some(value) {
-    limits["timeoutMs"] = Json::number(value.to_double())
-  }
-  if self.limits.concurrency is Some(value) {
-    limits["concurrency"] = Json::number(value.to_double())
-  }
-  root["limits"] = Json::object(limits)
+  root["limits"] = function_limits_to_json(self.limits)
   root["sandbox"] = match self.sandbox {
     Some(path) => Json::string(path)
     None => Json::null()
@@ -377,11 +382,7 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
     None => ManifestTriggers()
   }
   let limits = match json_field_object(obj, "limits") {
-    Some(value) =>
-      FunctionLimits(
-        timeout_ms=json_optional_limit(value, "timeoutMs"),
-        concurrency=json_optional_limit(value, "concurrency"),
-      )
+    Some(value) => function_limits_from_fields(value)
     None => FunctionLimits()
   }
   let sandbox = match obj.get("sandbox") {
@@ -389,6 +390,30 @@ pub fn Manifest::from_json(json : Json) -> Manifest raise SharedError {
     _ => None
   }
   Manifest(name~, triggers~, toolchain?, limits~, sandbox?)
+}
+
+///|
+// The manifest and dispatch forms of per-function limits share this codec:
+// only the fields that were configured are emitted.
+fn function_limits_to_json(limits : FunctionLimits) -> Json {
+  let obj : Map[String, Json] = Map([])
+  if limits.timeout_ms is Some(value) {
+    obj["timeoutMs"] = Json::number(value.to_double())
+  }
+  if limits.concurrency is Some(value) {
+    obj["concurrency"] = Json::number(value.to_double())
+  }
+  Json::object(obj)
+}
+
+///|
+fn function_limits_from_fields(
+  obj : Map[String, Json],
+) -> FunctionLimits raise SharedError {
+  FunctionLimits(
+    timeout_ms=json_optional_limit(obj, "timeoutMs"),
+    concurrency=json_optional_limit(obj, "concurrency"),
+  )
 }
 
 ///|

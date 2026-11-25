@@ -594,6 +594,10 @@ runner 设置 `MOONLESS_GATEWAY_URL` 与 `MOONLESS_RUNNER_PUBLIC_URL` 后每 30 
 测试覆盖注册、轮询、上传内容、buildId 传递和无注册表 runner 执行。实际启动
 不挂 moonless-data 的第二容器后，第二次 hello 调用由该节点执行成功。
 
+函数级 `[limits]` 现在由 gateway 解析并随 `RunRequest.limits` 下发，远程节点
+无需共享注册表也能执行超时与并发限制；旧 gateway 不带该字段时，runner 仍
+回退读取本地注册表。
+
 ## T12.7 CI
 
 新增 `.github/workflows/ci.yml`，在 push 和 pull request 上使用

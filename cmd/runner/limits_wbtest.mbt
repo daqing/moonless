@@ -72,6 +72,47 @@ async test "manifest timeout overrides the runner default" {
 }
 
 ///|
+async test "dispatch limits apply without a local registry" {
+  let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
+  let hold_main =
+    #|async fn main {
+    #|  @async.sleep(300)
+    #|  println("held")
+    #|}
+  let wasm_module = build_fixture_module(
+    fixture_dir,
+    async_pkg(),
+    hold_main,
+    moon_mod=limits_async_module(),
+  )
+  let data_root = @fs.tmpdir(prefix="moonless-runner-test-")
+  install_function(data_root, "remote-hold", "b-1001", wasm_module)
+  // No registry record: this is a remote node without the shared volume.
+  let cfg = test_config(data_root)
+  let results = FixedArray::make(2, @shared.RunResult())
+  let started = @async.now()
+  @async.with_task_group(group => {
+    for i in 0..<2 {
+      group.spawn_bg(() => {
+        results[i] = run_function(
+          cfg,
+          @shared.RunRequest(
+            name="remote-hold",
+            event=limits_event("remote-hold"),
+            limits=@shared.FunctionLimits(concurrency=Some(1)),
+          ),
+        )
+      })
+    }
+  })
+  for result in results {
+    assert_eq(result.exit_code, 0)
+    assert_eq(result.stdout, "held\n")
+  }
+  assert_true((@async.now() - started).to_int() >= 550)
+}
+
+///|
 async test "manifest concurrency serializes calls to one function" {
   let fixture_dir = @fs.tmpdir(prefix="moonless-runner-fixture-")
   let hold_main =

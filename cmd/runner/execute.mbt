@@ -140,7 +140,10 @@ async fn run_steps(
     request.name,
     requested_build=request.build_id,
   )
-  let limits = load_function_limits(cfg.data_root, request.name)
+  let limits = match request.limits {
+    Some(limits) => limits
+    None => load_function_limits(cfg.data_root, request.name)
+  }
   let timeout_ms = limits.timeout_ms.unwrap_or(cfg.timeout_ms)
   let concurrency = limits.concurrency.unwrap_or(cfg.max_concurrency)
   let function_sem = function_semaphore(cfg, request.name, concurrency)

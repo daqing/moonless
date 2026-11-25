@@ -36,6 +36,7 @@ test "run request and run result round-trip" {
       ),
     ),
     env~,
+    limits=@shared.FunctionLimits(timeout_ms=Some(1500), concurrency=Some(3)),
   )
   let back = @shared.RunRequest::from_json(request.to_json())
   assert_eq(back.to_json().stringify(), request.to_json().stringify())
