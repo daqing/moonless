@@ -403,6 +403,9 @@ fn function_limits_to_json(limits : FunctionLimits) -> Json {
   if limits.concurrency is Some(value) {
     obj["concurrency"] = Json::number(value.to_double())
   }
+  if limits.max_connection is Some(value) {
+    obj["maxConnection"] = Json::number(value.to_double())
+  }
   Json::object(obj)
 }
 
@@ -413,6 +416,7 @@ fn function_limits_from_fields(
   FunctionLimits(
     timeout_ms=json_optional_limit(obj, "timeoutMs"),
     concurrency=json_optional_limit(obj, "concurrency"),
+    max_connection=json_optional_limit(obj, "maxConnection"),
   )
 }
 

@@ -334,29 +334,37 @@ audit events.
 
 ## Per-function limits
 
-Set optional timeout and concurrency overrides in `moonless.toml`:
+Set optional timeout, execution concurrency, and HTTP client admission limits
+in `moonless.toml`:
 
 ```toml
 [limits]
 timeout_ms = 5000
 concurrency = 2
+max_connection = 4
 ```
 
-Both must be positive integers. Excess calls queue, and the runner's global
-`MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
-function has no override.
+All three must be positive integers.
+
+- `timeout_ms` kills a run that exceeds the deadline. The HTTP trigger answers
+  `504 Gateway Timeout`, and `moonless runs` / `moonless logs` show exit code
+  124.
+- `concurrency` bounds how many runs execute at once on a runner. Excess runs
+  queue there.
+- `max_connection` bounds how many HTTP requests the gateway admits at once for
+  the function. Excess clients get `429 Too Many Requests`; the function is not
+  started, so it caps queueing instead of adding more. It applies to HTTP
+  triggers only.
+
+See [`docs/max_connection_guide.md`](docs/max_connection_guide.md) for the
+enforcement path, counter scope, and deployment notes.
+
+The runner's global `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY`
+defaults apply when a function has no override.
 
 To verify the limit against a running stack, run
 `scripts/accept_concurrency.sh bot 2 6`. It fires the requests in parallel and
 checks both the completion waves and the runner's process count.
-
-A function that exceeds its deadline is killed. The HTTP trigger then answers
-`504 Gateway Timeout` with the runner's timeout message; the same run shows
-exit code 124 in `moonless runs` and `moonless logs`.
-
-A function that exceeds its deadline is killed. The HTTP trigger then answers
-`504 Gateway Timeout` with the runner's timeout message; the same run shows
-exit code 124 in `moonless runs` and `moonless logs`.
 
 ## Sandbox policies
 

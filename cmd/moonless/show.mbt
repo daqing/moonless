@@ -129,6 +129,10 @@ fn render_detail_limits(limits : @shared.FunctionLimits) -> String {
     Some(value) => parts.push("concurrency=\{value}")
     None => ()
   }
+  match limits.max_connection {
+    Some(value) => parts.push("max_connection=\{value}")
+    None => ()
+  }
   if parts.length() == 0 {
     return ""
   }

@@ -10,6 +10,7 @@ priv struct GatewayConfig {
   runner_url : String
   registry_lock : @async.Mutex
   runner_registry : RunnerRegistry
+  connections : Map[String, ConnectionCounter]
 }
 
 ///|
@@ -29,6 +30,7 @@ fn load_gateway_config() -> GatewayConfig {
     runner_url,
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
+    connections: Map([]),
   }
 }
 

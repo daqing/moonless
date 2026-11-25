@@ -303,8 +303,9 @@ Conventions:
 
 ## Step 12. Stretch (P3)
 
-- [x] **T12.1 — Per-function limits.** Timeout and concurrency settings
-  in `moonless.toml`, honored by the runner.
+- [x] **T12.1 — Per-function limits.** Timeout, execution concurrency, and
+  HTTP client admission settings in `moonless.toml`, honored by the runner
+  and gateway.
 - [x] **T12.2 — Versioning & rollback.** Keep a build history per
   function; `moonless rollback <name>` switches the active build.
 - [x] **T12.3 — HTTP response control.** A protocol for functions to

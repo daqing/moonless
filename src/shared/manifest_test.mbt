@@ -230,13 +230,16 @@ test "manifest parses and round-trips per-function limits" {
       #|[limits]
       #|timeout_ms = 2500
       #|concurrency = 2
+      #|max_connection = 4
     ),
   )
   assert_eq(manifest.limits.timeout_ms, Some(2500))
   assert_eq(manifest.limits.concurrency, Some(2))
+  assert_eq(manifest.limits.max_connection, Some(4))
   let back = @shared.Manifest::from_json(manifest.to_json())
   assert_eq(back.limits.timeout_ms, Some(2500))
   assert_eq(back.limits.concurrency, Some(2))
+  assert_eq(back.limits.max_connection, Some(4))
 }
 
 ///|
@@ -244,6 +247,7 @@ test "manifest rejects non-positive limits" {
   for
     source in [
       "name = \"limited\"\n[limits]\ntimeout_ms = 0", "name = \"limited\"\n[limits]\nconcurrency = -1",
+      "name = \"limited\"\n[limits]\nmax_connection = 0",
     ] {
     try @shared.parse_manifest(source) catch {
       @shared.InvalidManifest(_) => ()

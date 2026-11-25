@@ -250,7 +250,11 @@ test "render_function_detail shows triggers, limits, and history" {
         s3=@shared.S3Trigger(bucket="uploads", methods=["put", "delete"]),
       ),
       toolchain="0.10.11",
-      limits=@shared.FunctionLimits(timeout_ms=Some(5000), concurrency=Some(2)),
+      limits=@shared.FunctionLimits(
+        timeout_ms=Some(5000),
+        concurrency=Some(2),
+        max_connection=Some(4),
+      ),
       sandbox="policy.json",
     ),
     build_id="b-2",
@@ -270,6 +274,7 @@ test "render_function_detail shows triggers, limits, and history" {
   assert_true(text.contains("  s3: bucket=uploads methods=put,delete"))
   assert_true(text.contains("  timeout_ms=5000"))
   assert_true(text.contains("  concurrency=2"))
+  assert_true(text.contains("  max_connection=4"))
   assert_true(text.contains("history:   b-1 b-2"))
   // A minimal manifest keeps the output short.
   let minimal = @shared.RegistryRecord(

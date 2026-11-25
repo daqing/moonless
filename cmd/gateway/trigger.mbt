@@ -21,6 +21,17 @@ async fn handle_trigger(
       "function \{name} does not have an http trigger\n",
     )
   }
+  let connection_limit = record.manifest.limits.max_connection.unwrap_or(
+    unlimited_connections,
+  )
+  if !acquire_connection(cfg, name, connection_limit) {
+    return @shared.send_text(
+      ctx.conn,
+      429,
+      "moonless: function \{name} exceeded max_connection=\{connection_limit}\n",
+    )
+  }
+  defer release_connection(cfg, name)
   let body = ctx.body.read_all().text() catch { _ => "" }
   let query = match ctx.request.path.split_once("?") {
     Some((_, q)) => q.to_owned()

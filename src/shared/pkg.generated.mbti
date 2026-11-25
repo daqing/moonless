@@ -148,8 +148,9 @@ pub fn Event::to_repr(Self) -> @debug.Repr
 pub struct FunctionLimits {
   timeout_ms : Int32?
   concurrency : Int32?
+  max_connection : Int32?
 }
-pub fn FunctionLimits::FunctionLimits(timeout_ms? : Int32?, concurrency? : Int32?) -> Self
+pub fn FunctionLimits::FunctionLimits(timeout_ms? : Int32?, concurrency? : Int32?, max_connection? : Int32?) -> Self
 pub fn FunctionLimits::to_repr(Self) -> @debug.Repr
 
 #derive(@debug.Debug)

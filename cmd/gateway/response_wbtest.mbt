@@ -44,6 +44,7 @@ async test "HTTP trigger sends the function's status and headers" {
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
     }
     registry_set(
       cfg,

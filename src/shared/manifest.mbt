@@ -51,6 +51,7 @@ pub fn ManifestTriggers::ManifestTriggers(
 pub struct FunctionLimits {
   timeout_ms : Int32?
   concurrency : Int32?
+  max_connection : Int32?
 }
 
 ///|
@@ -60,8 +61,9 @@ pub extend FunctionLimits with Debug::{to_repr}
 pub fn FunctionLimits::FunctionLimits(
   timeout_ms~ : Int32? = None,
   concurrency~ : Int32? = None,
+  max_connection~ : Int32? = None,
 ) -> FunctionLimits {
-  { timeout_ms, concurrency, }
+  { timeout_ms, concurrency, max_connection, }
 }
 
 ///|
@@ -190,6 +192,7 @@ fn parse_limits(
   FunctionLimits(
     timeout_ms=toml_positive_int(tbl, "timeout_ms"),
     concurrency=toml_positive_int(tbl, "concurrency"),
+    max_connection=toml_positive_int(tbl, "max_connection"),
   )
 }
 

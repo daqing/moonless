@@ -316,22 +316,32 @@ moon run scripts/demo_s3_methods.mbtx
 
 ## 函数级限制
 
-在 `moonless.toml` 中设置可选的超时与并发覆盖值：
+在 `moonless.toml` 中设置可选的超时、执行并发和 HTTP 客户端准入限制：
 
 ```toml
 [limits]
 timeout_ms = 5000
 concurrency = 2
+max_connection = 4
 ```
 
-两者都必须是正整数。超出的调用会排队；函数未覆盖时，沿用 runner 全局的
-`MOONLESS_RUN_TIMEOUT_MS` 和 `MOONLESS_MAX_CONCURRENCY` 默认值。
+三者都必须是正整数。
+
+- `timeout_ms`：运行超过截止时间会被终止，HTTP 触发返回
+  `504 Gateway Timeout`，`moonless runs` 与 `moonless logs` 记为退出码 124。
+- `concurrency`：限制单个 runner 上同时执行的运行数，超出部分在 runner 排队。
+- `max_connection`：限制 gateway 为单个函数同时接纳的 HTTP 请求数，超出时直接
+  返回 `429 Too Many Requests`，不会启动函数，因此限制的是排队规模而不是增加
+  排队；只作用于 HTTP 触发。
+
+实现路径、计数范围和上线注意事项见
+[`docs/max_connection_guide.zh-CN.md`](docs/max_connection_guide.zh-CN.md)。
+
+函数未覆盖时，沿用 runner 全局的 `MOONLESS_RUN_TIMEOUT_MS` 和
+`MOONLESS_MAX_CONCURRENCY` 默认值。
 
 要对运行中的栈验证该限制，可运行 `scripts/accept_concurrency.sh bot 2 6`：
 脚本会并发发起请求，同时检查完成波次和 runner 的进程数。
-
-函数超过截止时间会被终止，HTTP 触发返回 `504 Gateway Timeout` 和 runner 的超时
-信息；`moonless runs` 与 `moonless logs` 中同样记为退出码 124。
 
 ## 沙箱策略
 

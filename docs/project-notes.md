@@ -616,6 +616,15 @@ runner 测试证明空 env 策略隐藏 MOONLESS_EVENT，而 env.from_host 显�
 双语 README 记录 env/fs/net/process 规则、相对路径、WASI 不覆盖以及
 process.spawn 的宿主权限风险。
 
+## T12.9 max_connection 准入限制
+
+`moonless.toml` 的 `[limits]` 新增 `max_connection` 正整数配置。gateway 按函数
+统计在途 HTTP 请求，达到上限后直接返回 429 且不派发 runner；请求结束（含错误、
+超时和客户端断开）后释放槽位。与 `concurrency` 的区别是：前者在入口拒绝，后者
+在 runner 排队。仅 HTTP 触发计数，cron/S3 不受影响。
+
+测试覆盖 manifest 校验与 JSON 往返、429 拒绝，以及槽位释放后重新接纳请求。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。
