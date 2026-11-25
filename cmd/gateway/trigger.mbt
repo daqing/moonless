@@ -49,6 +49,9 @@ async fn handle_trigger(
   if result.exit_code == 127 && result.stderr.contains("unknown function") {
     return @shared.send_text(ctx.conn, 404, "unknown function \{name}\n")
   }
+  if result.exit_code == 124 && result.stderr.contains("timed out") {
+    return @shared.send_text(ctx.conn, 504, result.stderr)
+  }
   let output = parse_function_response(result.stdout)
   @shared.send_response(
     ctx.conn,

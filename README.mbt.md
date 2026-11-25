@@ -346,6 +346,14 @@ Both must be positive integers. Excess calls queue, and the runner's global
 `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
 function has no override.
 
+A function that exceeds its deadline is killed. The HTTP trigger then answers
+`504 Gateway Timeout` with the runner's timeout message; the same run shows
+exit code 124 in `moonless runs` and `moonless logs`.
+
+A function that exceeds its deadline is killed. The HTTP trigger then answers
+`504 Gateway Timeout` with the runner's timeout message; the same run shows
+exit code 124 in `moonless runs` and `moonless logs`.
+
 ## Sandbox policies
 
 A wasm function can name a package-local moonrun policy in `moonless.toml`:

@@ -327,6 +327,9 @@ concurrency = 2
 两者都必须是正整数。超出的调用会排队；函数未覆盖时，沿用 runner 全局的
 `MOONLESS_RUN_TIMEOUT_MS` 和 `MOONLESS_MAX_CONCURRENCY` 默认值。
 
+函数超过截止时间会被终止，HTTP 触发返回 `504 Gateway Timeout` 和 runner 的超时
+信息；`moonless runs` 与 `moonless logs` 中同样记为退出码 124。
+
 ## 沙箱策略
 
 wasm 函数可在 `moonless.toml` 中指定包内的 moonrun 策略文件：

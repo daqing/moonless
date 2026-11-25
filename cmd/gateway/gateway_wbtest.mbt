@@ -573,6 +573,70 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
 }
 
 ///|
+// A timed-out run is a backend failure, not a function-chosen response: the
+// gateway answers 504 with the runner's timeout message instead of the
+// partial stdout captured before the kill.
+async test "HTTP trigger maps function timeouts to 504" {
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let fake = FakeRunner(
+    result=@shared.RunResult(
+      stdout="partial\n",
+      stderr="moonless: function timed out after 2000ms\n",
+      exit_code=124,
+    ),
+    last_request=Ref(""),
+    installed=Ref(["slow-fn"]),
+  )
+  @async.with_task_group(group => {
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
+    }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="slow-fn",
+        manifest=@shared.Manifest(
+          name="slow-fn",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-1",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(runner_server, fake_runner_router(fake))
+    })
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/slow-fn",
+    )
+    assert_eq(response.code, 504)
+    assert_eq(body.text(), "moonless: function timed out after 2000ms\n")
+    // A function that merely exits 124 is not a timeout.
+    fake.result = @shared.RunResult(
+      stdout="done\n",
+      stderr="custom\n",
+      exit_code=124,
+    )
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/slow-fn",
+    )
+    assert_eq(response.code, 200)
+    assert_eq(body.text(), "done\n")
+    runner_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
 // Only functions that declare the http trigger are reachable at /fn/<name>;
 // s3-only and cron-only functions are rejected before reaching the runner.
 async test "HTTP trigger only dispatches functions with the http trigger" {
