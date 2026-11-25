@@ -16,7 +16,8 @@ jobs:
 
       - name: Install the pinned MoonBit toolchain
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "0.10.20+65efd5b93"
+          VERSION=v0.10.22+124d61d05
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$VERSION"
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
       - name: Resolve dependencies
