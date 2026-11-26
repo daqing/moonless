@@ -440,6 +440,9 @@ wasm 构建；runner 每 30 秒续注册。注册表保存在 gateway 内存中�
 节点会在下一轮续注册时恢复。函数级 `[limits]` 由 gateway 解析并随每次运行请求
 下发，因此没有共享注册表 volume 的远程节点也会生效。
 
+注册流程、调度规则、每个节点的配置和注意事项见
+[`docs/multi_node_guide.zh-CN.md`](docs/multi_node_guide.zh-CN.md)。
+
 ## 使用数据服务
 
 把你的 Redis / MySQL / Postgres 地址告诉 moonless（配置项在

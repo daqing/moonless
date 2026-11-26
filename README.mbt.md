@@ -474,6 +474,9 @@ clears the node list until runners renew. Per-function `[limits]` are resolved
 by the gateway and sent with every run, so remote nodes honor them without the
 shared registry volume.
 
+See [`docs/multi_node_guide.md`](docs/multi_node_guide.md) for the registration
+protocol, placement rules, per-node configuration, and caveats.
+
 ## Using data services
 
 Give moonless the addresses of your Redis / MySQL / Postgres instances
