@@ -625,6 +625,22 @@ process.spawn 的宿主权限风险。
 
 测试覆盖 manifest 校验与 JSON 往返、429 拒绝，以及槽位释放后重新接纳请求。
 
+## T12.10 on-upload 的内置 S3 客户端
+
+工具链固定到 `0.10.22+124d61d05` 后，`examples/on-upload` 的服务端构建失败：
+`kaashyapan/s3@0.6.0` 依赖 `moonbitlang/async@0.20.3`，后者的 wasm 源码仍把
+trait 实现当普通方法调用，新 moonc 要求 `extend` 提升；而所有满足新编译器的
+async 版本（0.21.1 起）又把 HTTP 头类型改为 `Map[CaseInsensitiveString, String]`，
+0.6.0 无法接受。不存在同时满足两边的已发布版本。
+
+因此把 0.6.0 的源码内置到 `examples/on-upload/vendor/s3`（Apache-2.0，随附
+LICENSE 与改动说明）：请求头经 `signed_headers` 用 `CaseInsensitiveString`
+转换，`derive(...)` 改为 `#derive(...)`，`moon.pkg` 限定 wasm 并去掉未使用导入。
+示例依赖改为 sigv4/uri/async 0.22.4/x，不再引入 `kaashyapan/s3`。
+
+按 CLI 的打包规则（排除 `_build` 与 dotfiles，保留 `.mooncakes`）在干净目录中
+用 `moon build --target wasm` 复现通过，0 warning 0 error。
+
 ## 待澄清问题
 
 无——讨论已收敛（2026-10-02），README 按上述记录撰写。

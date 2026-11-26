@@ -1,0 +1,96 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "daqing/on-upload-fn/vendor/s3"
+
+import {
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+#derive(@debug.Debug)
+pub suberror S3Error {
+  InvalidConfig(String)
+  InvalidInput(String)
+  InvalidResponse(String)
+  ServiceError(@http.Response, String)
+}
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub struct Bucket {
+  name : String
+  creation_date : String?
+}
+
+#derive(Eq, @debug.Debug)
+type Client
+pub fn Client::Client(Config) -> Self raise
+pub async fn Client::create_bucket(Self, String, options? : RequestOptions) -> @http.Response
+pub async fn Client::delete_bucket(Self, String, options? : RequestOptions) -> @http.Response
+pub async fn Client::delete_object(Self, String, String, options? : RequestOptions) -> @http.Response
+pub fn Client::generate_presigned_get_url(Self, String, String, expires_seconds? : Int32) -> String raise
+pub fn Client::generate_presigned_put_url(Self, String, String, expires_seconds? : Int32, content_type? : String) -> String raise
+pub async fn Client::get_object(Self, String, String, options? : RequestOptions) -> ObjectResult
+pub async fn Client::head_bucket(Self, String, options? : RequestOptions) -> @http.Response
+pub async fn Client::head_object(Self, String, String, options? : RequestOptions) -> @http.Response
+pub async fn Client::list_buckets(Self, prefix? : String, continuation_token? : String, max_buckets? : Int32, options? : RequestOptions) -> ListBucketsResult
+pub async fn Client::list_objects_v2(Self, String, prefix? : String, delimiter? : String, continuation_token? : String, max_keys? : Int32, options? : RequestOptions) -> ListObjectsV2Result
+pub async fn Client::put_object(Self, String, String, &@io.Data, options? : RequestOptions) -> @http.Response
+
+#derive(Eq, @debug.Debug)
+type Config
+pub fn Config::Config(String, Credentials, endpoint? : String, endpoint_style? : EndpointStyle) -> Self
+
+#derive(Eq)
+type Credentials
+pub fn Credentials::Credentials(String, String, session_token? : String) -> Self
+pub impl @debug.Debug for Credentials
+
+#derive(Eq, @debug.Debug)
+pub(all) enum EndpointStyle {
+  VirtualHost
+  Path
+}
+
+#derive(Eq, @debug.Debug)
+pub struct ListBucketsResult {
+  owner_id : String?
+  owner_display_name : String?
+  prefix : String?
+  continuation_token : String?
+  buckets : Array[Bucket]
+}
+
+#derive(Eq, @debug.Debug)
+pub struct ListObjectsV2Result {
+  is_truncated : Bool
+  next_continuation_token : String?
+  contents : Array[ListedObject]
+  common_prefixes : Array[String]
+}
+
+#derive(Eq, @debug.Debug)
+pub struct ListedObject {
+  key : String
+  size : Int64
+  etag : String?
+}
+
+pub struct ObjectResult {
+  response : @http.Response
+  body : &ReadCloser
+}
+
+#derive(@debug.Debug)
+type RequestOptions
+pub fn RequestOptions::RequestOptions(headers? : Map[String, String], query? : Map[String, String], timestamp? : String, payload_hash? : String) -> Self
+
+// Type aliases
+
+// Traits
+pub(open) trait ReadCloser : @io.Reader {
+  fn close(Self) -> Unit
+}
