@@ -2,6 +2,10 @@
 priv struct RunnerNode {
   id : String
   mut url : String
+  // Epoch ms of the last registration; nodes that stop renewing are pruned so
+  // a stale URL (e.g. after MOONLESS_RUNNER_PUBLIC_URL changes) cannot keep
+  // taking round-robin turns.
+  mut last_seen_ms : Int64
 }
 
 ///|
@@ -17,10 +21,38 @@ fn RunnerRegistry::RunnerRegistry() -> RunnerRegistry {
 }
 
 ///|
+// A node re-registers every 30 s. Three missed rounds (~90 s) with no
+// heartbeat means it is gone; drop it so placement stops choosing it.
+const RUNNER_TTL_MS : Int64 = 90_000
+
+///|
+// Drops nodes whose last registration is older than the TTL. Caller holds the
+// registry lock. Keeps `next` inert by re-scanning from scratch, so pruning
+// never leaves the round-robin cursor past the end.
+fn prune_stale_nodes(registry : RunnerRegistry, now_ms : Int64) -> Unit {
+  let alive : Array[RunnerNode] = []
+  for node in registry.nodes {
+    if now_ms - node.last_seen_ms <= RUNNER_TTL_MS {
+      alive.push(node)
+    }
+  }
+  if alive.length() != registry.nodes.length() {
+    registry.nodes.clear()
+    for node in alive {
+      registry.nodes.push(node)
+    }
+    if registry.next >= registry.nodes.length() + 1 {
+      registry.next = 0
+    }
+  }
+}
+
+///|
 async fn select_runner(cfg : GatewayConfig) -> (String, Bool) {
   let registry = cfg.runner_registry
   registry.lock.acquire()
   defer registry.lock.release()
+  prune_stale_nodes(registry, @async.now())
   let count = registry.nodes.length() + 1
   let selected = registry.next % count
   registry.next += 1
@@ -57,15 +89,18 @@ async fn handle_runner_registration(
   let registry = cfg.runner_registry
   registry.lock.acquire()
   defer registry.lock.release()
+  let now_ms = @async.now()
+  prune_stale_nodes(registry, now_ms)
   let mut found = false
   for node in registry.nodes {
     if node.id == id {
       node.url = url
+      node.last_seen_ms = now_ms
       found = true
     }
   }
   if !found {
-    registry.nodes.push({ id, url, })
+    registry.nodes.push({ id, url, last_seen_ms: now_ms, })
   }
   @shared.log_info(
     service="gateway",
@@ -76,19 +111,24 @@ async fn handle_runner_registration(
 }
 
 ///|
+// Uploads the build to a remote node. Returns None on success, or Some(reason)
+// describing the first failure (unreadable build, or the /modules call) so the
+// caller can surface it instead of a generic marker.
 async fn ensure_runner_module(
   cfg : GatewayConfig,
   runner_url : String,
   name : String,
   build_id : String,
-) -> Bool {
+) -> String? {
   let path = cfg.data_root +
     "/functions/" +
     name +
     "/" +
     build_id +
     "/func.wasm"
-  let wasm = @fs.read_file(path).binary() catch { _ => return false }
+  let wasm = @fs.read_file(path).binary() catch {
+    _ => return Some("build not readable on gateway: \{path}")
+  }
   let policy = match path.rev_split_once("/") {
     Some((dir, _)) =>
       @fs.read_file(dir + "/policy.json").text() catch {
@@ -108,8 +148,11 @@ async fn ensure_runner_module(
       upload.to_json(),
       timeout_ms=30_000,
     ) catch {
-      _ => return false
+      err =>
+        return Some(
+          "POST \{runner_url}/modules failed: \{@debug.to_string(err)}",
+        )
     },
   )
-  true
+  None
 }

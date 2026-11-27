@@ -79,14 +79,25 @@ async fn dispatch_run(
     None => None
   }
   let (runner_url, upload_required) = select_runner(cfg)
-  if upload_required &&
-    build_id != "" &&
-    !ensure_runner_module(cfg, runner_url, name, build_id) {
-    return @shared.RunResult(
-      stdout="",
-      stderr="moonless: failed to upload module to runner",
-      exit_code=127,
-    )
+  if upload_required && build_id != "" {
+    match ensure_runner_module(cfg, runner_url, name, build_id) {
+      None =>
+        @shared.log_info(
+          service="gateway",
+          message="uploaded \{name} build=\{build_id} to runner \{runner_url}",
+        )
+      Some(reason) => {
+        @shared.log_error(
+          service="gateway",
+          message="module upload to \{runner_url} failed: \{reason}",
+        )
+        return @shared.RunResult(
+          stdout="",
+          stderr="moonless: failed to upload module to runner: \{reason}",
+          exit_code=127,
+        )
+      }
+    }
   }
   let response = @shared.http_post_json(
     runner_url + "/run",

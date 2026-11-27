@@ -78,3 +78,32 @@ async test "registered runner receives the module and selected build" {
     gateway_server.close()
   })
 }
+
+///|
+async test "a node that stops re-registering is pruned from placement" {
+  let data_root = @fs.tmpdir(prefix="moonless-gw-runners-")
+  let cfg = test_config(data_root, 65534)
+  let registry = cfg.runner_registry
+  registry.lock.acquire()
+  // One live node and one whose heartbeat is well past the TTL.
+  registry.nodes.push({
+    id: "http://live:8082",
+    url: "http://live:8082",
+    last_seen_ms: @async.now(),
+  })
+  registry.nodes.push({
+    id: "http://stale:8082",
+    url: "http://stale:8082",
+    last_seen_ms: @async.now() - 200_000L,
+  })
+  registry.lock.release()
+  // The first selection should prune the stale entry, leaving only the live
+  // node alongside the implicit node 0.
+  let (url, remote) = select_runner(cfg)
+  ignore(url)
+  ignore(remote)
+  registry.lock.acquire()
+  defer registry.lock.release()
+  assert_eq(registry.nodes.length(), 1)
+  assert_eq(registry.nodes[0].id, "http://live:8082")
+}

@@ -39,6 +39,33 @@ async test "http client helpers against a local test server" {
 }
 
 ///|
+async test "http client reports status and body when a reply is not JSON" {
+  let router = @shared.Router::new()
+  router.add(
+    @shared.route(http_method=@http.Post, pattern="/plain", handler=ctx => {
+      @shared.send_text(ctx.conn, 500, "internal error\n")
+    }),
+  )
+  let (server, port) = test_server()
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => @shared.serve_on(server, router))
+    let payload : Json = { "n": 1 }
+    try
+      @shared.http_post_json("http://127.0.0.1:\{port}/plain", payload)
+    catch {
+      @shared.HttpError(message) => {
+        // The status and body must be visible, not just "non-JSON".
+        assert_true(message.contains("500"))
+        assert_true(message.contains("internal error"))
+      }
+      _ => fail("expected HttpError")
+    } noraise {
+      _ => fail("expected a non-JSON body to raise")
+    }
+  })
+}
+
+///|
 async test "http client helper honors its timeout" {
   let router = @shared.Router::new()
   router.add(

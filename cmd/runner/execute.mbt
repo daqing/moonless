@@ -14,6 +14,9 @@ priv struct RunnerConfig {
   max_concurrency : Int32
   function_sems : Map[String, FunctionSemaphore]
   sem : @semaphore.Semaphore
+  // This node's identity as the gateway knows it (MOONLESS_RUNNER_PUBLIC_URL);
+  // stamped on every execution log so multi-node runs can be attributed.
+  node_id : String
 }
 
 ///|
@@ -33,6 +36,7 @@ fn make_runner_config(
   log_max_bytes~ : Int32 = 16 * 1024 * 1024,
   log_keep~ : Int32 = 14,
   function_env~ : Map[String, String] = Map([]),
+  node_id~ : String = "local",
 ) -> RunnerConfig {
   {
     data_root,
@@ -44,6 +48,7 @@ fn make_runner_config(
     max_concurrency,
     function_sems: Map([]),
     sem: @semaphore.Semaphore(max_concurrency),
+    node_id,
   }
 }
 
@@ -57,6 +62,9 @@ fn load_runner_config() -> RunnerConfig {
   let output_cap = env_int("MOONLESS_OUTPUT_LIMIT", 10 * 1024 * 1024)
   let log_max_bytes = env_int("MOONLESS_LOG_MAX_BYTES", 16 * 1024 * 1024)
   let log_keep = env_int("MOONLESS_LOG_KEEP", 14)
+  let node_id = @env.get_env_var("MOONLESS_RUNNER_PUBLIC_URL").unwrap_or(
+    "local",
+  )
   let function_env : Map[String, String] = Map([])
   for
     name in [
@@ -77,6 +85,7 @@ fn load_runner_config() -> RunnerConfig {
     log_max_bytes~,
     log_keep~,
     function_env~,
+    node_id~,
   )
 }
 
@@ -85,9 +94,20 @@ async fn run_function(
   cfg : RunnerConfig,
   request : @shared.RunRequest,
 ) -> @shared.RunResult {
+  let source = request.event.source_name()
+  @shared.log_info(
+    service="runner",
+    message="node=\{cfg.node_id} start name=\{request.name} source=\{source} build=\{request.build_id}",
+  )
   let result = run_steps(cfg, request) catch {
     @shared.RunError(message) => run_failed(message)
     err => run_failed(@debug.to_string(err))
+  }
+  let finish = "node=\{cfg.node_id} finish name=\{request.name} source=\{source} exit=\{result.exit_code} duration=\{result.duration_ms}ms truncated=\{result.truncated}"
+  if result.exit_code == 0 {
+    @shared.log_info(service="runner", message=finish)
+  } else {
+    @shared.log_warn(service="runner", message=finish)
   }
   append_run_log(cfg, request, result)
   result
@@ -153,6 +173,12 @@ async fn run_steps(
   cfg.sem.acquire()
   defer cfg.sem.release()
   let started = @async.now()
+  @shared.log_info(
+    service="runner",
+    message="node=\{cfg.node_id} execute name=\{request.name} module=\{module_path} timeout=\{timeout_ms}ms concurrency=\{concurrency}",
+  ) catch {
+    _ => ()
+  }
   let env : Map[String, String] = Map([])
   env["MOONLESS_EVENT"] = request.event.to_json().stringify()
   for key, value in cfg.function_env {

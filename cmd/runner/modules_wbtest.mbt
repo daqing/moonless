@@ -43,3 +43,34 @@ async test "uploaded wasm executes by build id without a local registry" {
     server.close()
   })
 }
+
+///|
+async test "an unstorable upload returns 500 with the concrete cause" {
+  // Point the data root under a regular file so mkdir/write must fail, the same
+  // shape as an unwritable MOONLESS_DATA on a host runner.
+  let base_dir = @fs.tmpdir(prefix="moonless-runner-unwritable-")
+  let blocker = base_dir + "/not-a-dir"
+  @fs.write_file(blocker, "x")
+  let data_root = blocker + "/data"
+  let (server, port) = fixture_server()
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(server, runner_router(test_config(data_root)))
+    })
+    let upload = @shared.ModuleUpload(
+      name="remote-fn",
+      build_id="b-remote",
+      wasm=@base64.encode(b"wasm"[:]),
+    )
+    let (response, data) = @http.post(
+      "http://127.0.0.1:\{port}/modules",
+      upload.to_json().stringify(),
+    )
+    assert_eq(response.code, 500)
+    // The body names the cause instead of the router's generic "internal error".
+    let body = data.text() catch { _ => "" }
+    assert_true(body.contains("cannot store module"))
+    assert_true(body.contains(data_root))
+    server.close()
+  })
+}

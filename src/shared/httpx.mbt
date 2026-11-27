@@ -273,7 +273,7 @@ pub async fn http_post_json(
   payload : Json,
   timeout_ms~ : Int32 = 10_000,
 ) -> Json raise SharedError {
-  let (_, data) = @async.with_timeout(
+  let (response, data) = @async.with_timeout(
     timeout_ms,
     () => @http.post(url, payload.stringify()),
     error=HttpError("POST \{url} timed out after \{timeout_ms}ms"),
@@ -285,6 +285,25 @@ pub async fn http_post_json(
     _ => raise HttpError("POST \{url} response body read failed")
   }
   @json.parse(text) catch {
-    _ => raise HttpError("POST \{url} returned a non-JSON body")
+    _ =>
+      raise HttpError(
+        "POST \{url} returned status \{response.code} with a non-JSON body: \{body_snippet(text)}",
+      )
   }
+}
+
+///|
+// A short, single-line excerpt of a response body for error messages, so a
+// non-JSON reply (an HTML error page, a plain-text 500, an empty body) shows
+// what actually answered instead of just "non-JSON".
+fn body_snippet(text : String) -> String {
+  let flat = text.replace_all(old="\r", new=" ").replace_all(old="\n", new=" ")
+  let trimmed = flat.trim()
+  if trimmed == "" {
+    return "<empty body>"
+  }
+  if trimmed.length() > 200 {
+    return trimmed[:200].to_owned() + "…"
+  }
+  trimmed.to_owned()
 }
