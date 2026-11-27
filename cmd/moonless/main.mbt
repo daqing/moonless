@@ -39,6 +39,7 @@ async fn cli_main(
     "deploy" => cli_deploy(server, out~)
     "list" => cli_list(flags, server, out~)
     "show" => cli_show(flags, server, out~)
+    "versions" => cli_versions(flags, server, out~)
     "delete" => cli_delete(flags, server, out~)
     "logs" => cli_logs(flags, server, out~)
     "runs" => cli_runs(flags, server, out~)
@@ -82,6 +83,10 @@ async fn print_usage(out~ : CliOut = CliOut::stdout()) -> Unit noraise {
   out.write("  moonless show <name> [--server URL]\n")
   out.write(
     "                                     show a function's manifest and build details\n",
+  )
+  out.write("  moonless versions list|clear <name> [--server URL]\n")
+  out.write(
+    "                                     list saved builds (newest first) or delete all but the active one\n",
   )
   out.write("  moonless delete <name>... [--server URL]\n")
   out.write("                                     remove deployed functions\n")

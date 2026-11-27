@@ -486,8 +486,10 @@ moonrun 的完整路径。
 
 `examples/redis-counter` 是根模块中的 executable package，直接导入
 `daqing/moonless/vendor/redis`，通过 `INCR moonless:example:counter` 计数并在
-HTTP stdout 中返回新值。它读取 `MOONLESS_REDIS_URL`，支持 `redis://host:port`
-地址；未配置时默认本机 Redis，便于本地调试。
+HTTP stdout 中返回新值。它读取 `MOONLESS_REDIS_URL`，通过
+`@redis.connect_with_url` 支持
+`redis://[[username]:[password]@]host[:port][/db]` 形式的地址；未配置时默认
+本机 Redis，便于本地调试。
 
 由于该示例直接复用根目录 vendor，`scripts/e2e_redis_counter.mbtx` 会在临时
 目录生成独立部署项目并携带同一份 driver，避免复制维护。运行前将 runner 的
@@ -592,21 +594,14 @@ runner 设置 `MOONLESS_GATEWAY_URL` 与 `MOONLESS_RUNNER_PUBLIC_URL` 后每 30 
 测试覆盖注册、轮询、上传内容、buildId 传递和无注册表 runner 执行。实际启动
 不挂 moonless-data 的第二容器后，第二次 hello 调用由该节点执行成功。
 
-## T12.6 多语言函数
-
-`moonless.toml` 新增显式 `binary = "package/local/path"`。CLI 在该模式下不再
-要求 moon.mod 或解析 MoonBit 依赖；builder 跳过 moon build，存储并 chmod
-可执行文件。RunRequest.nativeBinary 让本地/远端 runner 直接执行，默认仍为
-moonrun。路径校验拒绝绝对路径、反斜杠与 `..` 等不安全片段。
-
-测试覆盖 manifest 与 JSON、无 moon.mod 的构建、权限保留，以及 C 编译 native
-程序的直接执行。实际 Linux C 函数部署后通过 HTTP 收到正确 MOONLESS_EVENT。
-双语 README 明确其 OS/架构要求及“不经 wasm 沙箱”的信任边界。
+函数级 `[limits]` 现在由 gateway 解析并随 `RunRequest.limits` 下发，远程节点
+无需共享注册表也能执行超时与并发限制；旧 gateway 不带该字段时，runner 仍
+回退读取本地注册表。
 
 ## T12.7 CI
 
 新增 `.github/workflows/ci.yml`，在 push 和 pull request 上使用
-ubuntu-24.04，安装 `0.10.20+65efd5b93` 工具链，依次执行 `moon update`、
+ubuntu-24.04，安装 `0.10.22+124d61d05` 工具链，依次执行 `moon update`、
 `moon test`、`moon fmt --check`，并设置最小 contents:read 权限。YAML 已解析验证，
 固定工具链容器中的测试与格式检查均通过。
 
@@ -620,6 +615,31 @@ runner 测试证明空 env 策略隐藏 MOONLESS_EVENT，而 env.from_host 显�
 实际部署也得到 `event hidden` → 修改策略重新部署 → `event visible` 的对照。
 双语 README 记录 env/fs/net/process 规则、相对路径、WASI 不覆盖以及
 process.spawn 的宿主权限风险。
+
+## T12.9 max_connection 准入限制
+
+`moonless.toml` 的 `[limits]` 新增 `max_connection` 正整数配置。gateway 按函数
+统计在途 HTTP 请求，达到上限后直接返回 429 且不派发 runner；请求结束（含错误、
+超时和客户端断开）后释放槽位。与 `concurrency` 的区别是：前者在入口拒绝，后者
+在 runner 排队。仅 HTTP 触发计数，cron/S3 不受影响。
+
+测试覆盖 manifest 校验与 JSON 往返、429 拒绝，以及槽位释放后重新接纳请求。
+
+## T12.10 on-upload 的内置 S3 客户端
+
+工具链固定到 `0.10.22+124d61d05` 后，`examples/on-upload` 的服务端构建失败：
+`kaashyapan/s3@0.6.0` 依赖 `moonbitlang/async@0.20.3`，后者的 wasm 源码仍把
+trait 实现当普通方法调用，新 moonc 要求 `extend` 提升；而所有满足新编译器的
+async 版本（0.21.1 起）又把 HTTP 头类型改为 `Map[CaseInsensitiveString, String]`，
+0.6.0 无法接受。不存在同时满足两边的已发布版本。
+
+因此把 0.6.0 的源码内置到 `examples/on-upload/vendor/s3`（Apache-2.0，随附
+LICENSE 与改动说明）：请求头经 `signed_headers` 用 `CaseInsensitiveString`
+转换，`derive(...)` 改为 `#derive(...)`，`moon.pkg` 限定 wasm 并去掉未使用导入。
+示例依赖改为 sigv4/uri/async 0.22.4/x，不再引入 `kaashyapan/s3`。
+
+按 CLI 的打包规则（排除 `_build` 与 dotfiles，保留 `.mooncakes`）在干净目录中
+用 `moon build --target wasm` 复现通过，0 warning 0 error。
 
 ## 待澄清问题
 

@@ -4,7 +4,7 @@
 
 FROM reg.mindwork.cool/ubuntu:24.04
 
-ARG MOONBIT_VERSION=0.10.20+65efd5b93
+ARG MOONBIT_VERSION=0.10.22+124d61d05
 
 RUN sed -i \
       -e 's|archive.ubuntu.com|mirrors.aliyun.com|g' \

@@ -212,6 +212,12 @@ The control line must contain `status` or `headers`. Output without a valid
 control line remains unchanged. `Content-Length`, `Transfer-Encoding`, and
 `Connection` are managed by the gateway and cannot be overridden.
 
+A function that exits with a non-zero status is treated as a server failure:
+the gateway answers `500` regardless of any control line and appends the
+captured stderr to the response body, after the stdout written so far. That is
+where uncaught errors (including sandbox policy denials) surface. Timeouts are
+reported as `504` instead.
+
 ### Debug locally — platform optional
 
 Because the contract is just environment variables and standard streams,
@@ -221,24 +227,6 @@ you can run a function by hand exactly the way the platform does:
 MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
-
-## Other languages — explicit opt-in
-
-The event environment variable and stdout/stderr contract is language-agnostic.
-To deploy an existing executable instead of MoonBit source, set its package-local
-path in `moonless.toml`:
-
-```toml
-name = "native-worker"
-binary = "func"
-
-[triggers]
-http = true
-```
-
-No `moon.mod` is required in this mode. The executable must match the runner's
-OS and architecture. **Native binaries run directly without the wasm sandbox**;
-only use this opt-in for trusted functions.
 
 ## Triggers
 
@@ -352,24 +340,53 @@ audit events.
 
 ## Per-function limits
 
-Set optional timeout and concurrency overrides in `moonless.toml`:
+Set optional timeout, execution concurrency, and HTTP client admission limits
+in `moonless.toml`:
 
 ```toml
 [limits]
 timeout_ms = 5000
 concurrency = 2
+max_connection = 4
 ```
 
-Both must be positive integers. Excess calls queue, and the runner's global
-`MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY` defaults apply when a
-function has no override.
+All three must be positive integers.
+
+- `timeout_ms` kills a run that exceeds the deadline. The HTTP trigger answers
+  `504 Gateway Timeout`, and `moonless runs` / `moonless logs` show exit code
+  124.
+- `concurrency` bounds how many runs execute at once on a runner. Excess runs
+  queue there.
+- `max_connection` bounds how many HTTP requests the gateway admits at once for
+  the function. Excess clients get `429 Too Many Requests`; the function is not
+  started, so it caps queueing instead of adding more. It applies to HTTP
+  triggers only.
+
+See [`docs/max_connection_guide.md`](docs/max_connection_guide.md) for the
+enforcement path, counter scope, and deployment notes.
+
+The runner's global `MOONLESS_RUN_TIMEOUT_MS` and `MOONLESS_MAX_CONCURRENCY`
+defaults apply when a function has no override.
+
+To verify the limit against a running stack, run
+`scripts/accept_concurrency.sh bot 2 6`. It fires the requests in parallel and
+checks both the completion waves and the runner's process count.
 
 ## Sandbox policies
 
 A wasm function can name a package-local moonrun policy in `moonless.toml`:
 
 ```toml
+name = "demo"
 sandbox = "policy.json"
+
+[triggers]
+http = true
+
+[limits]
+timeout_ms = 10000
+concurrency = 2
+max_connection = 1
 ```
 
 For example, this policy permits only the event variable and denies other host
@@ -387,7 +404,7 @@ surfaces by default:
 `net.connect` controls outbound sockets and also permits the required hostname
 lookups; `net.bind` accepts IP addresses or `*`. Filesystem roots are host paths,
 with relative roots resolved from the policy file. The policy is stored and
-uploaded with each build. Native binary functions do not use this mechanism.
+uploaded with each build.
 
 This moonrun policy mode is experimental and does not cover WASI. In particular,
 `process.spawn: true` gives child processes ambient host access rather than
@@ -396,7 +413,23 @@ sandboxing them under the other policy sections.
 ## Versioning and rollback
 
 Every successful deploy keeps its wasm artifact and adds the build to the
-function's history. Roll back to the previous build with:
+function's history. List the saved builds, newest first, with their creation
+time in UTC:
+
+```bash
+moonless versions list <name>
+```
+
+Clear every saved build except the active one, deleting their artifacts and
+build directories:
+
+```bash
+moonless versions clear <name>
+```
+
+Clearing is irreversible: the removed builds can no longer be rolled back to.
+
+Roll back to the previous build with:
 
 ```bash
 moonless rollback <name>
@@ -437,7 +470,12 @@ docker run -d --network moonless_default \
 Registered nodes join round-robin placement with the default runner. The gateway
 uploads the active wasm build before each remote invocation, and runners renew
 registration every 30 seconds. Registration is in memory, so a gateway restart
-clears the node list until runners renew.
+clears the node list until runners renew. Per-function `[limits]` are resolved
+by the gateway and sent with every run, so remote nodes honor them without the
+shared registry volume.
+
+See [`docs/multi_node_guide.md`](docs/multi_node_guide.md) for the registration
+protocol, placement rules, per-node configuration, and caveats.
 
 ## Using data services
 

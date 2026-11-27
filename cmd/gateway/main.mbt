@@ -58,6 +58,13 @@ fn gateway_router(cfg : GatewayConfig) -> @shared.Router {
     ),
   )
   router.add(
+    @shared.route(
+      http_method=@http.Post,
+      pattern="/api/functions/:name/versions/clear",
+      handler=ctx => handle_clear_versions(ctx, cfg),
+    ),
+  )
+  router.add(
     @shared.route(http_method=@http.Post, pattern="/api/runners/register", handler=ctx => {
       handle_runner_registration(ctx, cfg)
     }),

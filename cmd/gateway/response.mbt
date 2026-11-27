@@ -11,6 +11,19 @@ fn plain_function_response(stdout : String) -> FunctionResponse {
 }
 
 ///|
+// Appends captured stderr to the function output, keeping the two streams
+// readable when stdout does not end with a newline.
+fn join_output(stdout : String, stderr : String) -> String {
+  if stderr == "" {
+    return stdout
+  }
+  if stdout == "" || stdout.has_suffix("\n") {
+    return stdout + stderr
+  }
+  stdout + "\n" + stderr
+}
+
+///|
 fn parse_function_response(stdout : String) -> FunctionResponse {
   let (line, body) = match stdout.split_once("\n") {
     Some((header, rest)) => (header, rest.to_owned())

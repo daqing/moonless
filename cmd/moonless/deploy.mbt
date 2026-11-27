@@ -18,10 +18,9 @@ async fn cli_deploy(
     dir
   }
   let has_mod = @fs.exists(dir + "/moon.mod") catch { _ => false }
-  let has_manifest = @fs.exists(dir + "/moonless.toml") catch { _ => false }
-  if !has_mod && !has_manifest {
+  if !has_mod {
     raise CliError(
-      "not a MoonBit project: no moon.mod in \{dir}\n(hint: use a MoonBit project or set binary explicitly)",
+      "not a MoonBit project: no moon.mod in \{dir}\n(hint: run 'moon new' to create a MoonBit project)",
     )
   }
   let manifest_source = read_text_file(dir + "/moonless.toml") catch {
@@ -35,14 +34,7 @@ async fn cli_deploy(
       raise CliError("invalid moonless.toml: \{message}")
     err => raise CliError("invalid moonless.toml: \{@debug.to_string(err)}")
   }
-  if manifest.binary is None {
-    if !has_mod {
-      raise CliError(
-        "not a MoonBit project: no moon.mod in \{dir}\n(hint: use a MoonBit project or set binary explicitly)",
-      )
-    }
-    ensure_vendored_deps(dir, out~)
-  }
+  ensure_vendored_deps(dir, out~)
   out.write("packaging \{manifest.name} ...\n")
   let archive = pack_project(dir)
   out.write("uploading to \{server} ...\n")

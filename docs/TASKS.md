@@ -303,8 +303,9 @@ Conventions:
 
 ## Step 12. Stretch (P3)
 
-- [x] **T12.1 — Per-function limits.** Timeout and concurrency settings
-  in `moonless.toml`, honored by the runner.
+- [x] **T12.1 — Per-function limits.** Timeout, execution concurrency, and
+  HTTP client admission settings in `moonless.toml`, honored by the runner
+  and gateway.
 - [x] **T12.2 — Versioning & rollback.** Keep a build history per
   function; `moonless rollback <name>` switches the active build.
 - [x] **T12.3 — HTTP response control.** A protocol for functions to
@@ -313,9 +314,6 @@ Conventions:
 - [x] **T12.4 — `logs --follow`.** Stream logs to the terminal.
 - [x] **T12.5 — Multi-node runners.** Runner registration with the
   gateway and function placement across nodes.
-- [x] **T12.6 — Multi-language functions.** Document that the contract
-  is language-agnostic; accept non-MoonBit binaries with explicit
-  opt-in.
 - [x] **T12.7 — CI.** GitHub Actions running `moon test` and
   `moon fmt --check` on push.
 - [x] **T12.8 — Sandbox policies.** Explore moonrun's experimental

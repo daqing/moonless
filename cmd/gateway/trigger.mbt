@@ -21,6 +21,17 @@ async fn handle_trigger(
       "function \{name} does not have an http trigger\n",
     )
   }
+  let connection_limit = record.manifest.limits.max_connection.unwrap_or(
+    unlimited_connections,
+  )
+  if !acquire_connection(cfg, name, connection_limit) {
+    return @shared.send_text(
+      ctx.conn,
+      429,
+      "moonless: function \{name} exceeded max_connection=\{connection_limit}\n",
+    )
+  }
+  defer release_connection(cfg, name)
   let body = ctx.body.read_all().text() catch { _ => "" }
   let query = match ctx.request.path.split_once("?") {
     Some((_, q)) => q.to_owned()
@@ -48,6 +59,20 @@ async fn handle_trigger(
   }
   if result.exit_code == 127 && result.stderr.contains("unknown function") {
     return @shared.send_text(ctx.conn, 404, "unknown function \{name}\n")
+  }
+  if result.exit_code == 124 && result.stderr.contains("timed out") {
+    return @shared.send_text(ctx.conn, 504, result.stderr)
+  }
+  // A non-zero exit means the function aborted (uncaught error, sandbox
+  // denial, ...). Treat it as a server failure and append stderr to the
+  // response body so the caller sees why the invocation died.
+  if result.exit_code != 0 {
+    let output = parse_function_response(result.stdout)
+    return @shared.send_response(
+      ctx.conn,
+      500,
+      join_output(output.body, result.stderr),
+    )
   }
   let output = parse_function_response(result.stdout)
   @shared.send_response(

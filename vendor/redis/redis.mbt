@@ -10,6 +10,8 @@ pub(all) suberror ConnectError {
   AuthFailed(String)
   /// SELECT 选择数据库失败
   SelectFailed(String)
+  /// Redis URL 格式非法
+  InvalidUrl(String)
 }
 
 ///|
@@ -64,6 +66,133 @@ pub async fn connect(
     }
   }
   client
+}
+
+///|
+/// 用 Redis URL 建立连接。
+///
+/// 支持 `redis://[[username]:[password]@]host[:port][/db]`：
+/// - 省略端口时使用 6379，省略数据库时使用默认库；
+/// - 用户名和密码中的百分号编码会自动解码；
+/// - 仅支持 `redis://`，其他 scheme 会抛出 `InvalidUrl`。
+pub async fn connect_with_url(
+  url : StringView,
+  protocol? : @socket.IpProtocolPreference,
+) -> RedisClient {
+  let parsed = parse_redis_url(url)
+  connect(
+    parsed.host,
+    port=parsed.port,
+    protocol?,
+    username?=parsed.username,
+    password?=parsed.password,
+    db?=parsed.db,
+  )
+}
+
+///|
+priv struct RedisUrl {
+  host : String
+  port : Int32
+  username : String?
+  password : String?
+  db : Int32?
+}
+
+///|
+fn parse_redis_url(url : StringView) -> RedisUrl raise ConnectError {
+  let rest : StringView = match url.strip_prefix("redis://") {
+    Some(rest) => rest
+    None => raise InvalidUrl("Redis URL must use the redis:// scheme: \{url}")
+  }
+  let (authority, path) = match rest.find("/") {
+    Some(index) => (rest[:index], Some(rest[index + 1:]))
+    None => (rest, None)
+  }
+  let (userinfo, host_port) = match authority.rev_find("@") {
+    Some(index) => (Some(authority[:index]), authority[index + 1:])
+    None => (None, authority)
+  }
+  let (username, password) = match userinfo {
+    None => (None, None)
+    Some(userinfo) => {
+      let (username, password) = match userinfo.split_once(":") {
+        Some((username, password)) => (Some(username), Some(password))
+        None => (Some(userinfo), None)
+      }
+      let username = match username {
+        Some(username) if !username.is_empty() =>
+          Some(decode_url_component(username))
+        _ => None
+      }
+      let password = match password {
+        Some(password) => Some(decode_url_component(password))
+        None => None
+      }
+      (username, password)
+    }
+  }
+  let (host, port_view) = if host_port.has_prefix("[") {
+    let close = match host_port.find("]") {
+      Some(close) => close
+      None => raise InvalidUrl("invalid IPv6 host in Redis URL: \{host_port}")
+    }
+    let suffix = host_port[close + 1:]
+    let port = if suffix.is_empty() {
+      None
+    } else if suffix.has_prefix(":") {
+      Some(suffix[1:])
+    } else {
+      raise InvalidUrl("invalid IPv6 host in Redis URL: \{host_port}")
+    }
+    (host_port[1:close], port)
+  } else {
+    match host_port.rev_find(":") {
+      Some(index) => (host_port[:index], Some(host_port[index + 1:]))
+      None => (host_port, None)
+    }
+  }
+  if host.is_empty() {
+    raise InvalidUrl("Redis URL is missing a host: \{url}")
+  }
+  let port = match port_view {
+    None => 6379
+    Some(port) =>
+      @string.parse_int(port) catch {
+        _ => raise InvalidUrl("invalid port in Redis URL: \{port}")
+      }
+  }
+  if port < 1 || port > 65535 {
+    raise InvalidUrl("port out of range in Redis URL: \{port}")
+  }
+  let db = match path {
+    None => None
+    Some(path) => {
+      let db = match path.split_once("?") {
+        Some((db, _)) => db
+        None => path
+      }
+      if db.is_empty() {
+        None
+      } else {
+        let db = @string.parse_int(db) catch {
+          _ => raise InvalidUrl("invalid database index in Redis URL: \{db}")
+        }
+        if db < 0 {
+          raise InvalidUrl("database index must not be negative: \{db}")
+        }
+        Some(db)
+      }
+    }
+  }
+  { host: host.to_owned(), port, username, password, db, }
+}
+
+///|
+fn decode_url_component(value : StringView) -> String raise ConnectError {
+  @percent.decode(value) catch {
+    _ => raise InvalidUrl("invalid percent-encoding in Redis URL: \{value}")
+  }
 }
 
 ///|

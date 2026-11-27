@@ -15,6 +15,7 @@ import {
   "moonbitlang/async/fs",
   "moonbitlang/async/http",
   "moonbitlang/async/process",
+  "moonbitlang/async/semaphore",
   "moonbitlang/async/socket",
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/env",

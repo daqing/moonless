@@ -1,8 +1,7 @@
 import {
   "daqing/moonless/vendor/redis",
-  "moonbitlang/async",
+  //"moonbitlang/async",
   "moonbitlang/core/env",
-  "moonbitlang/core/string",
 }
 
 supported_targets = "+native+wasm"

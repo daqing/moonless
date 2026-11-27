@@ -10,12 +10,15 @@ import {
 // Values
 pub async fn connect(StringView, port? : Int32, protocol? : @socket.IpProtocolPreference, username? : String, password? : String, db? : Int32) -> RedisClient
 
+pub async fn connect_with_url(StringView, protocol? : @socket.IpProtocolPreference) -> RedisClient
+
 pub fn parse_redis_response(String) -> RedisValue
 
 // Errors
 pub(all) suberror ConnectError {
   AuthFailed(String)
   SelectFailed(String)
+  InvalidUrl(String)
 }
 
 // Types and methods

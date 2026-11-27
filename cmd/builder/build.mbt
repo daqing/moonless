@@ -54,39 +54,67 @@ async fn build_steps(
       "manifest name \{manifest.name} does not match deploy name \{name}",
     )
   }
-  let source_path = match manifest.binary {
-    Some(path) => src_dir + "/" + path
-    None => {
-      if !has_entry(files, "moon.mod") {
-        raise @shared.InvalidArchive("package is missing moon.mod")
-      }
-      let (code, _, stderr) = @process.collect_output(
-        "moon",
-        ["build", "--target", "wasm"],
-        cwd=src_dir[:],
-      ) catch {
-        err =>
-          raise @shared.InvalidArchive(
-            "failed to run moon: \{@debug.to_string(err)}",
-          )
-      }
-      if code != 0 {
-        let output = stderr.text() catch { _ => "" }
-        return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
-      }
-      find_wasm_module(src_dir)
-    }
+  if !has_entry(files, "moon.mod") {
+    raise @shared.InvalidArchive("package is missing moon.mod")
   }
+  let (code, output) = run_moon_build(src_dir)
+  let (code, output) = if code == 0 || !is_stale_registry(output) {
+    (code, output)
+  } else {
+    refresh_registry(src_dir) catch {
+      _ => ()
+    }
+    run_moon_build(src_dir)
+  }
+  if code != 0 {
+    return @shared.BuildResult(ok=false, error_tail=tail(output, 2000))
+  }
+  let source_path = find_wasm_module(src_dir)
   store_artifact(
     data_root,
     name,
     build_id,
     source_path,
-    executable=manifest.binary is Some(_),
     policy_path=match manifest.sandbox {
       Some(path) => src_dir + "/" + path
       None => ""
     },
+  )
+}
+
+///|
+async fn run_moon_build(
+  src_dir : String,
+) -> (Int32, String) raise @shared.SharedError {
+  let (code, _, stderr) = @process.collect_output(
+    "moon",
+    ["build", "--target", "wasm"],
+    cwd=src_dir[:],
+  ) catch {
+    err =>
+      raise @shared.InvalidArchive(
+        "failed to run moon: \{@debug.to_string(err)}",
+      )
+  }
+  (code, stderr.text() catch { _ => "" })
+}
+
+///|
+// The image bakes a registry index at build time, so a dependency published
+// after that fails resolution until the index is refreshed.
+fn is_stale_registry(output : String) -> Bool {
+  output.contains("Failed to resolve the module dependency graph") ||
+  output.contains("was not found in the registry")
+}
+
+///|
+// Best effort: an offline builder still builds vendored packages, and a
+// failed refresh simply lets the retry report the original error.
+async fn refresh_registry(src_dir : String) -> Unit {
+  let (_code, _, _) = @process.collect_output(
+    "moon",
+    ["update"],
+    cwd=src_dir[:],
   )
 }
 
@@ -96,7 +124,6 @@ async fn store_artifact(
   name : String,
   build_id : String,
   source_path : String,
-  executable~ : Bool,
   policy_path~ : String,
 ) -> @shared.BuildResult raise @shared.SharedError {
   let artifact_dir = data_root + "/functions/" + name + "/" + build_id
@@ -113,14 +140,6 @@ async fn store_artifact(
       raise @shared.InvalidArchive(
         "failed to store artifact: \{@debug.to_string(err)}",
       )
-  }
-  if executable {
-    @fs.chmod(artifact, 0o755) catch {
-      err =>
-        raise @shared.InvalidArchive(
-          "failed to mark binary executable: \{@debug.to_string(err)}",
-        )
-    }
   }
   if policy_path != "" {
     let policy = (@fs.read_file(policy_path) catch {

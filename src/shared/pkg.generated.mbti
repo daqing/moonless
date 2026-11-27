@@ -148,8 +148,9 @@ pub fn Event::to_repr(Self) -> @debug.Repr
 pub struct FunctionLimits {
   timeout_ms : Int32?
   concurrency : Int32?
+  max_connection : Int32?
 }
-pub fn FunctionLimits::FunctionLimits(timeout_ms? : Int32?, concurrency? : Int32?) -> Self
+pub fn FunctionLimits::FunctionLimits(timeout_ms? : Int32?, concurrency? : Int32?, max_connection? : Int32?) -> Self
 pub fn FunctionLimits::to_repr(Self) -> @debug.Repr
 
 #derive(@debug.Debug)
@@ -184,10 +185,9 @@ pub struct Manifest {
   triggers : ManifestTriggers
   toolchain : String?
   limits : FunctionLimits
-  binary : String?
   sandbox : String?
 }
-pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, binary? : String, sandbox? : String) -> Self
+pub fn Manifest::Manifest(name~ : String, triggers? : ManifestTriggers, toolchain? : String, limits? : FunctionLimits, sandbox? : String) -> Self
 pub fn Manifest::from_json(@json.Json) -> Self raise SharedError
 pub fn Manifest::to_json(Self) -> @json.Json
 pub fn Manifest::to_repr(Self) -> @debug.Repr
@@ -270,9 +270,9 @@ pub struct RunRequest {
   event : Event
   env : Map[String, String]
   build_id : String
-  native_binary : Bool
+  limits : FunctionLimits?
 }
-pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String], build_id? : String, native_binary? : Bool) -> Self
+pub fn RunRequest::RunRequest(name~ : String, event~ : Event, env? : Map[String, String], build_id? : String, limits? : FunctionLimits) -> Self
 pub fn RunRequest::from_json(@json.Json) -> Self raise SharedError
 pub fn RunRequest::to_json(Self) -> @json.Json
 pub fn RunRequest::to_repr(Self) -> @debug.Repr

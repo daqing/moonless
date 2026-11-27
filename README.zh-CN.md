@@ -201,6 +201,10 @@ moonless logs hello
 `Content-Length`、`Transfer-Encoding` 和 `Connection` 由 gateway 管理，函数
 不能覆盖。
 
+函数以非零状态退出时视为服务端失败：gateway 一律返回 `500`（忽略控制行），
+并把已写入的 stdout 和收集到的 stderr 一起放进响应体，未捕获的异常（包括
+sandbox 策略拒绝）会在这里显示出来。超时仍返回 `504`。
+
 ### 本地调试——平台可缺席
 
 契约只是环境变量和标准流，所以你可以手工以平台的方式运行函数：
@@ -209,22 +213,6 @@ moonless logs hello
 MOONLESS_EVENT='{"source":"http","method":"GET","path":"/fn/hello"}' \
   moon run cmd/main --target wasm
 ```
-
-## 其他语言——显式启用
-
-事件环境变量与 stdout/stderr 契约天然与语言无关。如需部署已有的可执行文件，
-而不是 MoonBit 源码，在 `moonless.toml` 中显式设置包内相对路径：
-
-```toml
-name = "native-worker"
-binary = "func"
-
-[triggers]
-http = true
-```
-
-此模式不需要 `moon.mod`。可执行文件必须匹配 runner 的操作系统和架构。
-**原生二进制会直接执行，不经过 wasm 沙箱**；只应对受信任的函数启用。
 
 ## 触发器
 
@@ -332,23 +320,48 @@ moon run scripts/demo_s3_methods.mbtx
 
 ## 函数级限制
 
-在 `moonless.toml` 中设置可选的超时与并发覆盖值：
+在 `moonless.toml` 中设置可选的超时、执行并发和 HTTP 客户端准入限制：
 
 ```toml
 [limits]
 timeout_ms = 5000
 concurrency = 2
+max_connection = 4
 ```
 
-两者都必须是正整数。超出的调用会排队；函数未覆盖时，沿用 runner 全局的
-`MOONLESS_RUN_TIMEOUT_MS` 和 `MOONLESS_MAX_CONCURRENCY` 默认值。
+三者都必须是正整数。
+
+- `timeout_ms`：运行超过截止时间会被终止，HTTP 触发返回
+  `504 Gateway Timeout`，`moonless runs` 与 `moonless logs` 记为退出码 124。
+- `concurrency`：限制单个 runner 上同时执行的运行数，超出部分在 runner 排队。
+- `max_connection`：限制 gateway 为单个函数同时接纳的 HTTP 请求数，超出时直接
+  返回 `429 Too Many Requests`，不会启动函数，因此限制的是排队规模而不是增加
+  排队；只作用于 HTTP 触发。
+
+实现路径、计数范围和上线注意事项见
+[`docs/max_connection_guide.zh-CN.md`](docs/max_connection_guide.zh-CN.md)。
+
+函数未覆盖时，沿用 runner 全局的 `MOONLESS_RUN_TIMEOUT_MS` 和
+`MOONLESS_MAX_CONCURRENCY` 默认值。
+
+要对运行中的栈验证该限制，可运行 `scripts/accept_concurrency.sh bot 2 6`：
+脚本会并发发起请求，同时检查完成波次和 runner 的进程数。
 
 ## 沙箱策略
 
 wasm 函数可在 `moonless.toml` 中指定包内的 moonrun 策略文件：
 
 ```toml
+name = "demo"
 sandbox = "policy.json"
+
+[triggers]
+http = true
+
+[limits]
+timeout_ms = 10000
+concurrency = 2
+max_connection = 1
 ```
 
 例如，以下策略只允许读取事件变量，其他宿主能力默认拒绝：
@@ -364,14 +377,29 @@ sandbox = "policy.json"
 
 `net.connect` 控制出站连接，并允许所需的 hostname DNS 查询；`net.bind` 接受
 IP 地址或 `*`。文件系统根路径使用宿主路径，相对路径从策略文件位置解析。
-策略随每个构建保存并上传到远端 runner。原生 binary 函数不使用此机制。
+策略随每个构建保存并上传到远端 runner。
 
 moonrun 策略目前仍是实验功能，且不覆盖 WASI。特别注意，
 `process.spawn: true` 会给子进程宿主的原有权限，而不是用其他策略段限制它。
 
 ## 版本与回滚
 
-每次成功部署都会保留 wasm 产物，并把构建加入函数历史。回滚到前一个构建：
+每次成功部署都会保留 wasm 产物，并把构建加入函数历史。按从新到旧的顺序列出
+已保存的构建及其创建时间（UTC）：
+
+```bash
+moonless versions list <name>
+```
+
+清除除当前构建以外的全部已保存构建，同时删除它们的产物和构建目录：
+
+```bash
+moonless versions clear <name>
+```
+
+清除不可撤销：被删除的构建无法再回滚。
+
+回滚到前一个构建：
 
 ```bash
 moonless rollback <name>
@@ -409,7 +437,11 @@ docker run -d --network moonless_default \
 
 注册节点与默认 runner 一起参与轮询调度。gateway 会在每次远程调用前上传当前
 wasm 构建；runner 每 30 秒续注册。注册表保存在 gateway 内存中，gateway 重启后
-节点会在下一轮续注册时恢复。
+节点会在下一轮续注册时恢复。函数级 `[limits]` 由 gateway 解析并随每次运行请求
+下发，因此没有共享注册表 volume 的远程节点也会生效。
+
+注册流程、调度规则、每个节点的配置和注意事项见
+[`docs/multi_node_guide.zh-CN.md`](docs/multi_node_guide.zh-CN.md)。
 
 ## 使用数据服务
 

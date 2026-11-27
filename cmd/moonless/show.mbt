@@ -77,10 +77,6 @@ fn render_function_detail(
     Some(value) => out += "toolchain: \{value}\n"
     None => ()
   }
-  match manifest.binary {
-    Some(value) => out += "binary:    \{value}\n"
-    None => ()
-  }
   match manifest.sandbox {
     Some(value) => out += "sandbox:   \{value}\n"
     None => ()
@@ -131,6 +127,10 @@ fn render_detail_limits(limits : @shared.FunctionLimits) -> String {
   }
   match limits.concurrency {
     Some(value) => parts.push("concurrency=\{value}")
+    None => ()
+  }
+  match limits.max_connection {
+    Some(value) => parts.push("max_connection=\{value}")
     None => ()
   }
   if parts.length() == 0 {

@@ -271,8 +271,8 @@
 
 ## Step 12. 扩展项（P3）
 
-- [x] **T12.1 — 函数级限制。** `moonless.toml` 中的超时与并发配置，
-  由 runner 执行。
+- [x] **T12.1 — 函数级限制。** `moonless.toml` 中的超时、执行并发与
+  HTTP 客户端准入配置，分别由 runner 与 gateway 执行。
 - [x] **T12.2 — 版本与回滚。** 每个函数保留构建历史；
   `moonless rollback <name>` 切换生效构建。
 - [x] **T12.3 — HTTP 响应控制。** 函数设置状态码与 headers 的协议
@@ -280,8 +280,6 @@
 - [x] **T12.4 — `logs --follow`。** 日志流式输出到终端。
 - [x] **T12.5 — 多节点 runner。** runner 向 gateway 注册、跨节点部署
   函数。
-- [x] **T12.6 — 多语言函数。** 说明契约天然语言无关；显式 opt-in
-  接受非 MoonBit 二进制。
 - [x] **T12.7 — CI。** GitHub Actions 在 push 时运行 `moon test` 与
   `moon fmt --check`。
 - [x] **T12.8 — 沙箱策略。** 探索 moonrun 的实验性沙箱策略

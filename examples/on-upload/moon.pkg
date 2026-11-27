@@ -1,6 +1,5 @@
 import {
-  "kaashyapan/s3",
-  "moonbitlang/async",
+  "daqing/on-upload-fn/vendor/s3",
   "moonbitlang/core/env",
 }
 

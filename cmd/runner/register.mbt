@@ -14,7 +14,7 @@ async fn register_runner_loop(
         _ => {
           @shared.log_warn(
             service="runner",
-            message="gateway registration failed; retrying in 5s",
+            message="gateway registration failed; retrying in 30s",
           )
           Json::null()
         }

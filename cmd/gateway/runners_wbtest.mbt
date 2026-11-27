@@ -9,7 +9,13 @@ async test "registered runner receives the module and selected build" {
     cfg,
     @shared.RegistryRecord(
       name="remote-fn",
-      manifest=@shared.Manifest(name="remote-fn"),
+      manifest=@shared.Manifest(
+        name="remote-fn",
+        limits=@shared.FunctionLimits(
+          timeout_ms=Some(2500),
+          concurrency=Some(2),
+        ),
+      ),
       build_id="b-remote",
       updated_at="2026-11-05T00:00:00.000Z",
       history=["b-remote"],
@@ -64,6 +70,10 @@ async test "registered runner receives the module and selected build" {
     assert_true(uploaded.val.contains("b-remote"))
     assert_true(uploaded.val.contains("d2FzbS1ieXRlcw=="))
     assert_true(run_request.val.contains("\"buildId\":\"b-remote\""))
+    // Limits ride with the dispatch so remote nodes without the registry
+    // volume still honor them.
+    assert_true(run_request.val.contains("\"timeoutMs\":2500"))
+    assert_true(run_request.val.contains("\"concurrency\":2"))
     node_server.close()
     gateway_server.close()
   })

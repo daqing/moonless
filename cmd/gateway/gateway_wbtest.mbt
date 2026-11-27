@@ -90,6 +90,7 @@ fn test_config(data_root : String, builder_port : Int32) -> GatewayConfig {
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
+    connections: Map([]),
   }
 }
 
@@ -397,6 +398,7 @@ async test "concurrent deploys never corrupt the registry file" {
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
+    connections: Map([]),
   }
   let path = data_root + "/registry/registry.json"
   let torn_reads : Ref[Int32] = Ref(0)
@@ -524,6 +526,7 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
     }
     registry_set(
       cfg,
@@ -567,6 +570,87 @@ async test "HTTP trigger builds the event and returns stdout as 200" {
     // for anything not installed).
     let (response, _) = @http.get("http://127.0.0.1:\{gateway_port}/fn/ghost")
     assert_eq(response.code, 404)
+    // A non-zero exit is a server failure: the gateway answers 500 and keeps
+    // the captured stderr in the body so the caller sees the abort reason.
+    fake.result = @shared.RunResult(
+      stdout="waiting for 5s\n",
+      stderr="Sandbox policy blocked DNS lookup: \"host.docker.internal\"\nOSError(\"...: Permission denied\")\n",
+      exit_code=1,
+    )
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/hello-fn",
+    )
+    assert_eq(response.code, 500)
+    assert_eq(
+      body.text(),
+      "waiting for 5s\nSandbox policy blocked DNS lookup: \"host.docker.internal\"\nOSError(\"...: Permission denied\")\n",
+    )
+    runner_server.close()
+    gateway_server.close()
+  })
+}
+
+///|
+// A timed-out run is a backend failure, not a function-chosen response: the
+// gateway answers 504 with the runner's timeout message instead of the
+// partial stdout captured before the kill.
+async test "HTTP trigger maps function timeouts to 504" {
+  let (runner_server, runner_port) = fixture_server()
+  let (gateway_server, gateway_port) = fixture_server()
+  let data_root = @fs.tmpdir(prefix="moonless-gw-test-")
+  let fake = FakeRunner(
+    result=@shared.RunResult(
+      stdout="partial\n",
+      stderr="moonless: function timed out after 2000ms\n",
+      exit_code=124,
+    ),
+    last_request=Ref(""),
+    installed=Ref(["slow-fn"]),
+  )
+  @async.with_task_group(group => {
+    let cfg : GatewayConfig = {
+      data_root,
+      builder_url: "http://127.0.0.1:65534",
+      runner_url: "http://127.0.0.1:\{runner_port}",
+      registry_lock: @async.Mutex::Mutex(),
+      runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
+    }
+    registry_set(
+      cfg,
+      @shared.RegistryRecord(
+        name="slow-fn",
+        manifest=@shared.Manifest(
+          name="slow-fn",
+          triggers=@shared.ManifestTriggers(http_enabled=true),
+        ),
+        build_id="b-1",
+        updated_at="2026-10-03T00:00:00.000Z",
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(runner_server, fake_runner_router(fake))
+    })
+    group.spawn_bg(no_wait=true, () => {
+      @shared.serve_on(gateway_server, gateway_router(cfg))
+    })
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/slow-fn",
+    )
+    assert_eq(response.code, 504)
+    assert_eq(body.text(), "moonless: function timed out after 2000ms\n")
+    // A function that merely exits 124 is not a timeout; it is still a
+    // non-zero exit and maps to 500 with stderr appended.
+    fake.result = @shared.RunResult(
+      stdout="done\n",
+      stderr="custom\n",
+      exit_code=124,
+    )
+    let (response, body) = @http.get(
+      "http://127.0.0.1:\{gateway_port}/fn/slow-fn",
+    )
+    assert_eq(response.code, 500)
+    assert_eq(body.text(), "done\ncustom\n")
     runner_server.close()
     gateway_server.close()
   })
@@ -602,6 +686,7 @@ async test "HTTP trigger only dispatches functions with the http trigger" {
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
     }
     registry_set(
       cfg,
@@ -672,6 +757,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
     runner_url: "http://127.0.0.1:65534",
     registry_lock: @async.Mutex::Mutex(),
     runner_registry: RunnerRegistry::RunnerRegistry(),
+    connections: Map([]),
   }
   // Four functions: bound to uploads/put, bound to another bucket, and two
   // cron functions sharing one schedule.
@@ -752,6 +838,7 @@ async test "synthetic s3 and cron events dispatch to bound functions only" {
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(gateway_server, gateway_router(gateway_cfg))
@@ -858,6 +945,7 @@ async test "broken deploy surfaces the reason; a good deploy is callable" {
       runner_url: "http://127.0.0.1:\{runner_port}",
       registry_lock: @async.Mutex::Mutex(),
       runner_registry: RunnerRegistry::RunnerRegistry(),
+      connections: Map([]),
     }
     group.spawn_bg(no_wait=true, () => {
       @shared.serve_on(builder_server, fake_builder_router(fake_builder))
