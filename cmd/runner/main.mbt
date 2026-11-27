@@ -4,8 +4,28 @@
 // output caps.
 
 ///|
+// The port the runner binds. Defaults to 8082; MOONLESS_RUNNER_PORT lets
+// several runners share one host. The gateway still calls the node on
+// MOONLESS_RUNNER_PUBLIC_URL, so set that port to match (or to whatever
+// forwards to it).
+async fn runner_port() -> Int32 {
+  let default = 8082
+  let port = env_int("MOONLESS_RUNNER_PORT", default)
+  if port < 1 || port > 65535 {
+    @shared.log_warn(
+      service="runner",
+      message="invalid MOONLESS_RUNNER_PORT=\{port}; using \{default}",
+    )
+    return default
+  }
+  port
+}
+
+///|
 async fn main {
   let cfg = load_runner_config()
+  let port = runner_port()
+  let listen_addr = "0.0.0.0:\{port}"
   let public_url = @env.get_env_var("MOONLESS_RUNNER_PUBLIC_URL").unwrap_or("")
   let advertised = if public_url == "" {
     "<unset: not registering>"
@@ -14,14 +34,14 @@ async fn main {
   }
   @shared.log_info(
     service="runner",
-    message="listening on 0.0.0.0:8082 (advertising \{advertised})",
+    message="listening on \{listen_addr} (advertising \{advertised})",
   )
   @async.with_task_group(group => {
     let gateway_url = @env.get_env_var("MOONLESS_GATEWAY_URL").unwrap_or("")
     if gateway_url != "" && public_url != "" {
       group.spawn_bg(() => register_runner_loop(gateway_url, public_url))
     }
-    @shared.serve("0.0.0.0:8082", runner_router(cfg))
+    @shared.serve(listen_addr, runner_router(cfg))
   })
 }
 
