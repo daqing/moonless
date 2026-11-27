@@ -123,7 +123,8 @@ of these instead:
   project's default network; adjust if your Compose project name differs).
 
 - **Runner outside Docker (on the host).** The runner listens on
-  `0.0.0.0:8082`; publish/reach it from containers via the host gateway name.
+  `0.0.0.0:$MOONLESS_RUNNER_PORT` (default `8082`); publish/reach it from
+  containers via the host gateway name.
   Unlike the containerized runner, a host runner **must** set `MOONLESS_DATA` to
   a directory your user can write, because the default `/var/lib/moonless` is
   root-owned and the gateway's upload would fail with `500 moonless: cannot
@@ -143,8 +144,29 @@ of these instead:
   in the runner log, check that the `MOONLESS_DATA` directory exists and is
   writable by the user running the runner.
 
-- **Both must agree on the port.** The runner always binds `8082`; the public
-  URL must point at a host/port that forwards to it.
+  To run **several runners on one host**, give each its own
+  `MOONLESS_RUNNER_PORT`, `MOONLESS_DATA`, and matching public URL — the port in
+  `MOONLESS_RUNNER_PUBLIC_URL` must equal the listener's port (or a port that
+  forwards to it):
+
+  ```bash
+  # node A
+  MOONLESS_RUNNER_PORT=8082 MOONLESS_DATA="$HOME/.moonless/a" \
+  MOONLESS_RUNNER_PUBLIC_URL=http://host.docker.internal:8082 \
+    moon run -- cmd/runner
+
+  # node B
+  MOONLESS_RUNNER_PORT=8083 MOONLESS_DATA="$HOME/.moonless/b" \
+  MOONLESS_RUNNER_PUBLIC_URL=http://host.docker.internal:8083 \
+    moon run -- cmd/runner
+  ```
+
+  Distinct data directories matter: two runners sharing one `MOONLESS_DATA`
+  would race on the same module and log files.
+
+- **The public URL and listen port must agree.** The runner binds
+  `0.0.0.0:$MOONLESS_RUNNER_PORT` (default `8082`); `MOONLESS_RUNNER_PUBLIC_URL`
+  must point at a host/port that reaches that listener.
 
 To verify from inside the gateway container before relying on it:
 
@@ -155,7 +177,7 @@ docker compose exec gateway sh -c \
 
 The runner answers `GET /healthz` with `ok`. If that fails, the URL is not
 reachable and dispatch uploads will fail the same way. The runner also logs its
-advertised URL at startup (`listening on 0.0.0.0:8082 (advertising <url>)`), and
+advertised URL at startup (`listening on 0.0.0.0:<port> (advertising <url>)`), and
 the gateway logs each upload outcome with the node URL it used.
 
 ## Placement
@@ -252,6 +274,7 @@ Nodes are not interchangeable: each one runs with its own environment
 
 | Variable                    | Default           | Effect                                              |
 | --------------------------- | ----------------- | --------------------------------------------------- |
+| `MOONLESS_RUNNER_PORT`      | `8082`            | port the runner binds (host `0.0.0.0:<port>`)       |
 | `MOONLESS_DATA`             | `/var/lib/moonless` | module, log, and registry directory on that node  |
 | `MOONLESS_RUN_TIMEOUT_MS`   | `60000`           | default run timeout                                 |
 | `MOONLESS_MAX_CONCURRENCY`  | `8`               | global concurrent runs on the node                  |

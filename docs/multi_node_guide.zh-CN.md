@@ -112,8 +112,9 @@ failed: …`。
   `node-2` 之所以能从 `gateway` 解析，是因为两者都在 `moonless_default` 网络里
   （这是项目默认网络，Compose 项目名不同时请相应调整）。
 
-- **runner 在宿主机上（不在 Docker 里）。** runner 监听 `0.0.0.0:8082`，容器要
-  通过宿主机网关名访问它。与容器里的 runner 不同，宿主机上的 runner **必须**把
+- **runner 在宿主机上（不在 Docker 里）。** runner 监听
+  `0.0.0.0:$MOONLESS_RUNNER_PORT`（默认 `8082`），容器要通过宿主机网关名访问它。
+  与容器里的 runner 不同，宿主机上的 runner **必须**把
   `MOONLESS_DATA` 设成当前用户可写的目录，因为默认的 `/var/lib/moonless` 属于
   root，gateway 上传会失败并返回 `500 moonless: cannot store module at
   /var/lib/moonless/...: <权限错误>`：
@@ -131,8 +132,28 @@ failed: …`。
   改用网桥 IP（如 `172.17.0.1`）。如果 runner 日志里上传出现 500，请检查
   `MOONLESS_DATA` 目录是否存在，以及运行 runner 的用户是否可写。
 
-- **端口必须一致。** runner 始终绑定 `8082`，上报的 URL 必须指向能转发到该端口
-  的主机和端口。
+  要在**同一台宿主机上跑多个 runner**，给每个分配各自的 `MOONLESS_RUNNER_PORT`、
+  `MOONLESS_DATA` 和匹配的公网 URL——`MOONLESS_RUNNER_PUBLIC_URL` 里的端口必须
+  等于监听端口（或能转发到它的端口）：
+
+  ```bash
+  # 节点 A
+  MOONLESS_RUNNER_PORT=8082 MOONLESS_DATA="$HOME/.moonless/a" \
+  MOONLESS_RUNNER_PUBLIC_URL=http://host.docker.internal:8082 \
+    moon run -- cmd/runner
+
+  # 节点 B
+  MOONLESS_RUNNER_PORT=8083 MOONLESS_DATA="$HOME/.moonless/b" \
+  MOONLESS_RUNNER_PUBLIC_URL=http://host.docker.internal:8083 \
+    moon run -- cmd/runner
+  ```
+
+  数据目录必须分开：两个 runner 共用同一个 `MOONLESS_DATA` 会在同一批模块和日志
+  文件上相互争抢。
+
+- **公网 URL 与监听端口必须一致。** runner 绑定
+  `0.0.0.0:$MOONLESS_RUNNER_PORT`（默认 `8082`）；`MOONLESS_RUNNER_PUBLIC_URL`
+  必须指向能到达该监听器的主机和端口。
 
 在依赖它之前，先在 gateway 容器里验证：
 
@@ -143,7 +164,7 @@ docker compose exec gateway sh -c \
 
 runner 对 `GET /healthz` 返回 `ok`。若这一步失败，说明地址不可达，后续的模块
 上传会以同样方式失败。runner 启动日志会打印上报的地址
-（`listening on 0.0.0.0:8082 (advertising <url>)`），gateway 也会记录每次上传的
+（`listening on 0.0.0.0:<端口> (advertising <url>)`），gateway 也会记录每次上传的
 结果及其使用的节点 URL。
 
 ## 调度
@@ -230,6 +251,7 @@ runner 也会记录自己这一侧的 gateway 交互，所以上传失败无需�
 
 | 变量                        | 默认值            | 作用                                 |
 | --------------------------- | ----------------- | ------------------------------------ |
+| `MOONLESS_RUNNER_PORT`      | `8082`            | runner 绑定的端口（宿主机 `0.0.0.0:<端口>`） |
 | `MOONLESS_DATA`             | `/var/lib/moonless` | 该节点上的模块、日志和注册表目录   |
 | `MOONLESS_RUN_TIMEOUT_MS`   | `60000`           | 默认运行超时                         |
 | `MOONLESS_MAX_CONCURRENCY`  | `8`               | 节点上的全局并发运行数               |
